@@ -7,8 +7,9 @@ Deterministic Jira task recon pipeline for Claude Code. Runs **before** any plan
   ├─ six blocker checks → triage.yaml
   ├─ BLOCKED → drafts PM questions (+ screenshots when UI-related) → you post → stop
   └─ READY  → auto-chains recon-discovery
-               ├─ code surface + Gherkin contract + decree intent-check
-               ├─ routing: no-doc | amend-spec | new-spec | prd-chain | escalate
+               ├─ code surface + Gherkin behavior contract
+               ├─ routing stage: plain script (no governance) or the decree
+               │  adapter skill (opt-in) → route/routing.yaml, handoff as data
                ├─ UI defects + UI edge cases → recon-repro captures repro steps + screenshots
                └─ approval gate → prints decree handoff commands → stop
   optional: /recon:recon-report → self-contained HTML dossier of the run (private artifact)
@@ -37,17 +38,20 @@ flowchart TD
     DISP -->|READY| LOAD["recon-discovery<br>precondition: triage.yaml READY"]
     LOAD --> MAP["map code surface — file:line per claim<br>contract to reuse? test surface? edge cases?"]
     MAP --> GHERKIN["behavior contract → discovery/discovery.md<br>required + regression + OPEN scenarios"]
-    GHERKIN --> DECREE["decree index rebuild → why → intent-check"]
-    DECREE --> ROUTE["routing policy table, first match wins<br>→ discovery/routing.yaml: matched_rule + rules_not_matched + repo_commit"]
+    GHERKIN --> GOV["governance ladder — env > config > probe<br>detection alone never opts in;<br>undecided → ONE question, answer persisted"]
+    GOV --> GSEL{"governance?"}
+    GSEL -->|none| RGEN["route-generic.sh (pure script)<br>0 scenarios → direct, else brief<br>→ route/routing.yaml (handoff as data)"]
+    GSEL -->|"adapter (e.g. decree, opt-in)"| RDEC["recon-&lt;governance&gt; adapter skill<br>CLI checks + policy table<br>→ route/routing.yaml + aux-intent-check.txt"]
 
-    ROUTE --> RTRIG{"repro triggers (conditions, not vibes)<br>defect + visible UI + route ≠ no-doc?<br>OR OPEN scenario about visible UI?"}
+    RGEN --> RTRIG{"repro triggers (conditions, not vibes)<br>defect + visible UI + route not direct/no-doc?<br>OR OPEN scenario about visible UI?"}
+    RDEC --> RTRIG
     RTRIG -->|yes| REPRO["recon-repro — dev server (mock mode)<br>stated start state, numbered steps,<br>screenshot per state → repro/repro.md + exhibits/<br>failed repro = honest finding"]
     RTRIG -->|no| SPEC
     REPRO --> SPEC["discovery/spec-draft.md<br>ACs 1:1 from Gherkin · tech design ≤10 lines<br>guardrails · Manual verification (from repro/repro.md)"]
 
     SPEC --> GATE{{"human approval gate<br>OPEN decisions + approve / edit / reject"}}
-    GATE -->|reject| REJ["gate.rejected recorded → STOP"]
-    GATE -->|approve| HAND["gate: block written to routing.yaml<br>print handoff (never execute):<br>no-doc · amend-spec · new-spec · prd-chain"]
+    GATE -->|reject| REJ["discovery/gate.yaml records the reject → STOP"]
+    GATE -->|approve| HAND["gate recorded in discovery/gate.yaml<br>handoff printed VERBATIM from<br>route/routing.yaml (data, never recomposed)"]
     HAND --> HALT2(["STOP — implementation is a NEW session<br>via /decree:ddd from the routed phase"])
 
     HALT1 -.->|"on demand"| REPORT["recon-report — fixed template,<br>no new facts, screenshots embedded<br>→ report/dossier.html + private artifact"]
@@ -57,7 +61,7 @@ flowchart TD
     classDef judge fill:#fef9c3,stroke:#ca8a04,color:#713f12
     classDef human fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
     classDef stop fill:#f3f4f6,stroke:#6b7280,color:#374151
-    class S0,FETCH,PART,POST,DECREE,ROUTE,RTRIG,HAND,REPORT rail
+    class S0,FETCH,PART,POST,GOV,GSEL,RGEN,RDEC,RTRIG,HAND,REPORT rail
     class CHECKS,DISP,MAP,GHERKIN,DRAFT,REPRO,SPEC judge
     class UIQ,GATE human
     class HALT1,HALT2,REJ stop
@@ -85,7 +89,7 @@ Full machine-readable spec of stages, invariants, artifacts, and triggers: [reco
    chmod 600 ~/.config/jira/env
    ```
 
-2. **decree CLI** (optional but recommended) — powers the governance routing (`decree intent-check`). Without it, discovery records `governance: none` and routes without rule 1.
+2. **decree CLI** (optional) — enables the decree governance adapter. Without it (or with `governance=none` in `~/.config/recon/config`), routing runs on the generic rail and no decree vocabulary appears anywhere.
 3. **gh CLI, logged in** — used by triage's conflict check (open PR scan). Degrades gracefully if absent.
 
 ## Skills
@@ -93,20 +97,26 @@ Full machine-readable spec of stages, invariants, artifacts, and triggers: [reco
 | Skill | Stage | What it does |
 |---|---|---|
 | `/recon:recon-triage` | 0 | Blocker verdict (READY/BLOCKED/NEEDS_INFO) from six mechanical checks; drafts owner-addressed questions; never plans |
-| `/recon:recon-discovery` | 1 | Code surface with `file:line` evidence, Gherkin behavior contract, deterministic decree routing, approval gate |
+| `/recon:recon-discovery` | 1 | Code surface with `file:line` evidence, Gherkin behavior contract, routing via the governance adapter or generic rail, approval gate |
 | `/recon:recon-repro` | on demand | Live-reproduces observable behavior: numbered steps + one screenshot per state; honest about failed repros |
 | `/recon:recon-report` | on demand | Renders the run's artifacts into a designed HTML dossier (fixed template, no new facts) published as a private artifact |
+| `recon-decree` | adapter | Decree governance adapter — invoked by discovery only when governance resolves to `decree`; ALL decree vocabulary lives here |
 
 ## I/O contract
 
 | Skill | Input | Writes (all under `~/.claude/recon/<TICKET>/`) | External side effects |
 |---|---|---|---|
 | `recon-triage` | ticket ID/URL | root `meta.yaml` + `index.md` (step-0 script); `triage/{ticket.json, triage.yaml, aux-<slug>.json}`; on posting `triage/jira/{comment.txt, post-result.json, attach-result.json}`; prior runs archived to `runs/<timestamp>/` | at most one Jira comment (marker-signed) — drafted first, sent only after your explicit approval |
-| `recon-discovery` | ticket ID (READY triage) | `discovery/{discovery.md, routing.yaml, spec-draft.md}` | none — prints decree handoff commands, never executes them |
+| `recon-discovery` | ticket ID (READY triage) | `discovery/{discovery.md, spec-draft.md, gate.yaml}` | none — quotes the handoff verbatim from `route/routing.yaml`, never executes it |
+| routing stage | governance resolution | `route/routing.yaml` (route, rule trace, `handoff:` as data); adapter also writes `route/aux-intent-check.txt` | none — produced by `scripts/route-generic.sh` or the `recon-decree` adapter |
 | `recon-repro` | ticket ID + claim | `repro/repro.md` + `repro/exhibits/*.png` | none (local only: boots the dev server, shows screenshots) |
 | `recon-report` | ticket ID (run exists) | `report/dossier.html` | publishes one **private** artifact (dossier URL); never posts to Jira |
 
 Nothing is ever pushed, committed, or posted anywhere without an explicit per-action approval. Jira gets at most one short comment per stage — edited on re-runs (detected by the `recon-triage` marker line), never appended.
+
+## Governance is opt-in (decree or nothing at all)
+
+Whether a run routes through decree is resolved by a ladder, most explicit wins: `RECON_GOVERNANCE` env (this run) → `~/.config/recon/config` `governance=none|decree|auto` (your standing choice) → the probe (decree CLI + `decree.toml`). **Detection alone never opts you in**: the first time decree is found with no recorded choice, you get exactly one question, and the answer is persisted. Developers who choose `none` (or never had decree) run the whole pipeline without seeing a single piece of decree vocabulary — all of it lives in the `recon-decree` adapter skill, and `lint-workspace.sh` greps every artifact to prove no leakage. Adapter convention for other governance systems: a sibling skill named `recon-<governance>` with the same contract.
 
 ## Deterministic re-runs
 

@@ -20,7 +20,7 @@ Turns the current-run artifacts of `~/.claude/recon/<TICKET>/` into one designed
 1. **NO NEW FACTS.** The dossier is a *view*, not a re-derivation. Every claim, number, link, and caption MUST trace to a workspace artifact. You may compress wording; you MUST NOT add findings, opinions, severity judgments, or links that no artifact contains. A template slot with no source artifact reads `None` or `not run — <reason from artifacts>` — never invented content. Judgment is confined to exactly two places: the headline sentence and the lede.
 2. **Fixed template.** Fill the `«SLOT: …»` markers of the `template.html` shipped next to this SKILL.md. Do NOT redesign, restyle, reorder sections, or drop the instruction comments' constraints. Same seven facts slots, same order, every dossier.
 3. **NEVER read `runs/`.** The dossier documents the current run only. Prior runs are invisible (pipeline invariant 3).
-4. **Pin code links mechanically.** GitHub links use the commit from `routing.yaml` `evidence.repo_commit`. If that field is absent, write file paths as plain `code` (or `.pathcopy` buttons) with the footer noting `unpinned` — NEVER guess a SHA or link to a branch.
+4. **Pin code links mechanically.** GitHub links use the commit from `route/routing.yaml` `evidence.repo_commit`. If that field is absent, write file paths as plain `code` (or `.pathcopy` buttons) with the footer noting `unpinned` — NEVER guess a SHA or link to a branch.
 5. **Self-contained page.** Screenshots are embedded as `data:` URIs (external hosts are blocked by the artifact CSP). Recompress each PNG to JPEG before embedding: `sips -s format jpeg -s formatOptions 72 --resampleWidth 1600 <in>.png --out <tmp>.jpg` (fall back to the raw PNG only when `sips` is unavailable and the file is < 300 KB). Keep the final page under ~3 MB.
 6. **Private by default.** Publish, print the URL, stop. Sharing the link is the user's action — never post the URL to Jira or anywhere else.
 7. **BLOCKED runs get dossiers too.** Chips show the real disposition; discovery/repro/gate sections read `not run` with the reason; the handoff block shows the re-entry instruction. Do not skip the report because the pipeline stopped early.
@@ -32,17 +32,17 @@ Turns the current-run artifacts of `~/.claude/recon/<TICKET>/` into one designed
 | Template slot | Source (verbatim facts) |
 |---|---|
 | TICKET, Jira URL | `meta.yaml` ticket + `JIRA_HOST` from `~/.config/jira/env` |
-| Verdict chips | `triage.yaml` disposition · `repro.md` outcome · `routing.yaml` route/matched_rule · `gate.approved` |
+| Verdict chips | `triage/triage.yaml` disposition · `repro/repro.md` outcome · `route/routing.yaml` route/matched_rule · `discovery/gate.yaml` approved |
 | headline + lede | judgment (rule 1) — facts only from `triage.yaml`/`discovery.md` |
-| Seven facts: Verdict / Where / Reuse / Scope / Decided / Open / Next | `triage.yaml` + repro outcome · root-cause `file:line` from `discovery.md` · `routing.yaml` `evidence.reuses_existing_contract` · `evidence.blast_radius` · `gate.open_scenario_resolutions` · open items/findings · route + handoff |
-| repo_commit link, footer | `routing.yaml` `evidence.repo_commit`, `meta.yaml` plugin_version + started |
+| Seven facts: Verdict / Where / Reuse / Scope / Decided / Open / Next | `triage/triage.yaml` + repro outcome · root-cause `file:line` from `discovery/discovery.md` · `route/routing.yaml` `evidence.reuses_existing_contract` · `evidence.blast_radius` · `discovery/gate.yaml` resolutions · open items/findings · route + verbatim handoff |
+| repo_commit link, footer | `route/routing.yaml` `evidence.repo_commit`, `meta.yaml` plugin_version + started |
 | Pipeline stages 0–5 | `meta.yaml` (step 0), each stage's directory; a missing stage directory ⇒ `not run — <reason>` |
 | Six-checks table | `triage.yaml` checks + matching `evidence:` lines, one row each |
 | Cross-checks table | `triage.yaml` `status_drift`, `stale_blocker_note` |
-| Discovery body + excerpts | `discovery.md`, `routing.yaml` (incl. `rules_not_matched` if quoted) |
+| Discovery body + excerpts | `discovery/discovery.md`, `route/routing.yaml` (incl. `rules_not_matched` if quoted) |
 | Repro env + exhibits | `repro/repro.md` start state + numbered steps as captions; `repro/exhibits/<n>-<slug>.png` in step order |
-| Decision cards | `routing.yaml` `gate:` block |
-| Handoff block | the route's printed handoff commands (recon-discovery report), or the BLOCKED re-entry line |
+| Decision cards | `discovery/gate.yaml` |
+| Handoff block | `route/routing.yaml` `handoff:` — VERBATIM (it is data, never recomposed), or the BLOCKED re-entry line |
 
 ## Workflow
 

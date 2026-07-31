@@ -25,7 +25,8 @@ while IFS= read -r f; do
     meta.yaml | index.md) ;;
     triage/ticket.json | triage/triage.yaml | triage/aux-*.json) ;;
     triage/jira/comment.txt | triage/jira/post-result.json | triage/jira/attach-result.json) ;;
-    discovery/discovery.md | discovery/routing.yaml | discovery/spec-draft.md) ;;
+    discovery/discovery.md | discovery/spec-draft.md | discovery/gate.yaml) ;;
+    route/routing.yaml | route/aux-intent-check.txt) ;;
     repro/repro.md | repro/exhibits/*.png) ;;
     report/dossier.html) ;;
     *)
@@ -34,6 +35,22 @@ while IFS= read -r f; do
       ;;
   esac
 done < <(find "$DIR" -type f ! -path "$DIR/runs/*" | sort)
+
+# Vocabulary fence: when this run resolved governance to "none", no artifact may
+# contain governance-system vocabulary — the developer opted out (or never opted
+# in) and must not see it. Verified by grep, not by trust.
+RY="$DIR/route/routing.yaml"
+if [ -f "$RY" ] && grep -qE '^[[:space:]]*governance: none$' "$RY"; then
+  while IFS= read -r f; do
+    rel="${f#"$DIR"/}"
+    hits="$( { grep -nIiE '\bdecree\b' "$f" 2>/dev/null || true; grep -nIE '\bSPEC\b|\bPRD\b|\bADR\b' "$f" 2>/dev/null || true; } | head -3 )"
+    if [ -n "$hits" ]; then
+      echo "FENCE VIOLATION: $rel contains governance vocabulary despite governance: none —"
+      printf '%s\n' "$hits" | sed 's/^/    /'
+      violations=$((violations + 1))
+    fi
+  done < <(find "$DIR" -type f ! -path "$DIR/runs/*" | sort)
+fi
 
 if [ "$violations" -eq 0 ]; then
   echo "lint: clean — $checked file(s), all registered"

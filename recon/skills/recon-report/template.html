@@ -251,7 +251,8 @@
            TRIAGE: READY (good) | BLOCKED (bad) | NEEDS_INFO (accent)
            BUG: REPRODUCED LIVE (bad) — only when repro ran and reproduced
            ROUTE: <ROUTE> (RULE <n>) (accent) — only when discovery ran
-           GATE: APPROVED (good) | REJECTED (bad) | NOT REACHED (plain, no class) -->
+           GATE: APPROVED (good) | REJECTED (bad) | NOT REACHED (plain, no class)
+           (gate facts from discovery/gate.yaml; route facts from route/routing.yaml) -->
     </div>
   </header>
 
@@ -271,7 +272,7 @@
       <div><dt>Open</dt><dd></dd></div>
       <div><dt>Next</dt><dd></dd></div>
     </dl>
-    <p class="facts-note">Seven slots, same order, every dossier. A slot with nothing to report reads <em>None</em>. Each fact carries a coordinate, and every coordinate is a link. Line numbers are pinned to commit <!-- «SLOT: repo_commit link» — from routing.yaml evidence.repo_commit; if absent, write "unpinned (repo_commit not recorded)" and use plain paths, no GitHub links -->.</p>
+    <p class="facts-note">Seven slots, same order, every dossier. A slot with nothing to report reads <em>None</em>. Each fact carries a coordinate, and every coordinate is a link. Line numbers are pinned to commit <!-- «SLOT: repo_commit link» — from route/routing.yaml evidence.repo_commit; if absent, write "unpinned (repo_commit not recorded)" and use plain paths, no GitHub links -->.</p>
   </section>
 
   <section>
@@ -347,8 +348,8 @@
     <p class="kicker">Stage 4 &middot; Gate</p>
     <h2>Decisions</h2>
     <div class="decisions">
-      <!-- «SLOT: decision cards» — one .decision per gate.open_scenario_resolutions entry
-           plus one for the package verdict (approved/rejected + gate.rejected reason).
+      <!-- «SLOT: decision cards» — one .decision per discovery/gate.yaml open_scenario_resolutions entry
+           plus one for the package verdict (gate.yaml approved/rejected + reason).
            <div class="decision"><h4>…</h4><p>…</p></div>
            If the gate was not reached: a single card saying why (BLOCKED → comment posted / not posted). -->
     </div>
@@ -357,7 +358,7 @@
   <section id="handoff">
     <p class="kicker">Stage 5 &middot; Handoff</p>
     <h2>Next commands (printed, not executed)</h2>
-    <pre><code><!-- «SLOT: handoff block» — the route's handoff commands verbatim from the discovery report;
+    <pre><code><!-- «SLOT: handoff block» — route/routing.yaml handoff: VERBATIM (data, never recomposed);
 if the pipeline stopped at BLOCKED: the re-entry line (re-run recon-triage when answers arrive) --></code></pre>
   </section>
 

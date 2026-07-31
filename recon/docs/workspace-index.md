@@ -74,13 +74,10 @@ must-not-change regression behaviors, and any OPEN scenarios (edge cases the
 code allows but no one has decided) with A/B/C options phrased as user-observable
 outcomes. Implementers verify their work against these scenarios.
 
-### `discovery/routing.yaml`
-**The governance decision, mechanically derived.** Which route the policy table
-matched (`no-doc | amend-spec | new-spec | prd-chain | escalate`), the matched
-rule, why every other rule did *not* match, the evidence (decree intent-check
-output, blast radius, the contract to reuse as `file:line`), `repo_commit` (the
-git HEAD that pins every line-number claim), and the `gate:` block recording the
-human's approval and OPEN-scenario decisions.
+### `discovery/gate.yaml`
+The human approval record: whether the package was approved, when, every
+OPEN-scenario decision the gate resolved, and — on a reject — the reason. The
+gate is discovery's act, so its record lives here, separate from routing.
 
 ### `discovery/spec-draft.md`
 The implementer's brief — self-sufficient by contract: acceptance criteria derived
@@ -89,6 +86,26 @@ integration guardrails (conflicting PRs), and a **Manual verification** section
 with the start state and numbered steps to reach the affected surface (copied from
 `repro/repro.md`; states why, if repro could not run). An implementing session
 should need nothing else.
+
+---
+
+## `route/` — the routing stage (present after discovery routed)
+
+### `route/routing.yaml`
+**The implementation path, mechanically derived — and the handoff as data.**
+Which route the routing stage chose, the matched rule, why every other rule did
+*not* match, how governance was resolved (`governance` + `governance_source` —
+the developer's standing choice always outranks detection), `brief_kind` (what
+kind of brief discovery must draft), `repo_commit` (the git HEAD that pins every
+line-number claim), and `handoff:` — the exact next commands, which every
+consumer quotes verbatim and never rewrites. Produced by a plain script when no
+governance system is in play, or by the team's governance adapter skill when one
+is; the adapter's vocabulary appears only in runs that chose it.
+
+### `route/aux-intent-check.txt`
+Raw output of the governance adapter's check command — present only when an
+adapter ran. The `evidence` lines in `routing.yaml` quote from it; this file
+makes them auditable in full.
 
 ---
 
