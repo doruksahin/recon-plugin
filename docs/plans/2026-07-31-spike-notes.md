@@ -46,4 +46,40 @@ v0.6.0); it is the ticket's single recon marker comment either way.
 
 ## Task 2 — Spike B: PDF render decision
 
-(pending)
+Run 2026-07-31, local only (no Jira calls).
+
+- **Fixture rendered:** `~/.claude/recon/ATT-5047/report.html` — a real **filled** dossier
+  (title "ATT-5047 — Recon Dossier", 1.1 MB, 5 embedded JPEG exhibits as `data:` URIs).
+  No workspace contains a file literally named `dossier.html`; ATT-5047's `report.html`
+  is the same artifact under the older filename, and it is a current-run file (not under
+  `runs/`). The unfilled template fallback was not needed.
+- **Command that worked** (exact command from the plan):
+
+  ```bash
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+    --headless --disable-gpu --print-to-pdf=<out>.pdf \
+    --no-pdf-header-footer "file://$HOME/.claude/recon/ATT-5047/report.html"
+  ```
+
+- **Result of the exact command:** 6 pages, 538 KB. Everything *visible* renders cleanly —
+  light "paper" theme (headless Chrome prints the light scheme), verdict chips, seven-slot
+  table, stage timeline, evidence tables, callouts all intact; page breaks land readably.
+  **But the dossier's five `<details class="fold">` sections print collapsed**, so the PDF
+  contains only their one-line summaries and silently drops: all 5 exhibit screenshots,
+  the triage six-checks evidence table, the discovery code excerpts, the six Gherkin
+  scenarios, and the routing rules table. That is most of the dossier's evidentiary content.
+
+- **`PDF: rejected — the exact Chrome command drops all exhibit screenshots and four other
+  evidence sections (they live inside collapsed `<details>` folds, which print closed);
+  missing content fails the adoption rule. Size and visible-layout quality were fine
+  (538 KB, 6 pages, no broken sections among what did print).**
+
+- Secondary data point (informational, does not change the decision): a variant with
+  `open` force-added to every `<details class="fold">` prints everything — 12 pages,
+  1.49 MB, all 5 exhibits full-width and readable — with only minor right-edge clipping
+  of a few wide `<pre>` lines (Gherkin comments, decree intent-check paths), since
+  `overflow-x: auto` blocks cannot scroll on paper. Adopting PDF would therefore require
+  mutating the dossier HTML (or a print stylesheet + template change forcing folds open
+  and wrapping code), not "this exact Chrome command" — out of scope for v0.7.0.
+  **Consequence for later tasks: skip the "(PDF variant)" branches; the ticket gets the
+  HTML dossier.**
