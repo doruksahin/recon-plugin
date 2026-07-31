@@ -27,6 +27,7 @@ Read-only blocker triage: decides READY / BLOCKED / NEEDS_INFO for a Jira ticket
 Parse the ticket ID from the argument (accepts `ATT-1234` or a full `https://<host>/browse/ATT-1234` URL). Credentials live in `~/.config/jira/env` (`JIRA_HOST`, `JIRA_EMAIL`, `JIRA_API_TOKEN`). Note: `JIRA_HOST` may include the `https://` prefix — strip it:
 
 ```bash
+mkdir -p ~/.claude/recon/<TICKET>
 set -a && source ~/.config/jira/env && set +a
 HOST="${JIRA_HOST#https://}"; HOST="${HOST%/}"
 curl -sS -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \

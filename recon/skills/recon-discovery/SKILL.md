@@ -45,7 +45,7 @@ decree why <candidate files>
 decree intent-check --plan "<one-line candidate plan>" --files <candidate files>
 ```
 
-If the repo has no `decree.toml`, record `governance: none` and route with rule 1 unavailable.
+If the `decree` CLI is not installed or the repo has no `decree.toml`, record `governance: none` and route with rule 1 unavailable — do not treat this as an error.
 
 ### 5. Route via the policy table (top-down, first match wins)
 
