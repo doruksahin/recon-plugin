@@ -15,6 +15,7 @@ Design formula (all changes must preserve it): **judgment stays in the model but
 | 1 | Blocker triage | recon-triage | ticket ID/URL | `READY` → stage 2 (auto-chain, unless user said "triage only") · `BLOCKED`/`NEEDS_INFO` → comment gate → **STOP** |
 | 2 | Code discovery | recon-discovery | `triage.yaml` with `disposition: READY` | routed + gated → **STOP** (handoff printed, never executed) |
 | R | Live repro | recon-repro | invoked by stage 1 or 2 per trigger table | `repro.md` + screenshots, or an honest failure finding |
+| D | Dossier | recon-report | on demand only, after any STOP (current run exists) | `report.html` + one private artifact URL |
 
 **STOP is a real state.** The pipeline never implements, branches, or edits repo code. After stage 2 approval, implementation belongs to a NEW session entered via the printed handoff (`/decree:ddd`). After a BLOCKED stop, re-entry is a fresh `recon-triage <TICKET>` run once answers arrive.
 
@@ -45,9 +46,10 @@ All under `~/.claude/recon/<TICKET>/`. Producer → consumers.
 | `triage.yaml` | triage | discovery precondition, humans | schema in recon-triage SKILL.md |
 | `comment.txt` / `post-result.json` / `attach-result.json` | triage (on posting path) | audit | draft saved BEFORE gate; responses after POST |
 | `discovery.md` | discovery | gate, implementer verification | Gherkin: required + regression + OPEN scenarios |
-| `routing.yaml` | discovery | handoff, `/decree:ddd` | route + matched_rule + rules_not_matched + `gate:` block |
+| `routing.yaml` | discovery | handoff, `/decree:ddd`, recon-report | route + matched_rule + rules_not_matched + `gate:` block + `evidence.repo_commit` (pins every `file:line` claim) |
 | `spec-draft.md` | discovery | implementer session | ACs 1:1 from Gherkin + Manual verification section |
-| `repro.md` + `repro-<n>-<slug>.png` | repro | gate questions, spec-draft Manual verification, PR "before" evidence | numbered, human-re-runnable |
+| `repro.md` + `repro-<n>-<slug>.png` | repro | gate questions, spec-draft Manual verification, PR "before" evidence, recon-report exhibits | numbered, human-re-runnable |
+| `report.html` | recon-report | humans (published as a private artifact) | a VIEW over the rows above — no new facts, fixed template |
 
 ## Trigger table (mechanical — no judgment)
 
@@ -60,6 +62,7 @@ All under `~/.claude/recon/<TICKET>/`. Producer → consumers.
 | Comment edit-vs-create | any fetched comment contains `recon-triage` | EDIT the most recent one; never create a second |
 | Answered-blocker detection | human comment posted after a marker comment | counts as replying to its questions |
 | Step-0 re-invocation | `meta.yaml` younger than 30 min | script prints `SKIPPED`; continue the current run |
+| Dossier | never automatic — user asks, or a stage's report mentions it | recon-report renders the fixed template from current-run artifacts; publishes private |
 
 ## Rails vs judgment
 

@@ -83,6 +83,7 @@ routing:
     product_decision_open: <bool>
     reuses_existing_contract: "<file:line of the contract, or false>"
     blast_radius: "<n change files + n test files>"
+    repo_commit: "<git rev-parse HEAD of the target repo at discovery time — pins every file:line claim; recon-report links against it>"
   rules_not_matched:
     rule_X: "<one-line reason>"
   gate:                       # written at step 7, AFTER the gate resolves
@@ -158,6 +159,7 @@ Wrote: ~/.claude/recon/<TICKET>/discovery.md, routing.yaml, spec-draft.md
 Route: <route> (rule <n>) → ddd <phase>
 Open decisions resolved at gate: <n>
 Next: <the route's handoff block above | rejected — reason recorded in routing.yaml, re-run instructions above>
+Optional: /recon:recon-report <TICKET> — shareable HTML dossier of this run (private artifact)
 ```
 
 ---

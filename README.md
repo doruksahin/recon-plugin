@@ -11,6 +11,7 @@ Deterministic Jira task recon pipeline for Claude Code. Runs **before** any plan
                ├─ routing: no-doc | amend-spec | new-spec | prd-chain | escalate
                ├─ UI defects + UI edge cases → recon-repro captures repro steps + screenshots
                └─ approval gate → prints decree handoff commands → stop
+  optional: /recon:recon-report → self-contained HTML dossier of the run (private artifact)
 ```
 
 Your touchpoints per ticket: answer the gate, review the PR. That's it.
@@ -49,11 +50,14 @@ flowchart TD
     GATE -->|approve| HAND["gate: block written to routing.yaml<br>print handoff (never execute):<br>no-doc · amend-spec · new-spec · prd-chain"]
     HAND --> HALT2(["STOP — implementation is a NEW session<br>via /decree:ddd from the routed phase"])
 
+    HALT1 -.->|"on demand"| REPORT["recon-report — fixed template,<br>no new facts, screenshots embedded<br>→ report.html + private artifact"]
+    HALT2 -.->|"on demand"| REPORT
+
     classDef rail fill:#dbeafe,stroke:#2563eb,color:#1e3a5f
     classDef judge fill:#fef9c3,stroke:#ca8a04,color:#713f12
     classDef human fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
     classDef stop fill:#f3f4f6,stroke:#6b7280,color:#374151
-    class S0,FETCH,PART,POST,DECREE,ROUTE,RTRIG,HAND rail
+    class S0,FETCH,PART,POST,DECREE,ROUTE,RTRIG,HAND,REPORT rail
     class CHECKS,DISP,MAP,GHERKIN,DRAFT,REPRO,SPEC judge
     class UIQ,GATE human
     class HALT1,HALT2,REJ stop
@@ -91,6 +95,7 @@ Full machine-readable spec of stages, invariants, artifacts, and triggers: [reco
 | `/recon:recon-triage` | 0 | Blocker verdict (READY/BLOCKED/NEEDS_INFO) from six mechanical checks; drafts owner-addressed questions; never plans |
 | `/recon:recon-discovery` | 1 | Code surface with `file:line` evidence, Gherkin behavior contract, deterministic decree routing, approval gate |
 | `/recon:recon-repro` | on demand | Live-reproduces observable behavior: numbered steps + one screenshot per state; honest about failed repros |
+| `/recon:recon-report` | on demand | Renders the run's artifacts into a designed HTML dossier (fixed template, no new facts) published as a private artifact |
 
 ## I/O contract
 
@@ -99,6 +104,7 @@ Full machine-readable spec of stages, invariants, artifacts, and triggers: [reco
 | `recon-triage` | ticket ID/URL | `meta.yaml`, `ticket.json`, `triage.yaml`, auxiliary `aux-<slug>.json` fetches; on posting: `comment.txt`, `post-result.json`, `attach-result.json`; prior-run artifacts archived to `runs/<timestamp>/` | at most one Jira comment (marker-signed) — drafted first, sent only after your explicit approval |
 | `recon-discovery` | ticket ID (READY triage) | `discovery.md`, `routing.yaml`, `spec-draft.md` | none — prints decree handoff commands, never executes them |
 | `recon-repro` | ticket ID + claim | `repro.md` + `repro-*.png` | none (local only: boots the dev server, shows screenshots) |
+| `recon-report` | ticket ID (run exists) | `report.html` | publishes one **private** artifact (dossier URL); never posts to Jira |
 
 Nothing is ever pushed, committed, or posted anywhere without an explicit per-action approval. Jira gets at most one short comment per stage — edited on re-runs (detected by the `recon-triage` marker line), never appended.
 
