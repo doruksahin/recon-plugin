@@ -9,7 +9,7 @@ Turns an abstract claim or question ("selecting a hidden collection produces a t
 ## Contract
 
 - **Input:** ticket ID + the claim/question to make concrete
-- **Reads:** `~/.claude/recon/<TICKET>/` artifacts, the running app's UI
+- **Reads:** current-run artifacts in `~/.claude/recon/<TICKET>/` (never `runs/`), the running app's UI
 - **Writes:** `~/.claude/recon/<TICKET>/repro.md` + `repro-<n>-<slug>.png`
 - **Local side effects:** starts the project's dev server (preview tools, mock mode preferred); renders the screenshots to the user's screen (SendUserFile)
 - **External side effects:** NONE — never touches Jira or the repo.
@@ -24,6 +24,7 @@ Turns an abstract claim or question ("selecting a hidden collection produces a t
 4. **Steps MUST be numbered and re-runnable by a human** — each step is one user action on a named, visible element ("click the eye icon on Collection3's row"), never a code operation.
 5. **Human-facing language**: user-observable outcomes only; internal identifiers (service/method/prop names) are BANNED from repro.md and question text.
 6. **Use the Browser pane preview tools** (`preview_start` with a launch.json entry) to run the dev server — NEVER Bash.
+7. **NEVER read archived runs.** `~/.claude/recon/<TICKET>/runs/` holds prior-run artifacts — you MUST NOT open, list, or reuse anything under it, including old screenshots. Every screenshot and step you reference must be produced this run (rule 1).
 
 ---
 

@@ -50,11 +50,15 @@ Your touchpoints per ticket: answer the gate, review the PR. That's it.
 
 | Skill | Input | Writes (all under `~/.claude/recon/<TICKET>/`) | External side effects |
 |---|---|---|---|
-| `recon-triage` | ticket ID/URL | `ticket.json`, `triage.yaml` | at most one Jira comment — drafted first, sent only after your explicit approval |
+| `recon-triage` | ticket ID/URL | `meta.yaml`, `ticket.json`, `triage.yaml`; prior-run artifacts archived to `runs/<timestamp>/` | at most one Jira comment (marker-signed) — drafted first, sent only after your explicit approval |
 | `recon-discovery` | ticket ID (READY triage) | `discovery.md`, `routing.yaml`, `spec-draft.md` | none — prints decree handoff commands, never executes them |
 | `recon-repro` | ticket ID + claim | `repro.md` + `repro-*.png` | none (local only: boots the dev server, shows screenshots) |
 
-Nothing is ever pushed, committed, or posted anywhere without an explicit per-action approval. Jira gets at most one short comment per stage — edited on re-runs, never appended.
+Nothing is ever pushed, committed, or posted anywhere without an explicit per-action approval. Jira gets at most one short comment per stage — edited on re-runs (detected by the `recon-triage` marker line), never appended.
+
+## Deterministic re-runs
+
+Every triage run starts from a clean workspace: step 0 archives all prior artifacts into `~/.claude/recon/<TICKET>/runs/<timestamp>/` and stamps the new run with `meta.yaml` (plugin version + start time). No skill may read anything under `runs/` — the only inputs are the live Jira API, git, and `gh`. Recon's own Jira comments carry a marker line and are excluded from all evidence checks, so a run is never influenced by the output of a previous (possibly older-versioned) run.
 
 ## Principles baked in
 

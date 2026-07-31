@@ -9,7 +9,7 @@ Maps the code surface for a triaged-READY ticket, writes an evidence-backed beha
 ## Contract
 
 - **Input:** ticket ID (precondition: `~/.claude/recon/<TICKET>/triage.yaml` with `disposition: READY`)
-- **Reads:** the target repo (read-only), `decree why` / `decree intent-check` output
+- **Reads:** the target repo (read-only), `decree why` / `decree intent-check` output, current-run artifacts in `~/.claude/recon/<TICKET>/` (never `runs/`)
 - **Writes:** `~/.claude/recon/<TICKET>/{discovery.md, routing.yaml, spec-draft.md}` (plus `decree index rebuild` refreshing decree's own index)
 - **External side effects:** NONE. Never posts to Jira without explicit user approval; after the gate it PRINTS handoff commands, never executes them.
 - **May invoke:** `recon:recon-repro` (OPEN scenarios about visible UI), `recon:recon-triage` (missing or stale triage)
@@ -26,6 +26,7 @@ Maps the code surface for a triaged-READY ticket, writes an evidence-backed beha
 6. **The approval gate is mandatory.** Present the package via AskUserQuestion (including any OPEN scenario decisions) and STOP after approval with printed handoff commands. Implementation belongs to a different session.
 7. **Human-facing questions MUST be concrete.** Gate questions and OPEN scenarios must be answerable without reading code: numbered repro steps from a stated start state (e.g. the project's mock-mode dev command, which page), concrete entity names from the running system, before/after state, and options phrased as user-observable outcomes ("the tab appears and becomes selected"), never code outcomes ("activeTab is set"). Internal identifiers are BANNED from question text — they belong in the evidence tables, not the question. If an OPEN scenario concerns observable UI behavior, invoke the `recon:recon-repro` skill to attach visual evidence BEFORE presenting the gate.
 8. **NEVER post to Jira without explicit approval in this session** — same rule as triage. Discovery normally posts nothing; if a short status comment is ever warranted, draft it, ask via AskUserQuestion, and POST only on an explicit yes.
+9. **NEVER read archived runs.** `~/.claude/recon/<TICKET>/runs/` holds artifacts from prior runs (possibly produced by older skill versions) — you MUST NOT open, list, or cite anything under it. Consume only the current-run artifacts in the flat `~/.claude/recon/<TICKET>/` directory; a current run is one whose `meta.yaml` exists alongside `triage.yaml`.
 
 ---
 
