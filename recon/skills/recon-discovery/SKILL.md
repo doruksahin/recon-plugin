@@ -84,6 +84,11 @@ routing:
     blast_radius: "<n change files + n test files>"
   rules_not_matched:
     rule_X: "<one-line reason>"
+  gate:                       # written at step 7, AFTER the gate resolves
+    approved: true | false
+    date: YYYY-MM-DD
+    open_scenario_resolutions: {}   # {scenario_key: "<chosen option> — <user-observable summary>"}
+    rejected: "<user's reason — only present on Reject>"
 ```
 
 ### 6. Draft the next document
@@ -98,7 +103,7 @@ Present via AskUserQuestion:
 - One question per OPEN scenario decision (options A/B/C with a recommendation).
 - One question for the package itself: `Approve / Edit / Reject`.
 
-**NEVER proceed past a Reject.** On Edit, apply the edits to the artifacts and re-present. On Reject: record the reason in `routing.yaml` (`rejected: "<user's reason>"`), then print `Next: fix what the rejection names and re-run /recon:recon-discovery <TICKET>; if the ticket itself is wrong, re-run /recon:recon-triage <TICKET> or raise it with the reporter` — and STOP.
+**NEVER proceed past a Reject.** After the gate, record the outcome in `routing.yaml`'s `gate:` block (schema above): `approved`, `date`, and every OPEN-scenario resolution. On Edit, apply the edits to the artifacts and re-present. On Reject: set `gate.approved: false` with `gate.rejected: "<user's reason>"`, then print `Next: fix what the rejection names and re-run /recon:recon-discovery <TICKET>; if the ticket itself is wrong, re-run /recon:recon-triage <TICKET> or raise it with the reporter` — and STOP.
 
 ### 8. Handoff (after approval — print, don't execute)
 

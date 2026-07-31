@@ -10,7 +10,7 @@ Read-only blocker triage: decides READY / BLOCKED / NEEDS_INFO for a Jira ticket
 
 - **Input:** ticket ID or URL (`ATT-1234` / `https://<host>/browse/ATT-1234`)
 - **Reads:** Jira API (GET only), local git branches + `gh pr list` (read-only), ticket links via WebFetch
-- **Writes:** `~/.claude/recon/<TICKET>/{meta.yaml, ticket.json, triage.yaml}`, plus auxiliary GET results as `<what>.json` (e.g. `children.json`); when a comment is posted: `comment.txt` (exact posted body), `post-result.json` (API response), `attach-result.json` (attachment uploads). Prior-run artifacts are archived into `~/.claude/recon/<TICKET>/runs/<timestamp>/` (step 0). No other files — an undeclared artifact is a contract violation.
+- **Writes:** `~/.claude/recon/<TICKET>/{meta.yaml, ticket.json, triage.yaml}`, plus auxiliary GET results as `aux-<slug>.json` (e.g. `aux-children.json`, `aux-confluence.json`); when a comment is posted: `comment.txt` (exact posted body), `post-result.json` (API response), `attach-result.json` (attachment uploads). Prior-run artifacts are archived into `~/.claude/recon/<TICKET>/runs/<timestamp>/` (step 0). No other files — an undeclared artifact is a contract violation.
 - **External side effects:** NONE by default. The only possible one: a single Jira comment (create, or edit of a prior recon comment) — always drafted first, sent ONLY after explicit user approval in this session.
 - **May invoke:** `recon:recon-discovery` (on READY), `recon:recon-repro` (UI-related blocker questions)
 
@@ -25,7 +25,7 @@ Read-only blocker triage: decides READY / BLOCKED / NEEDS_INFO for a Jira ticket
 5. **On READY, auto-chain:** immediately invoke the `recon:recon-discovery` skill (Skill tool) in the same run — unless the user said "triage only".
 6. **Triage decides; it never plans.** NEVER include implementation direction, candidate code changes, or governance decisions ("no SPEC needed") in triage output. That authority belongs to later stages.
 7. **Human-facing questions MUST be concrete.** Every question in a drafted comment must be answerable without reading code: numbered repro steps from a stated start state (e.g. the project's mock-mode dev command, which page), concrete entity names from the running system ("Collection3", not "a collection"), the before and after state, and options phrased as user-observable outcomes ("the tab appears and becomes selected"), never code outcomes ("activeTab is set"). Internal identifiers (service/method/prop names) are BANNED from human-facing questions. If a question concerns observable UI behavior, invoke the `recon:recon-repro` skill to attach visual evidence BEFORE presenting the draft.
-8. **Fresh workspace, every run.** Step 0 archives all prior artifacts into `runs/<timestamp>/` BEFORE anything else — no exceptions, no "resume". You MUST NEVER open, list, or cite anything under `runs/` — the only inputs to triage are the live Jira API, git, `gh`, and resources fetched this run. Prior recon artifacts are the output of an older run (possibly an older skill version), never evidence.
+8. **Fresh workspace, every run — and step 0 runs exactly ONCE per run.** Step 0 archives all prior artifacts into `runs/<timestamp>/` BEFORE anything else — no exceptions, no "resume". NEVER re-invoke it mid-run: it would archive this run's own in-progress artifacts (the script guards this and prints `SKIPPED`; treat that as "continue, workspace is already initialized" — never set `RECON_STEP0_FORCE` mid-run). You MUST NEVER open, list, or cite anything under `runs/` — the only inputs to triage are the live Jira API, git, `gh`, and resources fetched this run. Prior recon artifacts are the output of an older run (possibly an older skill version), never evidence.
 9. **Recon's own Jira comments are output, not evidence.** Every comment recon posts ends with the marker line `~recon-triage v<plugin_version>~` (version from `meta.yaml`). When reading ticket comments, any comment whose body contains `recon-triage` is pipeline output: it MUST NOT count toward `outcome_decidable`, `product_decision_open`, or any other check. Marker comments are used for exactly two things: (a) edit-vs-create — if one exists, edit the most recent instead of adding another; (b) answered-blocker detection — a human comment posted after a marker comment counts as a reply to its questions.
 
 ---
@@ -110,7 +110,8 @@ Disposition rule: any of checks 2–5 failing with an unanswered owner-question 
 Print:
 
 ```
-Wrote: ~/.claude/recon/<TICKET>/ticket.json, triage.yaml
+Step 0: <the script's `archived:` output line, verbatim>
+Wrote: ~/.claude/recon/<TICKET>/meta.yaml, ticket.json, triage.yaml
 Disposition: <READY|BLOCKED|NEEDS_INFO> (<n> blockers, <n> conflicts)
 Next: <one of:
   READY    → recon:recon-discovery invoked (running now)

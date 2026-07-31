@@ -17,6 +17,24 @@ esac
 DIR="$HOME/.claude/recon/$TICKET"
 mkdir -p "$DIR"
 
+# Once-per-run guard: a triage run invokes this script exactly once. A second
+# invocation minutes later is almost certainly the same run re-entering step 0
+# — archiving would destroy the run's own in-progress artifacts (observed on
+# ATT-5047, 2026-07-31). A genuine new run within the window can force it.
+META="$DIR/meta.yaml"
+if [ -f "$META" ] && [ "${RECON_STEP0_FORCE:-0}" != "1" ]; then
+  NOW="$(date +%s)"
+  MT="$(stat -f %m "$META" 2>/dev/null || stat -c %Y "$META" 2>/dev/null || echo 0)"
+  AGE=$(( NOW - MT ))
+  if [ "$AGE" -lt 1800 ]; then
+    echo "workspace: $DIR"
+    echo "archived: SKIPPED — step 0 already ran ${AGE}s ago (once-per-run guard); continuing the current run"
+    echo "stamped: existing meta.yaml kept ($(sed -n 's/^plugin_version: \(.*\)$/plugin_version: \1/p' "$META"))"
+    echo "note: only if this is genuinely a NEW run, re-invoke with RECON_STEP0_FORCE=1"
+    exit 0
+  fi
+fi
+
 archived="nothing (fresh workspace)"
 if [ -n "$(find "$DIR" -maxdepth 1 -mindepth 1 ! -name runs -print -quit)" ]; then
   TS="$(date +%Y%m%d-%H%M%S)"
