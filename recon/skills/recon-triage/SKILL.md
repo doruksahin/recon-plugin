@@ -99,7 +99,13 @@ Print:
 ```
 Wrote: ~/.claude/recon/<TICKET>/ticket.json, triage.yaml
 Disposition: <READY|BLOCKED|NEEDS_INFO> (<n> blockers, <n> conflicts)
-Next: <recon:recon-discovery invoked | drafted comment awaiting your decision>
+Next: <one of:
+  READY    → recon:recon-discovery invoked (running now)
+  BLOCKED  → comment posted; pipeline paused. When answers arrive, re-run
+             /recon:recon-triage <TICKET> — the stale-blocker check re-evaluates
+             answered questions automatically.
+  BLOCKED  → comment NOT posted (your choice); raise the questions yourself,
+             then re-run /recon:recon-triage <TICKET>.>
 ```
 
 ---

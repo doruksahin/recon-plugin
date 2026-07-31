@@ -97,16 +97,43 @@ Present via AskUserQuestion:
 - One question per OPEN scenario decision (options A/B/C with a recommendation).
 - One question for the package itself: `Approve / Edit / Reject`.
 
-**NEVER proceed past a Reject.** On Edit, apply the edits to the artifacts and re-present.
+**NEVER proceed past a Reject.** On Edit, apply the edits to the artifacts and re-present. On Reject: record the reason in `routing.yaml` (`rejected: "<user's reason>"`), then print `Next: fix what the rejection names and re-run /recon:recon-discovery <TICKET>; if the ticket itself is wrong, re-run /recon:recon-triage <TICKET> or raise it with the reporter` — and STOP.
 
 ### 8. Handoff (after approval — print, don't execute)
 
+Print the block matching `routing.route`:
+
+**new-spec**
 ```
 Next:
 → decree new spec "<title>"        # fill from spec-draft.md, then decree lint
-→ /decree:ddd                      # will report Phase <n> and drive implementation
-→ implementation session brief: ~/.claude/recon/<TICKET>/spec-draft.md
+→ /decree:ddd                      # picks up at Phase 3 and drives implementation
+→ implementation brief: ~/.claude/recon/<TICKET>/spec-draft.md
 ```
+
+**amend-spec**
+```
+Next:
+→ add the acceptance-criteria checkboxes from spec-draft.md to <SPEC-id>
+  (update its `governs:` list if the candidate files aren't covered), then decree lint
+→ /decree:ddd                      # picks up at Phase 4 — the new unchecked items
+```
+
+**prd-chain**
+```
+Next:
+→ /decree:prd                      # problem statement already drafted in ~/.claude/recon/<TICKET>/
+→ /decree:ddd                      # drives Phase 1→2→3 from there
+```
+
+**no-doc**
+```
+Next:
+→ implement directly; reference <TICKET> in the commit message
+→ verify against the scenarios in ~/.claude/recon/<TICKET>/discovery.md
+```
+
+**escalate** — no handoff of its own: the gate decision selected one of the routes above; print that route's block.
 
 ---
 
@@ -118,7 +145,7 @@ Print:
 Wrote: ~/.claude/recon/<TICKET>/discovery.md, routing.yaml, spec-draft.md
 Route: <route> (rule <n>) → ddd <phase>
 Open decisions resolved at gate: <n>
-Next: <handoff commands above>
+Next: <the route's handoff block above | rejected — reason recorded in routing.yaml, re-run instructions above>
 ```
 
 ---
