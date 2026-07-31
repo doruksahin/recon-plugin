@@ -9,7 +9,7 @@ Deterministic Jira task recon pipeline for Claude Code. Runs **before** any plan
   └─ READY  → auto-chains recon-discovery
                ├─ code surface + Gherkin contract + decree intent-check
                ├─ routing: no-doc | amend-spec | new-spec | prd-chain | escalate
-               ├─ UI edge cases → recon-repro captures repro steps + screenshots
+               ├─ UI defects + UI edge cases → recon-repro captures repro steps + screenshots
                └─ approval gate → prints decree handoff commands → stop
 ```
 
@@ -66,3 +66,4 @@ Every triage run starts from a clean workspace: step 0 runs `recon-triage/script
 - No prose unknowns: every unknown is resolved by a command or becomes a question with a named owner.
 - Human-facing questions are concrete: numbered repro steps, real entity names, user-observable outcomes; internal identifiers banned.
 - Recon describes, the routing table decides, the human confirms, decree executes.
+- Every visible-UI defect ships with a reproduce-the-bug path: discovery invokes recon-repro for the primary scenario (mechanical trigger: defect + visible UI + not no-doc), and `spec-draft.md` always carries a Manual verification section — start state, numbered steps, BEFORE/AFTER — so the implementer never re-derives how to reach the surface.
