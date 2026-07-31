@@ -10,7 +10,7 @@ Read-only blocker triage: decides READY / BLOCKED / NEEDS_INFO for a Jira ticket
 
 - **Input:** ticket ID or URL (`ATT-1234` / `https://<host>/browse/ATT-1234`)
 - **Reads:** Jira API (GET only), local git branches + `gh pr list` (read-only), ticket links via WebFetch
-- **Writes:** `~/.claude/recon/<TICKET>/{meta.yaml, ticket.json, triage.yaml}`; archives all prior-run artifacts into `~/.claude/recon/<TICKET>/runs/<timestamp>/` (step 0)
+- **Writes:** `~/.claude/recon/<TICKET>/{meta.yaml, ticket.json, triage.yaml}`, plus auxiliary GET results as `<what>.json` (e.g. `children.json`); when a comment is posted: `comment.txt` (exact posted body), `post-result.json` (API response), `attach-result.json` (attachment uploads). Prior-run artifacts are archived into `~/.claude/recon/<TICKET>/runs/<timestamp>/` (step 0). No other files — an undeclared artifact is a contract violation.
 - **External side effects:** NONE by default. The only possible one: a single Jira comment (create, or edit of a prior recon comment) — always drafted first, sent ONLY after explicit user approval in this session.
 - **May invoke:** `recon:recon-discovery` (on READY), `recon:recon-repro` (UI-related blocker questions)
 
@@ -34,23 +34,13 @@ Read-only blocker triage: decides READY / BLOCKED / NEEDS_INFO for a Jira ticket
 
 ### 0. Fresh workspace (mandatory, before anything else)
 
-Every run starts from an empty workspace — prior artifacts are archived mechanically, never inspected. Run exactly this (only substituting the ticket ID):
+Every run starts from an empty workspace — prior artifacts are archived mechanically, never inspected. Run the step-0 script; NEVER reimplement it inline (byte-identical execution is the point):
 
 ```bash
-TICKET=<TICKET>
-DIR=~/.claude/recon/$TICKET
-mkdir -p "$DIR"
-if [ -n "$(find "$DIR" -maxdepth 1 -mindepth 1 ! -name runs -print -quit)" ]; then
-  TS=$(date +%Y%m%d-%H%M%S)
-  mkdir -p "$DIR/runs/$TS"
-  find "$DIR" -maxdepth 1 -mindepth 1 ! -name runs -exec mv {} "$DIR/runs/$TS/" \;
-fi
-V=$(command ls ~/.claude/plugins/cache/recon-plugin/recon/ 2>/dev/null | sort -V | tail -1)
-printf 'skill: recon-triage\nplugin_version: %s\nstarted: %s\nticket: %s\n' \
-  "${V:-unknown}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$TICKET" > "$DIR/meta.yaml"
+bash "<skill base dir>/scripts/fresh-workspace.sh" <TICKET>
 ```
 
-(`find`-based on purpose — `ls`/`grep` may be aliased or wrapped in a user's shell, which makes their exit codes unreliable.)
+`<skill base dir>` is the "Base directory for this skill" path shown when this skill loaded. The script archives everything (dotfiles included) into `runs/<timestamp>/` and stamps `meta.yaml` with the plugin version; quote its three output lines in your progress note. If the script is missing, STOP and report a broken plugin install — do not improvise a replacement.
 
 After this the workspace contains ONLY `meta.yaml` and (possibly) `runs/`. From here on, `runs/` does not exist for you (rule 8).
 
@@ -110,7 +100,7 @@ Disposition rule: any of checks 2–5 failing with an unanswered owner-question 
 
 ### 4. Branch on disposition
 
-- **BLOCKED / NEEDS_INFO** → draft a Jira comment: ≤15 lines, one line per blocker phrased as a specific question with a named owner, plus any split-scope recommendation, ending with the marker line `~recon-triage v<plugin_version from meta.yaml>~` (rule 9). Show the draft, then AskUserQuestion: `Post to Jira now / Edit first / Don't post`. On "post": if the fetched comments already contain a marker comment, EDIT the most recent one via the API; otherwise CREATE — never add a second marker comment. POST **only** after an explicit "post" answer. Then STOP — the pipeline for this ticket ends until answers arrive.
+- **BLOCKED / NEEDS_INFO** → draft a Jira comment: ≤15 lines, one line per blocker phrased as a specific question with a named owner, plus any split-scope recommendation, ending with the marker line `~recon-triage v<plugin_version from meta.yaml>~` (rule 9). Save the draft to `comment.txt` BEFORE showing it, then AskUserQuestion: `Post to Jira now / Edit first / Don't post`. On "post": if the fetched comments already contain a marker comment, EDIT the most recent one via the API; otherwise CREATE — never add a second marker comment. POST **only** after an explicit "post" answer; save the API response to `post-result.json` (and any attachment-upload responses to `attach-result.json`). Then STOP — the pipeline for this ticket ends until answers arrive.
 - **READY** → invoke the `recon:recon-discovery` skill now (rule 5 above).
 
 ---
