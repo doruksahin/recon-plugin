@@ -46,7 +46,15 @@ Your touchpoints per ticket: answer the gate, review the PR. That's it.
 | `/recon:recon-discovery` | 1 | Code surface with `file:line` evidence, Gherkin behavior contract, deterministic decree routing, approval gate |
 | `/recon:recon-repro` | on demand | Live-reproduces observable behavior: numbered steps + one screenshot per state; honest about failed repros |
 
-Artifacts land in `~/.claude/recon/<TICKET>/` (triage.yaml, discovery.md, routing.yaml, spec-draft.md, repro.md + screenshots). Jira gets at most one short comment per stage — edited on re-runs, never appended.
+## I/O contract
+
+| Skill | Input | Writes (all under `~/.claude/recon/<TICKET>/`) | External side effects |
+|---|---|---|---|
+| `recon-triage` | ticket ID/URL | `ticket.json`, `triage.yaml` | at most one Jira comment — drafted first, sent only after your explicit approval |
+| `recon-discovery` | ticket ID (READY triage) | `discovery.md`, `routing.yaml`, `spec-draft.md` | none — prints decree handoff commands, never executes them |
+| `recon-repro` | ticket ID + claim | `repro.md` + `repro-*.png` | none (local only: boots the dev server, shows screenshots) |
+
+Nothing is ever pushed, committed, or posted anywhere without an explicit per-action approval. Jira gets at most one short comment per stage — edited on re-runs, never appended.
 
 ## Principles baked in
 

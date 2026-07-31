@@ -6,6 +6,14 @@ description: Stage 1 code discovery and governance routing for a READY ticket. U
 
 Maps the code surface for a triaged-READY ticket, writes an evidence-backed behavior contract, and routes it deterministically into decree (amend-spec / new-spec / prd-chain). Ends at the human approval gate — never at code.
 
+## Contract
+
+- **Input:** ticket ID (precondition: `~/.claude/recon/<TICKET>/triage.yaml` with `disposition: READY`)
+- **Reads:** the target repo (read-only), `decree why` / `decree intent-check` output
+- **Writes:** `~/.claude/recon/<TICKET>/{discovery.md, routing.yaml, spec-draft.md}` (plus `decree index rebuild` refreshing decree's own index)
+- **External side effects:** NONE. Never posts to Jira without explicit user approval; after the gate it PRINTS handoff commands, never executes them.
+- **May invoke:** `recon:recon-repro` (OPEN scenarios about visible UI), `recon:recon-triage` (missing or stale triage)
+
 ---
 
 ## ⚠️ CRITICAL: Rules
@@ -17,6 +25,7 @@ Maps the code surface for a triaged-READY ticket, writes an evidence-backed beha
 5. **Routing MUST come from the policy table below**, emitted as `routing.yaml` with `matched_rule` AND `rules_not_matched` (with reasons). NEVER route by feel.
 6. **The approval gate is mandatory.** Present the package via AskUserQuestion (including any OPEN scenario decisions) and STOP after approval with printed handoff commands. Implementation belongs to a different session.
 7. **Human-facing questions MUST be concrete.** Gate questions and OPEN scenarios must be answerable without reading code: numbered repro steps from a stated start state (e.g. the project's mock-mode dev command, which page), concrete entity names from the running system, before/after state, and options phrased as user-observable outcomes ("the tab appears and becomes selected"), never code outcomes ("activeTab is set"). Internal identifiers are BANNED from question text — they belong in the evidence tables, not the question. If an OPEN scenario concerns observable UI behavior, invoke the `recon:recon-repro` skill to attach visual evidence BEFORE presenting the gate.
+8. **NEVER post to Jira without explicit approval in this session** — same rule as triage. Discovery normally posts nothing; if a short status comment is ever warranted, draft it, ask via AskUserQuestion, and POST only on an explicit yes.
 
 ---
 

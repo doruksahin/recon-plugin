@@ -6,6 +6,14 @@ description: Stage 0 blocker triage for a Jira ticket before any planning. Use w
 
 Read-only blocker triage: decides READY / BLOCKED / NEEDS_INFO for a Jira ticket, with evidence, before any planning or code work happens.
 
+## Contract
+
+- **Input:** ticket ID or URL (`ATT-1234` / `https://<host>/browse/ATT-1234`)
+- **Reads:** Jira API (GET only), local git branches + `gh pr list` (read-only), ticket links via WebFetch
+- **Writes:** `~/.claude/recon/<TICKET>/ticket.json`, `~/.claude/recon/<TICKET>/triage.yaml`
+- **External side effects:** NONE by default. The only possible one: a single Jira comment (create, or edit of a prior recon comment) — always drafted first, sent ONLY after explicit user approval in this session.
+- **May invoke:** `recon:recon-discovery` (on READY), `recon:recon-repro` (UI-related blocker questions)
+
 ---
 
 ## ⚠️ CRITICAL: Rules
@@ -89,7 +97,7 @@ Disposition rule: any of checks 2–5 failing with an unanswered owner-question 
 Print:
 
 ```
-Wrote: ~/.claude/recon/<TICKET>/triage.yaml
+Wrote: ~/.claude/recon/<TICKET>/ticket.json, triage.yaml
 Disposition: <READY|BLOCKED|NEEDS_INFO> (<n> blockers, <n> conflicts)
 Next: <recon:recon-discovery invoked | drafted comment awaiting your decision>
 ```

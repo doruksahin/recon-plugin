@@ -6,6 +6,14 @@ description: Reproduce an observable app behavior live and capture numbered repr
 
 Turns an abstract claim or question ("selecting a hidden collection produces a tab value with no tab") into evidence a human can verify in 60 seconds: a stated start state, numbered steps, and a screenshot per state — written to the ticket's recon workspace.
 
+## Contract
+
+- **Input:** ticket ID + the claim/question to make concrete
+- **Reads:** `~/.claude/recon/<TICKET>/` artifacts, the running app's UI
+- **Writes:** `~/.claude/recon/<TICKET>/repro.md` + `repro-<n>-<slug>.png`
+- **Local side effects:** starts the project's dev server (preview tools, mock mode preferred); renders the screenshots to the user's screen (SendUserFile)
+- **External side effects:** NONE — never touches Jira or the repo.
+
 ---
 
 ## ⚠️ CRITICAL: Rules
