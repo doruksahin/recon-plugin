@@ -193,7 +193,8 @@ Expected: MANIFEST + ZIP lines print; zip lists `meta.yaml`, `triage/triage.yaml
 # Deletes prior attachments named recon-*-<TICKET>.* on the issue, uploads the
 # given files, writes triage/jira/attach-result.json (deleted ids + upload
 # responses). Needs ~/.config/jira/env and python3. Run BEFORE posting the
-# comment so [^filename] links resolve. Exit 0 ok, 1 API failure, 2 usage.
+# comment so [^filename] links resolve (duplicate names resolve to the OLDER
+# attachment — verified). Exit 0 ok, 1 API failure, 2 usage/missing input.
 set -euo pipefail
 
 TICKET="${1:?usage: attach-artifacts.sh <TICKET-ID> <file>...}"; shift
@@ -202,6 +203,7 @@ case "$TICKET" in
   *[!A-Za-z0-9-]* | "") echo "invalid ticket id: $TICKET" >&2; exit 2 ;;
 esac
 for f in "$@"; do [ -f "$f" ] || { echo "no such file: $f" >&2; exit 2; }; done
+[ -f "$HOME/.config/jira/env" ] || { echo "no credentials: ~/.config/jira/env" >&2; exit 2; }
 
 set -a; . "$HOME/.config/jira/env"; set +a
 HOST="${JIRA_HOST#https://}"; HOST="${HOST%/}"
@@ -229,6 +231,7 @@ while IFS= read -r id; do
     -X DELETE "https://$HOST/rest/api/2/attachment/$id")
   echo "deleted: $id HTTP $code"
   printf '%s %s\n' "$id" "$code" >> "$TMP/deleted.txt"
+  [ "$code" = "204" ] || { echo "delete failed: $id HTTP $code" >&2; exit 1; }
 done < "$TMP/stale-ids.txt"
 
 # 3. Upload the new files
