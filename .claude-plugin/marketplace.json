@@ -1,0 +1,13 @@
+{
+  "name": "recon-plugin",
+  "owner": {
+    "name": "doruk"
+  },
+  "plugins": [
+    {
+      "name": "recon",
+      "source": "./recon",
+      "description": "Deterministic Jira task recon pipeline: blocker triage → code discovery → decree routing, with live visual evidence"
+    }
+  ]
+}
