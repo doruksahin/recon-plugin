@@ -15,6 +15,52 @@ Deterministic Jira task recon pipeline for Claude Code. Runs **before** any plan
 
 Your touchpoints per ticket: answer the gate, review the PR. That's it.
 
+## Flow
+
+Color legend — **blue**: mechanical rails (scripted/table-driven, no model freedom) · **yellow**: model judgment (must leave `file:line` / HTTP / quote evidence) · **red**: human gates (pipeline stops without you).
+
+```mermaid
+flowchart TD
+    START(["/recon:recon-triage TICKET"]) --> S0["step 0 — fresh-workspace.sh<br>archive prior run → runs/&lt;ts&gt;/<br>stamp meta.yaml (once per run)"]
+    S0 --> FETCH["fetch ticket — Jira GET v2<br>ticket.json + aux-&lt;slug&gt;.json"]
+    FETCH --> PART["partition comments<br>marker ~recon-triage~ = pipeline output, excluded<br>human comments = evidence"]
+    PART --> CHECKS["six checks + cross-checks<br>one evidence line per claim"]
+    CHECKS --> DISP{"disposition<br>triage.yaml"}
+
+    DISP -->|"BLOCKED / NEEDS_INFO"| DRAFT["draft comment ≤15 lines<br>owner-addressed questions, marker-signed<br>→ comment.txt"]
+    DRAFT --> UIQ{{"human: post / edit / don't post"}}
+    UIQ -->|post| POST["edit existing marker comment or create<br>→ post-result.json, attach-result.json"]
+    POST --> HALT1(["STOP — resume when answers arrive:<br>re-run recon-triage"])
+    UIQ -->|"don't post"| HALT1
+
+    DISP -->|READY| LOAD["recon-discovery<br>precondition: triage.yaml READY"]
+    LOAD --> MAP["map code surface — file:line per claim<br>contract to reuse? test surface? edge cases?"]
+    MAP --> GHERKIN["behavior contract → discovery.md<br>required + regression + OPEN scenarios"]
+    GHERKIN --> DECREE["decree index rebuild → why → intent-check"]
+    DECREE --> ROUTE["routing policy table, first match wins<br>→ routing.yaml: matched_rule + rules_not_matched"]
+
+    ROUTE --> RTRIG{"repro triggers (conditions, not vibes)<br>defect + visible UI + route ≠ no-doc?<br>OR OPEN scenario about visible UI?"}
+    RTRIG -->|yes| REPRO["recon-repro — dev server (mock mode)<br>stated start state, numbered steps,<br>screenshot per state → repro.md<br>failed repro = honest finding"]
+    RTRIG -->|no| SPEC
+    REPRO --> SPEC["spec-draft.md<br>ACs 1:1 from Gherkin · tech design ≤10 lines<br>guardrails · Manual verification (from repro.md)"]
+
+    SPEC --> GATE{{"human approval gate<br>OPEN decisions + approve / edit / reject"}}
+    GATE -->|reject| REJ["gate.rejected recorded → STOP"]
+    GATE -->|approve| HAND["gate: block written to routing.yaml<br>print handoff (never execute):<br>no-doc · amend-spec · new-spec · prd-chain"]
+    HAND --> HALT2(["STOP — implementation is a NEW session<br>via /decree:ddd from the routed phase"])
+
+    classDef rail fill:#dbeafe,stroke:#2563eb,color:#1e3a5f
+    classDef judge fill:#fef9c3,stroke:#ca8a04,color:#713f12
+    classDef human fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    classDef stop fill:#f3f4f6,stroke:#6b7280,color:#374151
+    class S0,FETCH,PART,POST,DECREE,ROUTE,RTRIG,HAND rail
+    class CHECKS,DISP,MAP,GHERKIN,DRAFT,REPRO,SPEC judge
+    class UIQ,GATE human
+    class HALT1,HALT2,REJ stop
+```
+
+Full machine-readable spec of stages, invariants, artifacts, and triggers: [recon/docs/pipeline.md](recon/docs/pipeline.md).
+
 ## Install
 
 ```

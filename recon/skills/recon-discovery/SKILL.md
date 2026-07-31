@@ -167,3 +167,4 @@ Next: <the route's handoff block above | rejected — reason recorded in routing
 - Line budget: anything posted to Jira from this stage is ≤15 lines with a link/reference to the artifacts; the full discovery never gets pasted into a ticket comment.
 - Decision language ban: discovery output uses "candidate", "reference", "OPEN"; the only decisions it states are `routing.yaml` fields backed by the table.
 - Conflict guardrail template: "PR #N (TICKET) modifies <file>; rebase whichever lands second, rerun the component tests."
+- Whole-chain spec (stages, invariants, artifact registry, trigger table): `../../docs/pipeline.md` relative to this skill's base directory. On conflict, this SKILL.md wins.

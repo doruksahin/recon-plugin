@@ -130,3 +130,4 @@ Next: <one of:
 - Determinism: given the same ticket state, a run must produce the same verdict regardless of what earlier runs left behind. That is why step 0 archives unconditionally, `runs/` is unreadable, and marker comments are excluded from evidence — the only inputs are the live ticket, git, and `gh`.
 - Jira wiki markup for drafted comments: `h2.` headings, `||header||` tables, `{quote}`.
 - If `~/.config/jira/env` is missing, tell the user to create it with `JIRA_HOST`, `JIRA_EMAIL`, `JIRA_API_TOKEN` — do not hunt for credentials elsewhere.
+- Whole-chain spec (stages, invariants, artifact registry, trigger table): `../../docs/pipeline.md` relative to this skill's base directory. On conflict, this SKILL.md wins.

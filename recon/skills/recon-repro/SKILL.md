@@ -85,3 +85,4 @@ Next: <calling skill embeds the concrete question | attach evidence to PR>
 - Mock-data gaps are findings: "the behavior cannot be exercised in mock mode — handler X missing" is a valid, useful output.
 - This skill doubles as the evidence-capture step for SPEC "manual smoke" acceptance criteria and PR screenshots.
 - Standing caller: `recon:recon-discovery` invokes this mandatorily for the primary scenario of every visible-UI defect (its rule 10) — the resulting `repro.md` is copied verbatim into `spec-draft.md`'s Manual verification section, and the screenshots serve as the PR's "before" evidence.
+- Whole-chain spec (stages, invariants, artifact registry, trigger table): `../../docs/pipeline.md` relative to this skill's base directory. On conflict, this SKILL.md wins.
