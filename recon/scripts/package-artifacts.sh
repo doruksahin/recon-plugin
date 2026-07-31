@@ -4,7 +4,8 @@
 # deterministic manifest to triage/jira/bundle-manifest.txt (size + rel path
 # per line, sorted). The zip is staged OUTSIDE the workspace (its contents ARE
 # the workspace; keeping it inside would self-include and bloat re-archives).
-# Prints MANIFEST/ZIP lines. Exit 0 ok, 2 usage/no workspace.
+# Symlinks are intentionally omitted (find -type f), matching lint-workspace.sh.
+# Prints MANIFEST/ZIP lines. Exit 0 ok, 2 bad ticket-id / no workspace / nothing to bundle.
 set -euo pipefail
 
 TICKET="${1:?usage: package-artifacts.sh <TICKET-ID>}"
@@ -27,8 +28,10 @@ while IFS= read -r f; do
   esac
   size=$(wc -c < "$f" | tr -d ' ')
   printf '%s %s\n' "$size" "$rel" >> "$MANIFEST"
-done < <(find "$DIR" -type f ! -path "$DIR/runs/*" | sort)
+done < <(find "$DIR" -type f ! -path "$DIR/runs/*" | LC_ALL=C sort)
 
-(cd "$DIR" && awk '{print $2}' "$MANIFEST" | zip -q -X "$OUT" -@)
+[ -s "$MANIFEST" ] || { echo "no artifacts to bundle: $DIR" >&2; exit 2; }
+
+(cd "$DIR" && cut -d' ' -f2- "$MANIFEST" | zip -q -X "$OUT" -@)
 echo "MANIFEST: $MANIFEST ($(grep -c . "$MANIFEST") files)"
 echo "ZIP: $OUT ($(wc -c < "$OUT" | tr -d ' ') bytes)"
