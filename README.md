@@ -22,35 +22,35 @@ Color legend — **blue**: mechanical rails (scripted/table-driven, no model fre
 
 ```mermaid
 flowchart TD
-    START(["/recon:recon-triage TICKET"]) --> S0["step 0 — fresh-workspace.sh<br>archive prior run → runs/&lt;ts&gt;/<br>stamp meta.yaml (once per run)"]
-    S0 --> FETCH["fetch ticket — Jira GET v2<br>ticket.json + aux-&lt;slug&gt;.json"]
+    START(["/recon:recon-triage TICKET"]) --> S0["step 0 — fresh-workspace.sh<br>archive prior run → runs/&lt;ts&gt;/<br>stamp meta.yaml + copy index.md (once per run)"]
+    S0 --> FETCH["fetch ticket — Jira GET v2<br>triage/ticket.json + aux-&lt;slug&gt;.json"]
     FETCH --> PART["partition comments<br>marker ~recon-triage~ = pipeline output, excluded<br>human comments = evidence"]
     PART --> CHECKS["six checks + cross-checks<br>one evidence line per claim"]
-    CHECKS --> DISP{"disposition<br>triage.yaml"}
+    CHECKS --> DISP{"disposition<br>triage/triage.yaml"}
 
-    DISP -->|"BLOCKED / NEEDS_INFO"| DRAFT["draft comment ≤15 lines<br>owner-addressed questions, marker-signed<br>→ comment.txt"]
+    DISP -->|"BLOCKED / NEEDS_INFO"| DRAFT["draft comment ≤15 lines<br>owner-addressed questions, marker-signed<br>→ triage/jira/comment.txt"]
     DRAFT --> UIQ{{"human: post / edit / don't post"}}
-    UIQ -->|post| POST["edit existing marker comment or create<br>→ post-result.json, attach-result.json"]
+    UIQ -->|post| POST["edit existing marker comment or create<br>→ triage/jira/post-result.json"]
     POST --> HALT1(["STOP — resume when answers arrive:<br>re-run recon-triage"])
     UIQ -->|"don't post"| HALT1
 
     DISP -->|READY| LOAD["recon-discovery<br>precondition: triage.yaml READY"]
     LOAD --> MAP["map code surface — file:line per claim<br>contract to reuse? test surface? edge cases?"]
-    MAP --> GHERKIN["behavior contract → discovery.md<br>required + regression + OPEN scenarios"]
+    MAP --> GHERKIN["behavior contract → discovery/discovery.md<br>required + regression + OPEN scenarios"]
     GHERKIN --> DECREE["decree index rebuild → why → intent-check"]
-    DECREE --> ROUTE["routing policy table, first match wins<br>→ routing.yaml: matched_rule + rules_not_matched"]
+    DECREE --> ROUTE["routing policy table, first match wins<br>→ discovery/routing.yaml: matched_rule + rules_not_matched + repo_commit"]
 
     ROUTE --> RTRIG{"repro triggers (conditions, not vibes)<br>defect + visible UI + route ≠ no-doc?<br>OR OPEN scenario about visible UI?"}
-    RTRIG -->|yes| REPRO["recon-repro — dev server (mock mode)<br>stated start state, numbered steps,<br>screenshot per state → repro.md<br>failed repro = honest finding"]
+    RTRIG -->|yes| REPRO["recon-repro — dev server (mock mode)<br>stated start state, numbered steps,<br>screenshot per state → repro/repro.md + exhibits/<br>failed repro = honest finding"]
     RTRIG -->|no| SPEC
-    REPRO --> SPEC["spec-draft.md<br>ACs 1:1 from Gherkin · tech design ≤10 lines<br>guardrails · Manual verification (from repro.md)"]
+    REPRO --> SPEC["discovery/spec-draft.md<br>ACs 1:1 from Gherkin · tech design ≤10 lines<br>guardrails · Manual verification (from repro/repro.md)"]
 
     SPEC --> GATE{{"human approval gate<br>OPEN decisions + approve / edit / reject"}}
     GATE -->|reject| REJ["gate.rejected recorded → STOP"]
     GATE -->|approve| HAND["gate: block written to routing.yaml<br>print handoff (never execute):<br>no-doc · amend-spec · new-spec · prd-chain"]
     HAND --> HALT2(["STOP — implementation is a NEW session<br>via /decree:ddd from the routed phase"])
 
-    HALT1 -.->|"on demand"| REPORT["recon-report — fixed template,<br>no new facts, screenshots embedded<br>→ report.html + private artifact"]
+    HALT1 -.->|"on demand"| REPORT["recon-report — fixed template,<br>no new facts, screenshots embedded<br>→ report/dossier.html + private artifact"]
     HALT2 -.->|"on demand"| REPORT
 
     classDef rail fill:#dbeafe,stroke:#2563eb,color:#1e3a5f
@@ -101,16 +101,16 @@ Full machine-readable spec of stages, invariants, artifacts, and triggers: [reco
 
 | Skill | Input | Writes (all under `~/.claude/recon/<TICKET>/`) | External side effects |
 |---|---|---|---|
-| `recon-triage` | ticket ID/URL | `meta.yaml`, `ticket.json`, `triage.yaml`, auxiliary `aux-<slug>.json` fetches; on posting: `comment.txt`, `post-result.json`, `attach-result.json`; prior-run artifacts archived to `runs/<timestamp>/` | at most one Jira comment (marker-signed) — drafted first, sent only after your explicit approval |
-| `recon-discovery` | ticket ID (READY triage) | `discovery.md`, `routing.yaml`, `spec-draft.md` | none — prints decree handoff commands, never executes them |
-| `recon-repro` | ticket ID + claim | `repro.md` + `repro-*.png` | none (local only: boots the dev server, shows screenshots) |
-| `recon-report` | ticket ID (run exists) | `report.html` | publishes one **private** artifact (dossier URL); never posts to Jira |
+| `recon-triage` | ticket ID/URL | root `meta.yaml` + `index.md` (step-0 script); `triage/{ticket.json, triage.yaml, aux-<slug>.json}`; on posting `triage/jira/{comment.txt, post-result.json, attach-result.json}`; prior runs archived to `runs/<timestamp>/` | at most one Jira comment (marker-signed) — drafted first, sent only after your explicit approval |
+| `recon-discovery` | ticket ID (READY triage) | `discovery/{discovery.md, routing.yaml, spec-draft.md}` | none — prints decree handoff commands, never executes them |
+| `recon-repro` | ticket ID + claim | `repro/repro.md` + `repro/exhibits/*.png` | none (local only: boots the dev server, shows screenshots) |
+| `recon-report` | ticket ID (run exists) | `report/dossier.html` | publishes one **private** artifact (dossier URL); never posts to Jira |
 
 Nothing is ever pushed, committed, or posted anywhere without an explicit per-action approval. Jira gets at most one short comment per stage — edited on re-runs (detected by the `recon-triage` marker line), never appended.
 
 ## Deterministic re-runs
 
-Every triage run starts from a clean workspace: step 0 runs `recon-triage/scripts/fresh-workspace.sh`, which archives all prior artifacts (dotfiles included) into `~/.claude/recon/<TICKET>/runs/<timestamp>/` and stamps the new run with `meta.yaml` (plugin version + start time). The step lives in a script — not inline in the skill — so it executes byte-identically every run, and it runs exactly once per run: a re-invocation within 30 minutes is refused (`SKIPPED`) so a run can never archive its own in-progress artifacts. No skill may read anything under `runs/` — the only inputs are the live Jira API, git, and `gh`. Recon's own Jira comments carry a marker line and are excluded from all evidence checks, so a run is never influenced by the output of a previous (possibly older-versioned) run. Every file a run may write is declared in the I/O contract above — an undeclared artifact is a contract violation.
+Every triage run starts from a clean workspace: step 0 runs `recon-triage/scripts/fresh-workspace.sh`, which archives all prior artifacts (dotfiles included) into `~/.claude/recon/<TICKET>/runs/<timestamp>/` and stamps the new run with `meta.yaml` (plugin version + start time). The step lives in a script — not inline in the skill — so it executes byte-identically every run, and it runs exactly once per run: a re-invocation within 30 minutes is refused (`SKIPPED`) so a run can never archive its own in-progress artifacts. Each skill writes only inside its own stage directory (`triage/`, `discovery/`, `repro/`, `report/`); `scripts/lint-workspace.sh` verifies the tree against the artifact registry at the end of every stage, and step 0 drops a static `index.md` into each workspace documenting every file's role. No skill may read anything under `runs/` — the only inputs are the live Jira API, git, and `gh`. Recon's own Jira comments carry a marker line and are excluded from all evidence checks, so a run is never influenced by the output of a previous (possibly older-versioned) run. Every file a run may write is declared in the I/O contract above — an undeclared artifact is a contract violation.
 
 ## Principles baked in
 

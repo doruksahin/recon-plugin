@@ -2,10 +2,11 @@
 # fresh-workspace.sh <TICKET-ID> — recon step 0: deterministic clean workspace.
 #
 # Archives every prior artifact in ~/.claude/recon/<TICKET>/ into runs/<timestamp>/
-# (dotfiles included), then stamps the new run with meta.yaml. The archive check is
+# (dotfiles included), stamps the new run with meta.yaml, and copies the static
+# workspace index (docs/workspace-index.md -> index.md). The archive check is
 # find-based on purpose: `ls`/`grep` may be aliased or wrapped by a user's shell,
 # which makes their exit codes unreliable. The plugin version is read from the
-# plugin.json that ships next to this script, so it is correct both in the
+# plugin.json that ships with this script, so it is correct both in the
 # marketplace clone and in any versioned cache copy.
 set -euo pipefail
 
@@ -46,12 +47,20 @@ if [ -n "$(find "$DIR" -maxdepth 1 -mindepth 1 ! -name runs -print -quit)" ]; th
 fi
 
 SELF="$(cd "$(dirname "$0")" && pwd)"
-PLUGIN_JSON="$SELF/../../../.claude-plugin/plugin.json"
+PLUGIN_JSON="$SELF/../.claude-plugin/plugin.json"
 V="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$PLUGIN_JSON" 2>/dev/null | head -1)"
 
 printf 'skill: recon-triage\nplugin_version: %s\nstarted: %s\nticket: %s\n' \
   "${V:-unknown}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$TICKET" > "$DIR/meta.yaml"
 
+INDEX_SRC="$SELF/../docs/workspace-index.md"
+indexed="index.md (copied from plugin docs)"
+if [ -f "$INDEX_SRC" ]; then
+  cp "$INDEX_SRC" "$DIR/index.md"
+else
+  indexed="index.md SKIPPED — $INDEX_SRC missing (broken install?)"
+fi
+
 echo "workspace: $DIR"
 echo "archived: $archived"
-echo "stamped: meta.yaml (plugin_version: ${V:-unknown})"
+echo "stamped: meta.yaml (plugin_version: ${V:-unknown}) + $indexed"

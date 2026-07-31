@@ -10,7 +10,7 @@ Read-only blocker triage: decides READY / BLOCKED / NEEDS_INFO for a Jira ticket
 
 - **Input:** ticket ID or URL (`ATT-1234` / `https://<host>/browse/ATT-1234`)
 - **Reads:** Jira API (GET only), local git branches + `gh pr list` (read-only), ticket links via WebFetch
-- **Writes:** `~/.claude/recon/<TICKET>/{meta.yaml, ticket.json, triage.yaml}`, plus auxiliary GET results as `aux-<slug>.json` (e.g. `aux-children.json`, `aux-confluence.json`); when a comment is posted: `comment.txt` (exact posted body), `post-result.json` (API response), `attach-result.json` (attachment uploads). Prior-run artifacts are archived into `~/.claude/recon/<TICKET>/runs/<timestamp>/` (step 0). No other files — an undeclared artifact is a contract violation.
+- **Writes:** ONLY inside `~/.claude/recon/<TICKET>/triage/` — `ticket.json`, `triage.yaml`, auxiliary GET results as `aux-<slug>.json` (e.g. `aux-children.json`, `aux-confluence.json`); on the posting path, under `triage/jira/`: `comment.txt` (exact posted body), `post-result.json` (API response), `attach-result.json` (attachment uploads). Root `meta.yaml` + `index.md` belong to the step-0 script; prior-run artifacts are archived into `runs/<timestamp>/` (step 0). Anything else fails `lint-workspace.sh`.
 - **External side effects:** NONE by default. The only possible one: a single Jira comment (create, or edit of a prior recon comment) — always drafted first, sent ONLY after explicit user approval in this session.
 - **May invoke:** `recon:recon-discovery` (on READY), `recon:recon-repro` (UI-related blocker questions)
 
@@ -21,7 +21,7 @@ Read-only blocker triage: decides READY / BLOCKED / NEEDS_INFO for a Jira ticket
 1. **READ-ONLY.** You MUST NOT write code, create branches, or modify any repo. The only writes allowed are artifacts under `~/.claude/recon/<TICKET-ID>/`.
 2. **NEVER post to Jira without explicit approval in this session.** You draft comments; the user approves via AskUserQuestion before any POST to the Jira API. NEVER skip this, even if the user previously approved a different comment.
 3. **Every checklist answer MUST carry evidence** — a command output, a `file:line`, an HTTP status, or an exact quote from the ticket. A check without evidence is not done.
-4. **The verdict MUST be the `triage.yaml` schema below**, written to `~/.claude/recon/<TICKET-ID>/triage.yaml`. Prose around it is ≤10 lines.
+4. **The verdict MUST be the `triage.yaml` schema below**, written to `~/.claude/recon/<TICKET-ID>/triage/triage.yaml`. Prose around it is ≤10 lines.
 5. **On READY, auto-chain:** immediately invoke the `recon:recon-discovery` skill (Skill tool) in the same run — unless the user said "triage only".
 6. **Triage decides; it never plans.** NEVER include implementation direction, candidate code changes, or governance decisions ("no SPEC needed") in triage output. That authority belongs to later stages.
 7. **Human-facing questions MUST be concrete.** Every question in a drafted comment must be answerable without reading code: numbered repro steps from a stated start state (e.g. the project's mock-mode dev command, which page), concrete entity names from the running system ("Collection3", not "a collection"), the before and after state, and options phrased as user-observable outcomes ("the tab appears and becomes selected"), never code outcomes ("activeTab is set"). Internal identifiers (service/method/prop names) are BANNED from human-facing questions. If a question concerns observable UI behavior, invoke the `recon:recon-repro` skill to attach visual evidence BEFORE presenting the draft.
@@ -37,12 +37,12 @@ Read-only blocker triage: decides READY / BLOCKED / NEEDS_INFO for a Jira ticket
 Every run starts from an empty workspace — prior artifacts are archived mechanically, never inspected. Run the step-0 script; NEVER reimplement it inline (byte-identical execution is the point):
 
 ```bash
-bash "<skill base dir>/scripts/fresh-workspace.sh" <TICKET>
+bash "<skill base dir>/../../scripts/fresh-workspace.sh" <TICKET>
 ```
 
-`<skill base dir>` is the "Base directory for this skill" path shown when this skill loaded. The script archives everything (dotfiles included) into `runs/<timestamp>/` and stamps `meta.yaml` with the plugin version; quote its three output lines in your progress note. If the script is missing, STOP and report a broken plugin install — do not improvise a replacement.
+`<skill base dir>` is the "Base directory for this skill" path shown when this skill loaded (the scripts live at the plugin root, `recon/scripts/`). The script archives everything (dotfiles included) into `runs/<timestamp>/`, stamps `meta.yaml` with the plugin version, and copies the static `index.md` (the workspace's own documentation); quote its output lines in your progress note. If the script is missing, STOP and report a broken plugin install — do not improvise a replacement.
 
-After this the workspace contains ONLY `meta.yaml` and (possibly) `runs/`. From here on, `runs/` does not exist for you (rule 8).
+After this the workspace contains ONLY `meta.yaml`, `index.md`, and (possibly) `runs/`. From here on, `runs/` does not exist for you (rule 8). Create your stage directory before your first write: `mkdir -p ~/.claude/recon/<TICKET>/triage` — a stage directory existing means that stage ran.
 
 ### 1. Fetch the ticket
 
@@ -53,7 +53,7 @@ set -a && source ~/.config/jira/env && set +a
 HOST="${JIRA_HOST#https://}"; HOST="${HOST%/}"
 curl -sS -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
   "https://$HOST/rest/api/2/issue/<TICKET>?fields=summary,status,description,comment,labels,issuelinks,assignee,reporter,issuetype" \
-  -o ~/.claude/recon/<TICKET>/ticket.json
+  -o ~/.claude/recon/<TICKET>/triage/ticket.json
 ```
 
 Use API v2 (plain-text bodies). Read description AND all comments — blockers often live in comments. Before evaluating anything, partition the comments: any comment whose body contains `recon-triage` is recon's own output and is excluded from every check (rule 9); only human comments are evidence.
@@ -75,7 +75,7 @@ Additional cross-checks (cheap, always run):
 
 ### 3. Emit the verdict
 
-Write `~/.claude/recon/<TICKET>/triage.yaml`:
+Write `~/.claude/recon/<TICKET>/triage/triage.yaml`:
 
 ```yaml
 recon: triage
@@ -100,7 +100,7 @@ Disposition rule: any of checks 2–5 failing with an unanswered owner-question 
 
 ### 4. Branch on disposition
 
-- **BLOCKED / NEEDS_INFO** → draft a Jira comment: ≤15 lines, one line per blocker phrased as a specific question with a named owner, plus any split-scope recommendation, ending with the marker line `~recon-triage v<plugin_version from meta.yaml>~` (rule 9). Save the draft to `comment.txt` BEFORE showing it, then AskUserQuestion: `Post to Jira now / Edit first / Don't post`. On "post": if the fetched comments already contain a marker comment, EDIT the most recent one via the API; otherwise CREATE — never add a second marker comment. POST **only** after an explicit "post" answer; save the API response to `post-result.json` (and any attachment-upload responses to `attach-result.json`). Then STOP — the pipeline for this ticket ends until answers arrive.
+- **BLOCKED / NEEDS_INFO** → draft a Jira comment: ≤15 lines, one line per blocker phrased as a specific question with a named owner, plus any split-scope recommendation, ending with the marker line `~recon-triage v<plugin_version from meta.yaml>~` (rule 9). Save the draft to `triage/jira/comment.txt` BEFORE showing it, then AskUserQuestion: `Post to Jira now / Edit first / Don't post`. On "post": if the fetched comments already contain a marker comment, EDIT the most recent one via the API; otherwise CREATE — never add a second marker comment. POST **only** after an explicit "post" answer; save the API response to `triage/jira/post-result.json` (and any attachment-upload responses to `triage/jira/attach-result.json`). Then STOP — the pipeline for this ticket ends until answers arrive.
 - **READY** → invoke the `recon:recon-discovery` skill now (rule 5 above).
 
 ---
@@ -109,9 +109,16 @@ Disposition rule: any of checks 2–5 failing with an unanswered owner-question 
 
 Print:
 
+First run the workspace lint (same scripts dir as step 0) and include its verdict line:
+
+```bash
+bash "<skill base dir>/../../scripts/lint-workspace.sh" <TICKET>
+```
+
 ```
 Step 0: <the script's `archived:` output line, verbatim>
-Wrote: ~/.claude/recon/<TICKET>/meta.yaml, ticket.json, triage.yaml
+Wrote: ~/.claude/recon/<TICKET>/triage/{ticket.json, triage.yaml}
+Lint: <lint-workspace.sh verdict line, verbatim — fix any violation before reporting>
 Disposition: <READY|BLOCKED|NEEDS_INFO> (<n> blockers, <n> conflicts)
 Next: <one of:
   READY    → recon:recon-discovery invoked (running now)

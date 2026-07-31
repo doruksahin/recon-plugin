@@ -8,10 +8,10 @@ Turns the current-run artifacts of `~/.claude/recon/<TICKET>/` into one designed
 
 ## Contract
 
-- **Input:** ticket ID (precondition: current run exists — `meta.yaml` + `triage.yaml` in the flat workspace)
+- **Input:** ticket ID (precondition: current run exists — root `meta.yaml` + `triage/triage.yaml`)
 - **Reads:** current-run artifacts in `~/.claude/recon/<TICKET>/` (never `runs/`), the shipped `template.html`
-- **Writes:** `~/.claude/recon/<TICKET>/report.html`
-- **External side effects:** publishes `report.html` as a private artifact (visible only to the user). Nothing else — never posts to Jira, never touches the repo.
+- **Writes:** ONLY inside `~/.claude/recon/<TICKET>/report/` — `dossier.html`. Create the directory before writing. Anything else fails `lint-workspace.sh`
+- **External side effects:** publishes `report/dossier.html` as a private artifact (visible only to the user). Nothing else — never posts to Jira, never touches the repo.
 
 ---
 
@@ -36,21 +36,21 @@ Turns the current-run artifacts of `~/.claude/recon/<TICKET>/` into one designed
 | headline + lede | judgment (rule 1) — facts only from `triage.yaml`/`discovery.md` |
 | Seven facts: Verdict / Where / Reuse / Scope / Decided / Open / Next | `triage.yaml` + repro outcome · root-cause `file:line` from `discovery.md` · `routing.yaml` `evidence.reuses_existing_contract` · `evidence.blast_radius` · `gate.open_scenario_resolutions` · open items/findings · route + handoff |
 | repo_commit link, footer | `routing.yaml` `evidence.repo_commit`, `meta.yaml` plugin_version + started |
-| Pipeline stages 0–5 | `meta.yaml` (step 0), each stage's artifacts; missing artifact ⇒ `not run — <reason>` |
+| Pipeline stages 0–5 | `meta.yaml` (step 0), each stage's directory; a missing stage directory ⇒ `not run — <reason>` |
 | Six-checks table | `triage.yaml` checks + matching `evidence:` lines, one row each |
 | Cross-checks table | `triage.yaml` `status_drift`, `stale_blocker_note` |
 | Discovery body + excerpts | `discovery.md`, `routing.yaml` (incl. `rules_not_matched` if quoted) |
-| Repro env + exhibits | `repro.md` start state + numbered steps as captions; `repro-<n>-<slug>.png` in step order |
+| Repro env + exhibits | `repro/repro.md` start state + numbered steps as captions; `repro/exhibits/<n>-<slug>.png` in step order |
 | Decision cards | `routing.yaml` `gate:` block |
 | Handoff block | the route's printed handoff commands (recon-discovery report), or the BLOCKED re-entry line |
 
 ## Workflow
 
-1. **Verify the workspace.** `meta.yaml` + `triage.yaml` must exist in the flat directory. If missing, stop: tell the user to run `/recon:recon-triage <TICKET>` first — never reconstruct from memory or `runs/`.
-2. **Read every flat artifact** (registry in `../../docs/pipeline.md`). Note which stages ran.
+1. **Verify the workspace.** Root `meta.yaml` + `triage/triage.yaml` must exist. If missing, stop: tell the user to run `/recon:recon-triage <TICKET>` first — never reconstruct from memory or `runs/`.
+2. **Read every current-run artifact** across the stage directories (registry in `../../docs/pipeline.md`, and each workspace carries its own `index.md`). A stage ran ⇔ its directory exists.
 3. **Prepare exhibits** per rule 5 (use the session scratchpad for temp JPEGs).
 4. **Fill the template** slot by slot per the map. Strip the instruction comments (`«SLOT: …»` markers and the leading file comment) from the output.
-5. **Write** `~/.claude/recon/<TICKET>/report.html`.
+5. **Write** `~/.claude/recon/<TICKET>/report/dossier.html`, then run `bash "<skill base dir>/../../scripts/lint-workspace.sh" <TICKET>` and fix any violation.
 6. **Publish** as an artifact: title `<TICKET> — Recon Dossier`, favicon `🗂️` (keep both stable across redeploys of the same ticket). If the environment requires a prerequisite skill before publishing (e.g. `artifact-design`), load it first. Re-running for the same ticket republishes the same file path — pass the existing artifact URL if this session didn't create it.
 
 ## Report
@@ -58,7 +58,8 @@ Turns the current-run artifacts of `~/.claude/recon/<TICKET>/` into one designed
 Print:
 
 ```
-Wrote: ~/.claude/recon/<TICKET>/report.html (<size>)
+Wrote: ~/.claude/recon/<TICKET>/report/dossier.html (<size>)
+Lint: <lint-workspace.sh verdict line, verbatim>
 Published: <artifact URL> (private — sharing is your call)
 Coverage: <stages included> · <n> exhibits · commit <sha|unpinned>
 ```

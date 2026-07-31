@@ -8,9 +8,9 @@ Maps the code surface for a triaged-READY ticket, writes an evidence-backed beha
 
 ## Contract
 
-- **Input:** ticket ID (precondition: `~/.claude/recon/<TICKET>/triage.yaml` with `disposition: READY`)
+- **Input:** ticket ID (precondition: `~/.claude/recon/<TICKET>/triage/triage.yaml` with `disposition: READY`)
 - **Reads:** the target repo (read-only), `decree why` / `decree intent-check` output, current-run artifacts in `~/.claude/recon/<TICKET>/` (never `runs/`)
-- **Writes:** `~/.claude/recon/<TICKET>/{discovery.md, routing.yaml, spec-draft.md}` (plus `decree index rebuild` refreshing decree's own index)
+- **Writes:** ONLY inside `~/.claude/recon/<TICKET>/discovery/` — `discovery.md`, `routing.yaml`, `spec-draft.md` (plus `decree index rebuild` refreshing decree's own index). Create the directory before your first write — a stage directory existing means that stage ran. Anything else fails `lint-workspace.sh`.
 - **External side effects:** NONE. Never posts to Jira without explicit user approval; after the gate it PRINTS handoff commands, never executes them.
 - **May invoke:** `recon:recon-repro` (primary scenario of UI defects + OPEN scenarios about visible UI), `recon:recon-triage` (missing or stale triage)
 
@@ -18,15 +18,15 @@ Maps the code surface for a triaged-READY ticket, writes an evidence-backed beha
 
 ## ⚠️ CRITICAL: Rules
 
-1. **Precondition:** `~/.claude/recon/<TICKET>/triage.yaml` MUST exist with `disposition: READY`. If missing or not READY, invoke the `recon:recon-triage` skill first — NEVER skip triage.
-2. **READ-ONLY on the repo.** Writes go only to `~/.claude/recon/<TICKET>/`. You MUST NOT implement, branch, or edit code — discovery ends at the approval gate.
+1. **Precondition:** `~/.claude/recon/<TICKET>/triage/triage.yaml` MUST exist with `disposition: READY`. If missing or not READY, invoke the `recon:recon-triage` skill first — NEVER skip triage.
+2. **READ-ONLY on the repo.** Writes go only to `~/.claude/recon/<TICKET>/discovery/`. You MUST NOT implement, branch, or edit code — discovery ends at the approval gate.
 3. **No prose unknowns.** Every "unknown" MUST be either resolved by running a command, or converted into a question with a named owner. "It is not yet known whether…" is a forbidden sentence.
 4. **Every claim carries evidence** — `file:line` or command output. A responsibility map without line numbers is not done.
 5. **Routing MUST come from the policy table below**, emitted as `routing.yaml` with `matched_rule` AND `rules_not_matched` (with reasons). NEVER route by feel.
 6. **The approval gate is mandatory.** Present the package via AskUserQuestion (including any OPEN scenario decisions) and STOP after approval with printed handoff commands. Implementation belongs to a different session.
 7. **Human-facing questions MUST be concrete.** Gate questions and OPEN scenarios must be answerable without reading code: numbered repro steps from a stated start state (e.g. the project's mock-mode dev command, which page), concrete entity names from the running system, before/after state, and options phrased as user-observable outcomes ("the tab appears and becomes selected"), never code outcomes ("activeTab is set"). Internal identifiers are BANNED from question text — they belong in the evidence tables, not the question. If an OPEN scenario concerns observable UI behavior, invoke the `recon:recon-repro` skill to attach visual evidence BEFORE presenting the gate.
 8. **NEVER post to Jira without explicit approval in this session** — same rule as triage. Discovery normally posts nothing; if a short status comment is ever warranted, draft it, ask via AskUserQuestion, and POST only on an explicit yes.
-9. **NEVER read archived runs.** `~/.claude/recon/<TICKET>/runs/` holds artifacts from prior runs (possibly produced by older skill versions) — you MUST NOT open, list, or cite anything under it. Consume only the current-run artifacts in the flat `~/.claude/recon/<TICKET>/` directory; a current run is one whose `meta.yaml` exists alongside `triage.yaml`.
+9. **NEVER read archived runs.** `~/.claude/recon/<TICKET>/runs/` holds artifacts from prior runs (possibly produced by older skill versions) — you MUST NOT open, list, or cite anything under it. Consume only the current-run stage directories (`triage/`, `repro/`, …); a current run is one whose root `meta.yaml` exists alongside `triage/triage.yaml`.
 10. **UI defects get a primary-scenario repro — mechanically, not by judgment call.** The trigger is a condition, not a vibe: `task_class: defect` AND the affected surface is visible UI AND `routing.route` is not `no-doc` → invoke `recon:recon-repro` for the bug itself BEFORE the gate (step 7). No implementer may receive a UI-defect spec draft without a reproduce-the-bug path in it.
 
 ---
@@ -35,7 +35,7 @@ Maps the code surface for a triaged-READY ticket, writes an evidence-backed beha
 
 ### 1. Load context
 
-Read `triage.yaml` (ticket, task_class, conflicts). Confirm you are in the repo the ticket targets.
+Read `triage/triage.yaml` (ticket, task_class, conflicts). Confirm you are in the repo the ticket targets. Create your stage directory: `mkdir -p ~/.claude/recon/<TICKET>/discovery`.
 
 ### 2. Map the code surface
 
@@ -95,7 +95,7 @@ routing:
 
 ### 6. Draft the next document
 
-For `new-spec` / `amend-spec`: write `spec-draft.md` — frontmatter (`governs:`, ticket link), Overview, **acceptance criteria as checkboxes derived 1:1 from the Gherkin scenarios**, technical design (the wiring, in ≤10 lines, naming the contract to reuse), integration guardrails (conflicts from triage), and a **Manual verification** section: the start state and numbered steps copied verbatim from `repro.md`, with the buggy outcome marked BEFORE and the expected outcome marked AFTER. If no `repro.md` exists for this ticket (non-UI surface, or a mock gap blocked it), the section states why and what environment verification needs — it is never omitted. The implementer must be able to reach the affected surface without reading anything beyond this draft. For `prd-chain`: draft the PRD problem statement instead.
+For `new-spec` / `amend-spec`: write `spec-draft.md` — frontmatter (`governs:`, ticket link), Overview, **acceptance criteria as checkboxes derived 1:1 from the Gherkin scenarios**, technical design (the wiring, in ≤10 lines, naming the contract to reuse), integration guardrails (conflicts from triage), and a **Manual verification** section: the start state and numbered steps copied verbatim from `repro/repro.md`, with the buggy outcome marked BEFORE and the expected outcome marked AFTER. If no `repro.md` exists for this ticket (non-UI surface, or a mock gap blocked it), the section states why and what environment verification needs — it is never omitted. The implementer must be able to reach the affected surface without reading anything beyond this draft. For `prd-chain`: draft the PRD problem statement instead.
 
 ### 7. The approval gate
 
@@ -121,13 +121,13 @@ Print the block matching `routing.route`:
 Next:
 → decree new spec "<title>"        # fill from spec-draft.md, then decree lint
 → /decree:ddd                      # picks up at Phase 3 and drives implementation
-→ implementation brief: ~/.claude/recon/<TICKET>/spec-draft.md
+→ implementation brief: ~/.claude/recon/<TICKET>/discovery/spec-draft.md
 ```
 
 **amend-spec**
 ```
 Next:
-→ add the acceptance-criteria checkboxes from spec-draft.md to <SPEC-id>
+→ add the acceptance-criteria checkboxes from discovery/spec-draft.md to <SPEC-id>
   (update its `governs:` list if the candidate files aren't covered), then decree lint
 → /decree:ddd                      # picks up at Phase 4 — the new unchecked items
 ```
@@ -135,7 +135,7 @@ Next:
 **prd-chain**
 ```
 Next:
-→ /decree:prd                      # problem statement already drafted in ~/.claude/recon/<TICKET>/
+→ /decree:prd                      # problem statement already drafted in ~/.claude/recon/<TICKET>/discovery/
 → /decree:ddd                      # drives Phase 1→2→3 from there
 ```
 
@@ -143,7 +143,7 @@ Next:
 ```
 Next:
 → implement directly; reference <TICKET> in the commit message
-→ verify against the scenarios in ~/.claude/recon/<TICKET>/discovery.md
+→ verify against the scenarios in ~/.claude/recon/<TICKET>/discovery/discovery.md
 ```
 
 **escalate** — no handoff of its own: the gate decision selected one of the routes above; print that route's block.
@@ -155,7 +155,8 @@ Next:
 Print:
 
 ```
-Wrote: ~/.claude/recon/<TICKET>/discovery.md, routing.yaml, spec-draft.md
+Wrote: ~/.claude/recon/<TICKET>/discovery/{discovery.md, routing.yaml, spec-draft.md}
+Lint: <run `bash "<skill base dir>/../../scripts/lint-workspace.sh" <TICKET>` — quote its verdict line; fix any violation before reporting>
 Route: <route> (rule <n>) → ddd <phase>
 Open decisions resolved at gate: <n>
 Next: <the route's handoff block above | rejected — reason recorded in routing.yaml, re-run instructions above>

@@ -9,8 +9,8 @@ Turns an abstract claim or question ("selecting a hidden collection produces a t
 ## Contract
 
 - **Input:** ticket ID + the claim/question to make concrete
-- **Reads:** current-run artifacts in `~/.claude/recon/<TICKET>/` (never `runs/`), the running app's UI
-- **Writes:** `~/.claude/recon/<TICKET>/repro.md` + `repro-<n>-<slug>.png`
+- **Reads:** current-run stage directories in `~/.claude/recon/<TICKET>/` (never `runs/`), the running app's UI
+- **Writes:** ONLY inside `~/.claude/recon/<TICKET>/repro/` — `repro.md` + `exhibits/<n>-<slug>.png`. Create the directory before your first write — a stage directory existing means that stage ran. Anything else fails `lint-workspace.sh`
 - **Local side effects:** starts the project's dev server (preview tools, mock mode preferred); renders the screenshots to the user's screen (SendUserFile)
 - **External side effects:** NONE — never touches Jira or the repo.
 
@@ -19,7 +19,7 @@ Turns an abstract claim or question ("selecting a hidden collection produces a t
 ## ⚠️ CRITICAL: Rules
 
 1. **Never fabricate.** Every step MUST actually be performed this run and every screenshot actually captured this run. If reproduction fails (build broken, missing mock data, behavior doesn't reproduce), report the failure honestly with what you observed — a failed repro is itself a finding. NEVER describe steps you did not execute as if you had.
-2. **READ-ONLY on the repo.** You MUST NOT edit source code to make the behavior reproducible. Writes go only to `~/.claude/recon/<TICKET>/`.
+2. **READ-ONLY on the repo.** You MUST NOT edit source code to make the behavior reproducible. Writes go only to `~/.claude/recon/<TICKET>/repro/`.
 3. **The start state MUST be stated and reachable**: prefer the project's mock/dev mode (no backend needed), name the exact page/route. A repro that starts from "wherever the app happens to be" is not reproducible.
 4. **Steps MUST be numbered and re-runnable by a human** — each step is one user action on a named, visible element ("click the eye icon on Collection3's row"), never a code operation.
 5. **Human-facing language**: user-observable outcomes only; internal identifiers (service/method/prop names) are BANNED from repro.md and question text.
@@ -32,7 +32,7 @@ Turns an abstract claim or question ("selecting a hidden collection produces a t
 
 ### 1. Input
 
-Ticket ID + the claim/question to make concrete (from `~/.claude/recon/<TICKET>/triage.yaml`, `discovery.md`, or the user's message). Restate it as the *observable* thing to demonstrate: baseline state → user action → resulting state.
+Ticket ID + the claim/question to make concrete (from `~/.claude/recon/<TICKET>/triage/triage.yaml`, `discovery/discovery.md`, or the user's message). Restate it as the *observable* thing to demonstrate: baseline state → user action → resulting state.
 
 ### 2. Boot the app
 
@@ -44,7 +44,7 @@ Minimal set of states that makes the question answerable — typically: **baseli
 
 ### 4. Execute and capture
 
-Drive the UI (`read_page` to find elements, `computer` to click, screenshot per state). Save each as `~/.claude/recon/<TICKET>/repro-<n>-<slug>.png`. Verify each screenshot actually shows the state you claim (read it back if unsure).
+Drive the UI (`read_page` to find elements, `computer` to click, screenshot per state). Save each as `~/.claude/recon/<TICKET>/repro/exhibits/<n>-<slug>.png`. Verify each screenshot actually shows the state you claim (read it back if unsure).
 
 ### 5. Write `repro.md`
 
@@ -53,7 +53,7 @@ Drive the UI (`read_page` to find elements, `computer` to click, screenshot per 
 
 Start state: <dev command>, <page>, <any preconditions>
 
-1. <action on named element> → <observable result>   [repro-1-baseline.png]
+1. <action on named element> → <observable result>   [exhibits/1-baseline.png]
 2. ...
 
 ## The question (concrete form)
@@ -71,7 +71,7 @@ Start state: <dev command>, <page>, <any preconditions>
 Print:
 
 ```
-Wrote: ~/.claude/recon/<TICKET>/repro.md (+ <n> screenshots)
+Wrote: ~/.claude/recon/<TICKET>/repro/repro.md (+ <n> screenshots in repro/exhibits/)
 Repro: <reproduced | failed — <honest reason>>
 Next: <calling skill embeds the concrete question | attach evidence to PR>
 ```
@@ -80,7 +80,7 @@ Next: <calling skill embeds the concrete question | attach evidence to PR>
 
 ## Reference
 
-- Screenshot naming: `repro-<n>-<slug>.png`, numbered in step order.
+- Screenshot naming: `exhibits/<n>-<slug>.png`, numbered in step order (the directory carries the "repro" meaning).
 - Annotate only when ambiguity demands it; a clean screenshot of the right state beats a cluttered annotated one.
 - Mock-data gaps are findings: "the behavior cannot be exercised in mock mode — handler X missing" is a valid, useful output.
 - This skill doubles as the evidence-capture step for SPEC "manual smoke" acceptance criteria and PR screenshots.
