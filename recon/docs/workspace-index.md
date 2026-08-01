@@ -45,7 +45,9 @@ ticket itself that a check needed to verify. Examples: `aux-confluence.json` (a
 linked Confluence page fetched to prove the evidence link is accessible, HTTP
 status and all), `aux-att-4797.json` (a related ticket fetched to evaluate a
 shared-root-cause claim), `aux-children.json` (an epic's child issues). One file
-per fetch, named after what it is. Their role: every evidence line in
+per fetch, named after what it is. On the posting path, draft time adds
+`aux-user-<slug>.json` — the Jira user-search responses that resolve each blocker
+owner's handle to an accountId. Their role: every evidence line in
 `triage.yaml` that cites an external resource has its raw material here, so the
 verdict is auditable without re-fetching anything.
 
@@ -64,11 +66,12 @@ precondition: it will not start unless this says `READY`.
 - **`bundle-manifest.txt`** — written by `package-artifacts.sh`: one line per
   bundled file (size + relative path). The zip it describes
   (`recon-artifacts-<TICKET>.zip`) is staged in a temp dir — never inside this
-  workspace — and attached to the Jira ticket; its contents ARE this workspace,
-  so the manifest is the exact record of what was delivered.
+  workspace — and attached to the Jira ticket on an approved post; its contents
+  ARE this workspace, so the manifest is the exact record of what was delivered.
 - **`post-result.json`** — the Jira API response after an approved POST/edit.
-  Proof of what actually landed on the ticket, and which comment ID to edit next
-  time.
+  Proof of what actually landed on the ticket — audit evidence for THIS run.
+  Edit-vs-create detection always comes from the live ticket's fetched comments,
+  never from this file.
 - **`attach-result.json`** — written by `attach-artifacts.sh` on the posting
   path: the IDs of the stale recon attachments it deleted plus the upload
   responses for the new ones. Cleared at the start of each attach run, so if it
@@ -143,9 +146,10 @@ A self-contained HTML rendering of this run (fixed template, screenshots
 embedded). Produced in one of two modes: **on demand** (the user asked for a
 report) it is published as a private artifact; on the **posting path**
 (BLOCKED/NEEDS_INFO) it is rendered render-only and attached to the Jira ticket
-as `recon-dossier-<TICKET>.html` alongside `recon-artifacts-<TICKET>.zip` — no
-artifact publishing. In both modes it is a **view, never a source**: every
-claim in it traces back to the files above; nothing in it is new information.
+on an approved post as `recon-dossier-<TICKET>.html` alongside
+`recon-artifacts-<TICKET>.zip` — no artifact publishing. In both modes it is a
+**view, never a source**: every claim in it traces back to the files above;
+nothing in it is new information.
 If the dossier and an artifact disagree, the artifact wins.
 
 ---

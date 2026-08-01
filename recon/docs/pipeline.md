@@ -12,7 +12,7 @@ Design formula (all changes must preserve it): **judgment stays in the model but
 | # | Stage | Skill | Entry condition | Exit states |
 |---|---|---|---|---|
 | 0 | Fresh workspace | recon-triage step 0 | always (script-guarded: once per run) | workspace = `meta.yaml` (+ `runs/`) only |
-| 1 | Blocker triage | recon-triage | ticket ID/URL | `READY` → stage 2 (auto-chain, unless user said "triage only") · `BLOCKED`/`NEEDS_INFO` → repro (if UI blockers) → dossier (render-only, auto) → package → comment+attachments gate → attach then comment → **STOP** |
+| 1 | Blocker triage | recon-triage | ticket ID/URL | `READY` → stage 2 (auto-chain, unless user said "triage only") · `BLOCKED`/`NEEDS_INFO` → repro (if UI blockers) → dossier (render-only, auto) → draft + shape rail → package → comment+attachments gate → attach then comment → **STOP** |
 | 2 | Code discovery | recon-discovery | `triage/triage.yaml` with `disposition: READY` | contract → routing stage → brief → gate → **STOP** (handoff quoted verbatim from `route/routing.yaml`, never executed) |
 | RT | Routing | `scripts/route-generic.sh` (governance `none`) **or** the adapter skill `recon-<governance>` (e.g. recon-decree) | invoked by stage 2 after the contract; governance resolved by `scripts/detect-governance.sh` | `route/routing.yaml` (route, rule trace, `brief_kind`, `handoff:` as data) |
 | R | Live repro | recon-repro | invoked by stage 1 or 2 per trigger table | `repro.md` + screenshots, or an honest failure finding |
@@ -64,6 +64,7 @@ All under `~/.claude/recon/<TICKET>/`. Producer → consumers.
 | Event | Condition | Action |
 |---|---|---|
 | Auto-chain to discovery | `disposition: READY` and user did not say "triage only" | invoke recon-discovery in the same run |
+| Blocker repro | stage 1, any blocker concerns observable UI behavior | invoke recon-repro BEFORE drafting; reference exhibits in the blocker's `detail` pack |
 | Primary-scenario repro | `task_class: defect` AND affected surface is visible UI AND `routing.route` ∉ {`direct`, `no-doc`} | invoke recon-repro for the bug itself BEFORE the gate |
 | OPEN-scenario repro | any OPEN scenario concerns observable UI behavior | invoke recon-repro; reference steps + screenshots in the gate question |
 | Repro session reuse | primary + OPEN scenarios share a start state | one dev-server session covers both |

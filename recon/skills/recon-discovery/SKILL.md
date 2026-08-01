@@ -120,7 +120,7 @@ Optional: /recon:recon-report <TICKET> — shareable HTML dossier of this run (p
 
 ## Reference
 
-- Line budget: anything posted to Jira from this stage is ≤15 lines with a link/reference to the artifacts; the full discovery never gets pasted into a ticket comment.
+- No Jira posting: this stage never posts to Jira — delivery to the ticket belongs to triage's posting path; the full discovery never gets pasted into a ticket comment.
 - Decision language ban: discovery output uses "candidate", "reference", "OPEN"; the only path decisions it relays are `route/routing.yaml` fields authored by the routing stage.
 - Conflict guardrail template: "PR #N (TICKET) modifies <file>; rebase whichever lands second, rerun the component tests."
 - Whole-chain spec (stages, invariants, artifact registry, trigger table): `../../docs/pipeline.md` relative to this skill's base directory. On conflict, this SKILL.md wins.
