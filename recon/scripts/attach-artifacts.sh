@@ -5,6 +5,7 @@
 # responses). Needs ~/.config/jira/env and python3. Run BEFORE posting the
 # comment so [^filename] links resolve (duplicate names resolve to the OLDER
 # attachment — verified). Exit 0 ok, 1 API failure, 2 usage/missing input.
+# Safe to re-run after failure: a failed run leaves no recon attachments until retried.
 set -euo pipefail
 
 TICKET="${1:?usage: attach-artifacts.sh <TICKET-ID> <file>...}"; shift
@@ -18,6 +19,7 @@ for f in "$@"; do [ -f "$f" ] || { echo "no such file: $f" >&2; exit 2; }; done
 set -a; . "$HOME/.config/jira/env"; set +a
 HOST="${JIRA_HOST#https://}"; HOST="${HOST%/}"
 DIR="$HOME/.claude/recon/$TICKET/triage/jira"; mkdir -p "$DIR"
+rm -f "$DIR/attach-result.json"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 
 # 1. Find prior recon attachments (namespace recon-*-<TICKET>.*)
@@ -39,9 +41,9 @@ while IFS= read -r id; do
   [ -n "$id" ] || continue
   code=$(curl -sS -o /dev/null -w "%{http_code}" -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
     -X DELETE "https://$HOST/rest/api/2/attachment/$id")
-  echo "deleted: $id HTTP $code"
   printf '%s %s\n' "$id" "$code" >> "$TMP/deleted.txt"
   [ "$code" = "204" ] || { echo "delete failed: $id HTTP $code" >&2; exit 1; }
+  echo "deleted: $id HTTP $code"
 done < "$TMP/stale-ids.txt"
 
 # 3. Upload the new files
