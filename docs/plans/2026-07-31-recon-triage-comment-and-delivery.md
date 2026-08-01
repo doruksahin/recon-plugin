@@ -304,6 +304,9 @@ Expected: second run prints one `deleted:` line + one `uploaded:` line; final at
 set -euo pipefail
 
 TICKET="${1:?usage: verify-comment-shape.sh <TICKET-ID>}"
+case "$TICKET" in
+  *[!A-Za-z0-9-]* | "") echo "invalid ticket id: $TICKET" >&2; exit 2 ;;
+esac
 DIR="$HOME/.claude/recon/$TICKET"
 C="$DIR/triage/jira/comment.txt"
 Y="$DIR/triage/triage.yaml"
