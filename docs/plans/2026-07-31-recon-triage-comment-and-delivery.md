@@ -318,10 +318,19 @@ lines=$(grep -c . "$C" || true)
 want=$((n + 4))
 fail=0
 
+if grep -q $'\r' "$C"; then
+  echo "SHAPE: comment contains CRLF line endings — use LF only"; fail=1
+fi
+
 [ "$lines" -eq "$want" ] || { echo "SHAPE: $lines non-empty lines, want $want (n=$n blockers + 4)"; fail=1; }
 
 blocker_lines=$(grep -c '^\*[0-9][0-9]*\. ' "$C" || true)
 [ "$blocker_lines" -eq "$n" ] || { echo "SHAPE: $blocker_lines blocker lines, want $n"; fail=1; }
+
+if [ "$n" -gt 0 ]; then
+  nums=$(grep -o '^\*[0-9][0-9]*\.' "$C" | tr -d '*.' || true)
+  [ "$nums" = "$(seq 1 "$n")" ] || { echo "SHAPE: blocker numbering must be 1..n in order"; fail=1; }
+fi
 
 while IFS= read -r l; do
   case "$l" in
@@ -334,8 +343,8 @@ while IFS= read -r l; do
   esac
 done < <(grep '^\*[0-9][0-9]*\. ' "$C" || true)
 
-grep -qF '[^recon-' "$C" || { echo "SHAPE: missing attachment-links line ([^recon-…])"; fail=1; }
-grep -q '^~recon-triage v' "$C" || { echo "SHAPE: missing marker line"; fail=1; }
+grep -q '^[^*].*\[\^recon-' "$C" || { echo "SHAPE: missing attachment-links line ([^recon-…])"; fail=1; }
+[ "$(grep . "$C" | tail -1 | cut -c1-15)" = "~recon-triage v" ] || { echo "SHAPE: marker line must be the last non-empty line (~recon-triage v…)"; fail=1; }
 
 if [ "$fail" -eq 0 ]; then
   echo "shape: clean — $lines lines, $n blocker(s)"
