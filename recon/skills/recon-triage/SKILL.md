@@ -92,7 +92,7 @@ status_drift: "<note or omit>"
 stale_blocker_note: "<note or omit>"
 blockers: []          # each entry:
 #  - title: "Updated design"            # ≤5 words, names the blocker
-#    owner: osman                       # handle; resolve to accountId at post time
+#    owner: osman                       # handle; resolve to accountId at draft time (step 4)
 #    ask: "deliver the updated design, or should I build to the attached PNG?"
 #                                       # ONE sentence, ends in "?", rule-7 clean
 #    detail:                            # rule-7 question pack — rendered ONLY in the dossier
@@ -105,7 +105,7 @@ evidence:             # one line per claim above
   - "<command/file:line/quote>"
 ```
 
-Disposition rule: any of checks 2–5 failing with an unanswered owner-question → `BLOCKED`. Only soft ambiguity (check 1 `partial`) → `NEEDS_INFO`. All clear → `READY` (conflicts don't block; they ride along as guardrails).
+Disposition rule: any of checks 2–5 failing with an unanswered owner-question → `BLOCKED`. Only soft ambiguity (check 1 `partial`) → `NEEDS_INFO` — and NEEDS_INFO MUST materialize each ambiguity as a blocker entry (owner = whoever can decide it; the `ask` IS the clarifying question). All clear → `READY` (conflicts don't block; they ride along as guardrails). BLOCKED and NEEDS_INFO both require `blockers` to be non-empty — the posting path demands n ≥ 1; if no blocker entry can be written, the ticket is not NEEDS_INFO.
 
 ### 4. Branch on disposition
 
@@ -114,13 +114,13 @@ Disposition rule: any of checks 2–5 failing with an unanswered owner-question 
 
 #### Posting path (BLOCKED / NEEDS_INFO)
 
-1. **Structure the blockers.** Every `triage.yaml` blocker follows the schema above: `title` (≤5 words), `owner`, a one-sentence `ask` ending in "?", and a `detail` question pack. Rule 7 applies to `ask` AND `detail`; internal identifiers are BANNED from `ask`.
+1. **Structure the blockers.** Every `triage.yaml` blocker follows the schema above: `title` (≤5 words), `owner`, a one-sentence `ask` ending in "?", and a `detail` question pack — list entries at exactly the schema's two-space indentation (`  - title:`; the shape rail counts that pattern). Rule 7 applies to `ask` AND `detail`: internal identifiers are BANNED from both.
 2. **Repro first.** Any blocker concerning observable UI behavior → invoke the `recon:recon-repro` skill and capture its evidence BEFORE drafting (rule 7).
 3. **Render the dossier.** Invoke the `recon:recon-report` skill in render-only mode → writes `report/dossier.html`. NO artifact publishing on this path — the Jira attachment is the delivery.
 4. **Draft the comment** — EXACT shape, n+4 non-empty lines, generated from `triage.yaml` ONLY:
 
    ```
-   h2. Recon triage: <DISPOSITION> — <n> blockers (<d MMM>)
+   h2. Recon triage: <DISPOSITION> — <n> blocker(s) (<d MMM>)
 
    *1. <title>* — [~accountid:…]: <ask>
 
@@ -129,7 +129,7 @@ Disposition rule: any of checks 2–5 failing with an unanswered owner-question 
    ~recon-triage v<plugin_version from meta.yaml>~
    ```
 
-   One `*i. <title>* — [~accountid:…]: <ask>` line per blocker, numbered 1..n (resolve each `owner` handle to its accountId here — `comment.txt` is the exact posted body). NO history, NO stale-blocker narration, NO technical values beyond what an ask needs — that lives in the dossier's question packs. Split-scope proposals appear ONLY inside an ask line. Save to `triage/jira/comment.txt`, then run:
+   One `*i. <title>* — [~accountid:…]: <ask>` line per blocker, numbered 1..n. Resolve each `owner` handle to its accountId at draft time — `comment.txt` is the exact posted body: `GET "https://$HOST/rest/api/2/user/search?query=<name>"` (same creds/HOST as step 1), save each response as `triage/aux-user-<slug>.json`, and take `accountId` from it; NEVER guess an accountId or fall back to a display name. NO history, NO stale-blocker narration, NO technical values beyond what an ask needs — that lives in the dossier's question packs. Split-scope proposals appear ONLY inside an ask line. Save to `triage/jira/comment.txt`, then run:
 
    ```bash
    bash "<skill base dir>/../../scripts/verify-comment-shape.sh" <TICKET>
@@ -143,7 +143,7 @@ Disposition rule: any of checks 2–5 failing with an unanswered owner-question 
    ```
 
    Writes `triage/jira/bundle-manifest.txt` and stages `recon-artifacts-<TICKET>.zip` in a temp dir (never inside the workspace). Quote its `MANIFEST:` and `ZIP:` lines in your progress note.
-6. **Gate (single approval).** AskUserQuestion shows the comment draft AND the attachment manifest: the two filenames (`recon-dossier-<TICKET>.html`, `recon-artifacts-<TICKET>.zip`), their sizes, and the bundle file count from the `MANIFEST:` line. Options: `Post to Jira now (comment + 2 attachments)` / `Edit first` / `Don't post`. One "post" answer authorizes the comment AND both attachments. NEVER post or attach without it (rule 2).
+6. **Gate (single approval).** AskUserQuestion shows the comment draft AND the attachment manifest: the two filenames (`recon-dossier-<TICKET>.html`, `recon-artifacts-<TICKET>.zip`), their sizes, and the bundle file count from the `MANIFEST:` line. Options: `Post to Jira now (comment + 2 attachments)` / `Edit first` / `Don't post`. One "post" answer authorizes the comment AND both attachments. NEVER post or attach without it (rule 2). On `Edit first`: after ANY change to `comment.txt`, re-run `verify-comment-shape.sh` until `shape: clean`, then re-show this gate — the posted bytes are always shape-verified and freshly approved.
 7. **On "post": attachments FIRST, then the comment.** Duplicate filenames bind `[^…]` links to the OLDER attachment, so replacement MUST precede the comment. The uploaded filename is the file's basename, so stage a renamed dossier copy in the temp dir (never inside the workspace):
 
    ```bash
@@ -169,17 +169,18 @@ bash "<skill base dir>/../../scripts/lint-workspace.sh" <TICKET>
 ```
 Step 0: <the script's `archived:` output line, verbatim>
 Wrote: ~/.claude/recon/<TICKET>/triage/{ticket.json, triage.yaml} (+ jira/{comment.txt,
-       bundle-manifest.txt, attach-result.json, post-result.json} on the posting path)
+       bundle-manifest.txt} on the posting path; + jira/{attach-result.json,
+       post-result.json} only after a "post" answer)
 Lint: <lint-workspace.sh verdict line, verbatim — fix any violation before reporting>
 Shape: <verify-comment-shape.sh verdict line, verbatim — posting path only; omit on READY>
 Disposition: <READY|BLOCKED|NEEDS_INFO> (<n> blockers, <n> conflicts)
 Next: <one of:
   READY    → recon:recon-discovery invoked (running now)
-  BLOCKED  → comment + attachments posted; pipeline paused. When answers arrive, re-run
-             /recon:recon-triage <TICKET> — the stale-blocker check re-evaluates
-             answered questions automatically.
-  BLOCKED  → comment NOT posted (your choice); raise the questions yourself,
-             then re-run /recon:recon-triage <TICKET>.>
+  BLOCKED / NEEDS_INFO → comment + attachments posted; pipeline paused. When answers
+             arrive, re-run /recon:recon-triage <TICKET> — the stale-blocker check
+             re-evaluates answered questions automatically.
+  BLOCKED / NEEDS_INFO → comment NOT posted (your choice); raise the questions
+             yourself, then re-run /recon:recon-triage <TICKET>.>
 ```
 
 ---
