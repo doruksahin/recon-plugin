@@ -12,11 +12,11 @@ Design formula (all changes must preserve it): **judgment stays in the model but
 | # | Stage | Skill | Entry condition | Exit states |
 |---|---|---|---|---|
 | 0 | Fresh workspace | recon-triage step 0 | always (script-guarded: once per run) | workspace = `meta.yaml` (+ `runs/`) only |
-| 1 | Blocker triage | recon-triage | ticket ID/URL | `READY` → stage 2 (auto-chain, unless user said "triage only") · `BLOCKED`/`NEEDS_INFO` → comment gate → **STOP** |
+| 1 | Blocker triage | recon-triage | ticket ID/URL | `READY` → stage 2 (auto-chain, unless user said "triage only") · `BLOCKED`/`NEEDS_INFO` → repro (if UI blockers) → dossier (render-only, auto) → package → comment+attachments gate → attach then comment → **STOP** |
 | 2 | Code discovery | recon-discovery | `triage/triage.yaml` with `disposition: READY` | contract → routing stage → brief → gate → **STOP** (handoff quoted verbatim from `route/routing.yaml`, never executed) |
 | RT | Routing | `scripts/route-generic.sh` (governance `none`) **or** the adapter skill `recon-<governance>` (e.g. recon-decree) | invoked by stage 2 after the contract; governance resolved by `scripts/detect-governance.sh` | `route/routing.yaml` (route, rule trace, `brief_kind`, `handoff:` as data) |
 | R | Live repro | recon-repro | invoked by stage 1 or 2 per trigger table | `repro.md` + screenshots, or an honest failure finding |
-| D | Dossier | recon-report | on demand only, after any STOP (current run exists) | `report/dossier.html` + one private artifact URL |
+| D | Dossier | recon-report | on demand after any STOP (current run exists), or auto-invoked render-only by stage 1's `BLOCKED`/`NEEDS_INFO` posting path | on-demand: `report/dossier.html` + one private artifact URL · render-only: `report/dossier.html` only (no artifact URL) |
 
 **STOP is a real state.** The pipeline never implements, branches, or edits repo code. After stage 2 approval, implementation belongs to a NEW session entered via the printed handoff (`/decree:ddd`). After a BLOCKED stop, re-entry is a fresh `recon-triage <TICKET>` run once answers arrive.
 
@@ -27,13 +27,15 @@ Design formula (all changes must preserve it): **judgment stays in the model but
 3. **`runs/` is unreadable.** Archived prior runs are never opened, listed, or cited. Inputs are the live Jira API, git, `gh`, and resources fetched this run.
 4. **Marker comments are output, not evidence.** Jira comments containing `recon-triage` are pipeline-authored: excluded from every check; used only for edit-vs-create and human-reply detection. Every comment the pipeline posts ends with `~recon-triage v<plugin_version>~`.
 5. **Every claim carries evidence** — `file:line`, command output, HTTP status, or exact quote. A checklist answer without one is not done.
-6. **No Jira POST without explicit human approval in-session.** Drafts are saved to `comment.txt` before the gate; at most one marker comment per ticket, edited on re-runs.
+6. **No mutating Jira call (comment create/edit, attachment delete/upload) without explicit human approval in-session.** Drafts are saved to `comment.txt` and attachments staged before the gate; one "post" answer authorizes the comment AND the attachments; at most one marker comment per ticket, edited on re-runs.
 7. **Routing is a stage with exactly two producers** — `route-generic.sh` (rail) or the governance adapter skill — writing `route/routing.yaml` with `matched_rule` + `rules_not_matched` + evidence. Never by feel; discovery consumes it and quotes `handoff:` VERBATIM (the handoff is data, authored once).
 8. **Human-facing questions are concrete**: numbered steps from a stated start state, real entity names, options as user-observable outcomes. Internal identifiers are banned from question text.
 9. **Repro is never fabricated.** Every step performed and every screenshot captured this run; a failed repro is reported as a finding.
 10. **No undeclared artifacts.** Every file a run writes appears in the artifact registry below — checked mechanically by `recon/scripts/lint-workspace.sh <TICKET>`, which every stage runs in its Report step (exit 1 on violations).
 11. **Determinism definition:** given the same ticket state, a run produces the same verdict regardless of what earlier runs left behind.
 12. **Governance is opt-in and fenced.** `detect-governance.sh` resolves the ladder (env > `~/.config/recon/config` > probe); detection alone never opts a developer in — a detected-but-unchosen tool yields `undecided` and exactly one persisted question. When governance resolves to `none`, governance-system vocabulary (decree/SPEC/PRD/ADR) is banned from every artifact — `lint-workspace.sh` greps for it. All adapter vocabulary lives in the adapter skill (`recon-<governance>`), which a `none` run never loads.
+13. **Comment shape is mechanical.** A posting-path comment is exactly n+4 non-empty lines — header, n one-line blockers `*i. Title* — [~accountid]: ask?` numbered 1..n, attachment-links line, reply line, marker line LAST — with n ≥ 1, generated from `triage.yaml` only; verified by `recon/scripts/verify-comment-shape.sh` before the gate. All detail lives in the dossier question packs (`blockers[].detail`), never the comment.
+14. **Attachments replace, never accumulate.** Files named `recon-*-<TICKET>.*` are recon-owned; `recon/scripts/attach-artifacts.sh` deletes stale ones then uploads, always BEFORE the comment posts (Jira binds duplicate-filename `[^…]` links to the OLDER attachment). Same approval gate as invariant 6.
 
 ## Artifact registry
 
@@ -47,14 +49,15 @@ All under `~/.claude/recon/<TICKET>/`. Producer → consumers.
 | `triage/ticket.json` | triage | triage checks | Jira issue, API v2 plain-text |
 | `triage/aux-<slug>.json` | triage | triage checks | auxiliary GETs (linked tickets, Confluence) |
 | `triage/triage.yaml` | triage | discovery precondition, humans | schema in recon-triage SKILL.md |
-| `triage/jira/{comment.txt, post-result.json, attach-result.json}` | triage (on posting path) | audit | draft saved BEFORE gate; responses after POST |
+| `triage/jira/{comment.txt, post-result.json, attach-result.json}` | triage (on posting path) | audit | draft saved BEFORE gate; responses after POST; `attach-result.json` is written by `attach-artifacts.sh` and cleared at the start of each attach run |
+| `triage/jira/bundle-manifest.txt` | `package-artifacts.sh` | gate display, audit | size + rel path per bundled file; the zip itself is staged in a temp dir (its contents ARE the workspace) |
 | `discovery/discovery.md` | discovery | gate, implementer verification | Gherkin: required + regression + OPEN scenarios |
 | `route/routing.yaml` | route-generic.sh or the governance adapter | discovery (route/brief_kind/handoff), recon-report | route + rule trace + governance/source + `brief_kind` + `handoff:` (data, quoted verbatim) + `evidence.repo_commit` |
 | `route/aux-intent-check.txt` | governance adapter only | audit, recon-report | raw adapter-check output backing the evidence lines |
 | `discovery/gate.yaml` | discovery | recon-report decision cards, humans | approved/date/open_scenario_resolutions/rejected — extracted from routing (the gate is discovery's act) |
 | `discovery/spec-draft.md` | discovery | implementer session | the brief named by `routing.brief_kind`; ACs 1:1 from Gherkin + Manual verification (or a problem statement) — governance-neutral |
 | `repro/repro.md` + `repro/exhibits/<n>-<slug>.png` | repro | gate questions, spec-draft Manual verification, PR "before" evidence, recon-report exhibits | numbered, human-re-runnable |
-| `report/dossier.html` | recon-report | humans (published as a private artifact) | a VIEW over the rows above — no new facts, fixed template |
+| `report/dossier.html` | recon-report | humans (published as a private artifact on-demand; attached to the Jira ticket by triage on the posting path) | a VIEW over the rows above — no new facts, fixed template |
 
 ## Trigger table (mechanical — no judgment)
 
@@ -70,7 +73,9 @@ All under `~/.claude/recon/<TICKET>/`. Producer → consumers.
 | Governance resolution | `detect-governance.sh` ladder: env > config > probe-absent→none > probe-present-no-choice→undecided | undecided → ONE AskUserQuestion, answer persisted via `set-governance.sh`, re-resolve |
 | Routing dispatch | `governance: none` → `route-generic.sh <TICKET> <source>`; else → invoke skill `recon-<governance>` | either producer writes `route/routing.yaml` |
 | Vocabulary fence | `route/routing.yaml` has `governance: none` | lint greps all artifacts for governance vocabulary; any hit = violation |
-| Dossier | never automatic — user asks, or a stage's report mentions it | recon-report renders the fixed template from current-run artifacts; publishes private |
+| Dossier | auto render-only on the `BLOCKED`/`NEEDS_INFO` posting path; on demand otherwise (user asks, or a stage's report mentions it) | recon-report renders the fixed template from current-run artifacts; publishes private (on-demand only — render-only stops after write + lint) |
+| Blocked delivery | disposition ∈ {`BLOCKED`, `NEEDS_INFO`} (requires n ≥ 1 structured blockers) | recon-report render-only → `package-artifacts.sh` → gate → `attach-artifacts.sh` → comment (attach strictly first) |
+| Comment shape gate | posting path, `comment.txt` drafted or edited | `verify-comment-shape.sh` until `shape: clean` before the approval gate |
 
 ## Rails vs judgment
 
@@ -82,6 +87,9 @@ All under `~/.claude/recon/<TICKET>/`. Producer → consumers.
 | repro trigger conditions | what the minimal repro state sequence is |
 | artifact names and schemas | drafted question wording (within rule 8) |
 | gates: who may approve, what gets recorded | disposition rationale in evidence lines |
+| comment shape: n+4 lines (`verify-comment-shape.sh`) | blocker ask/detail wording (within triage rule 7 / invariant 8) |
+| attachment replace + ordering (`attach-artifacts.sh`) | |
+| bundle packaging + manifest (`package-artifacts.sh`) | |
 
 ## Consuming the artifacts (implementer sessions)
 

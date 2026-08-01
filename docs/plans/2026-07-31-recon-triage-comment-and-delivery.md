@@ -318,7 +318,7 @@ lines=$(grep -c . "$C" || true)
 want=$((n + 4))
 fail=0
 
-[ "$n" -ge 1 ] || { echo "SHAPE: posting path requires >=1 structured blocker in triage.yaml"; fail=1; }
+[ "$n" -ge 1 ] || { echo "SHAPE: posting path requires >=1 structured blocker in triage.yaml (nothing to ask ⇒ re-check disposition, do not post)"; fail=1; }
 
 if grep -q $'\r' "$C"; then
   echo "SHAPE: comment contains CRLF line endings — use LF only"; fail=1
