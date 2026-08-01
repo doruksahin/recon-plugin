@@ -57,12 +57,22 @@ precondition: it will not start unless this says `READY`.
 
 ### `triage/jira/` — present only if the posting path ran (BLOCKED/NEEDS_INFO)
 - **`comment.txt`** — the exact comment body drafted for Jira, saved *before* the
-  human approved posting. Ends with the `~recon-triage v<version>~` marker.
+  human approved posting. The body is the mechanical n+4 progressive-disclosure
+  shape — header, one line per blocker, attachment-links line, reply line,
+  marker line — so full detail never lives here; it lives in the dossier's
+  question packs. Ends with the `~recon-triage v<version>~` marker.
+- **`bundle-manifest.txt`** — written by `package-artifacts.sh`: one line per
+  bundled file (size + relative path). The zip it describes
+  (`recon-artifacts-<TICKET>.zip`) is staged in a temp dir — never inside this
+  workspace — and attached to the Jira ticket; its contents ARE this workspace,
+  so the manifest is the exact record of what was delivered.
 - **`post-result.json`** — the Jira API response after an approved POST/edit.
   Proof of what actually landed on the ticket, and which comment ID to edit next
   time.
-- **`attach-result.json`** — responses from attachment uploads (screenshots
-  attached to the ticket), when the drafted comment carried visual evidence.
+- **`attach-result.json`** — written by `attach-artifacts.sh` on the posting
+  path: the IDs of the stale recon attachments it deleted plus the upload
+  responses for the new ones. Cleared at the start of each attach run, so if it
+  is absent after a run, the attach never completed.
 
 ---
 
@@ -126,13 +136,17 @@ verification, and the eventual PR's "before" evidence.
 
 ---
 
-## `report/` — on demand: the dossier
+## `report/` — the dossier (on demand, or auto on the posting path)
 
 ### `report/dossier.html`
 A self-contained HTML rendering of this run (fixed template, screenshots
-embedded), published as a private artifact. It is a **view, never a source**:
-every claim in it traces back to the files above; nothing in it is new
-information. If the dossier and an artifact disagree, the artifact wins.
+embedded). Produced in one of two modes: **on demand** (the user asked for a
+report) it is published as a private artifact; on the **posting path**
+(BLOCKED/NEEDS_INFO) it is rendered render-only and attached to the Jira ticket
+as `recon-dossier-<TICKET>.html` alongside `recon-artifacts-<TICKET>.zip` — no
+artifact publishing. In both modes it is a **view, never a source**: every
+claim in it traces back to the files above; nothing in it is new information.
+If the dossier and an artifact disagree, the artifact wins.
 
 ---
 

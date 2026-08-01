@@ -5,14 +5,14 @@ Deterministic Jira task recon pipeline for Claude Code. Runs **before** any plan
 ```
 /recon:recon-triage ATT-1234
   ├─ six blocker checks → triage.yaml
-  ├─ BLOCKED → drafts PM questions (+ screenshots when UI-related) → you post → stop
+  ├─ BLOCKED → repro (if UI) → render-only dossier → n+4 comment + artifact zip → you approve → attach, then post → stop
   └─ READY  → auto-chains recon-discovery
                ├─ code surface + Gherkin behavior contract
                ├─ routing stage: plain script (no governance) or the decree
                │  adapter skill (opt-in) → route/routing.yaml, handoff as data
                ├─ UI defects + UI edge cases → recon-repro captures repro steps + screenshots
                └─ approval gate → prints decree handoff commands → stop
-  optional: /recon:recon-report → self-contained HTML dossier of the run (private artifact)
+  on demand: /recon:recon-report → self-contained HTML dossier (private artifact); the BLOCKED path renders it automatically, attachment-only
 ```
 
 Your touchpoints per ticket: answer the gate, review the PR. That's it.
@@ -29,9 +29,15 @@ flowchart TD
     PART --> CHECKS["six checks + cross-checks<br>one evidence line per claim"]
     CHECKS --> DISP{"disposition<br>triage/triage.yaml"}
 
-    DISP -->|"BLOCKED / NEEDS_INFO"| DRAFT["draft comment ≤15 lines<br>owner-addressed questions, marker-signed<br>→ triage/jira/comment.txt"]
-    DRAFT --> UIQ{{"human: post / edit / don't post"}}
-    UIQ -->|post| POST["edit existing marker comment or create<br>→ triage/jira/post-result.json"]
+    DISP -->|"BLOCKED / NEEDS_INFO"| BREPRO{"UI-related blockers?<br>(condition, not vibes)"}
+    BREPRO -->|yes| BR["recon-repro — numbered steps +<br>screenshots for the blocker questions"]
+    BREPRO -->|no| RENDER
+    BR --> RENDER["recon-report render-only<br>→ report/dossier.html<br>(no artifact publishing)"]
+    RENDER --> DRAFT["draft comment — n+4 lines: header, one line<br>per blocker, links + reply + marker lines<br>verify-comment-shape.sh → triage/jira/comment.txt"]
+    DRAFT --> PKG["package-artifacts.sh — zip the workspace<br>→ triage/jira/bundle-manifest.txt<br>(zip staged in a temp dir)"]
+    PKG --> UIQ{{"human: post to Jira?<br>comment + 2 attachments<br>post / edit / don't post"}}
+    UIQ -->|post| ATTACH["attach-artifacts.sh — replace recon-owned<br>attachments FIRST: delete stale, upload dossier<br>+ zip → triage/jira/attach-result.json"]
+    ATTACH --> POST["THEN edit existing marker comment or create<br>→ triage/jira/post-result.json"]
     POST --> HALT1(["STOP — resume when answers arrive:<br>re-run recon-triage"])
     UIQ -->|"don't post"| HALT1
 
@@ -61,8 +67,8 @@ flowchart TD
     classDef judge fill:#fef9c3,stroke:#ca8a04,color:#713f12
     classDef human fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
     classDef stop fill:#f3f4f6,stroke:#6b7280,color:#374151
-    class S0,FETCH,PART,POST,GOV,GSEL,RGEN,RDEC,RTRIG,HAND,REPORT rail
-    class CHECKS,DISP,MAP,GHERKIN,DRAFT,REPRO,SPEC judge
+    class S0,FETCH,PART,BREPRO,RENDER,PKG,ATTACH,POST,GOV,GSEL,RGEN,RDEC,RTRIG,HAND,REPORT rail
+    class CHECKS,DISP,MAP,GHERKIN,DRAFT,BR,REPRO,SPEC judge
     class UIQ,GATE human
     class HALT1,HALT2,REJ stop
 ```
@@ -99,20 +105,20 @@ Full machine-readable spec of stages, invariants, artifacts, and triggers: [reco
 | `/recon:recon-triage` | 0 | Blocker verdict (READY/BLOCKED/NEEDS_INFO) from six mechanical checks; drafts owner-addressed questions; never plans |
 | `/recon:recon-discovery` | 1 | Code surface with `file:line` evidence, Gherkin behavior contract, routing via the governance adapter or generic rail, approval gate |
 | `/recon:recon-repro` | on demand | Live-reproduces observable behavior: numbered steps + one screenshot per state; honest about failed repros |
-| `/recon:recon-report` | on demand | Renders the run's artifacts into a designed HTML dossier (fixed template, no new facts) published as a private artifact |
+| `/recon:recon-report` | on demand / render-only | Renders the run's artifacts into a designed HTML dossier (fixed template, no new facts) — published as a private artifact on demand, or rendered render-only for triage to attach to the ticket on the BLOCKED/NEEDS_INFO path |
 | `recon-decree` | adapter | Decree governance adapter — invoked by discovery only when governance resolves to `decree`; ALL decree vocabulary lives here |
 
 ## I/O contract
 
 | Skill | Input | Writes (all under `~/.claude/recon/<TICKET>/`) | External side effects |
 |---|---|---|---|
-| `recon-triage` | ticket ID/URL | root `meta.yaml` + `index.md` (step-0 script); `triage/{ticket.json, triage.yaml, aux-<slug>.json}`; on posting `triage/jira/{comment.txt, post-result.json, attach-result.json}`; prior runs archived to `runs/<timestamp>/` | at most one Jira comment (marker-signed) — drafted first, sent only after your explicit approval |
+| `recon-triage` | ticket ID/URL | root `meta.yaml` + `index.md` (step-0 script); `triage/{ticket.json, triage.yaml, aux-<slug>.json}`; on posting `triage/jira/{comment.txt, bundle-manifest.txt, post-result.json, attach-result.json}` (the zip is staged in a temp dir); prior runs archived to `runs/<timestamp>/` | at most one Jira comment (marker-signed) plus replacement of recon-owned `recon-*-<TICKET>.*` attachments — drafted/staged first, sent only after one explicit approval |
 | `recon-discovery` | ticket ID (READY triage) | `discovery/{discovery.md, spec-draft.md, gate.yaml}` | none — quotes the handoff verbatim from `route/routing.yaml`, never executes it |
 | routing stage | governance resolution | `route/routing.yaml` (route, rule trace, `handoff:` as data); adapter also writes `route/aux-intent-check.txt` | none — produced by `scripts/route-generic.sh` or the `recon-decree` adapter |
 | `recon-repro` | ticket ID + claim | `repro/repro.md` + `repro/exhibits/*.png` | none (local only: boots the dev server, shows screenshots) |
-| `recon-report` | ticket ID (run exists) | `report/dossier.html` | publishes one **private** artifact (dossier URL); never posts to Jira |
+| `recon-report` | ticket ID (run exists) | `report/dossier.html` | on demand: publishes one **private** artifact (dossier URL); render-only (BLOCKED path): none — triage attaches the dossier behind its own gate. Never posts to Jira itself |
 
-Nothing is ever pushed, committed, or posted anywhere without an explicit per-action approval. Jira gets at most one short comment per stage — edited on re-runs (detected by the `recon-triage` marker line), never appended.
+Nothing is ever pushed, committed, or posted anywhere without an explicit per-action approval. Jira gets at most one short comment per stage — edited on re-runs (detected by the `recon-triage` marker line), never appended — and attachments in the `recon-*-<TICKET>.*` namespace are replaced, never accumulated.
 
 ## Governance is opt-in (decree or nothing at all)
 
@@ -120,7 +126,7 @@ Whether a run routes through decree is resolved by a ladder, most explicit wins:
 
 ## Deterministic re-runs
 
-Every triage run starts from a clean workspace: step 0 runs `recon-triage/scripts/fresh-workspace.sh`, which archives all prior artifacts (dotfiles included) into `~/.claude/recon/<TICKET>/runs/<timestamp>/` and stamps the new run with `meta.yaml` (plugin version + start time). The step lives in a script — not inline in the skill — so it executes byte-identically every run, and it runs exactly once per run: a re-invocation within 30 minutes is refused (`SKIPPED`) so a run can never archive its own in-progress artifacts. Each skill writes only inside its own stage directory (`triage/`, `discovery/`, `repro/`, `report/`); `scripts/lint-workspace.sh` verifies the tree against the artifact registry at the end of every stage, and step 0 drops a static `index.md` into each workspace documenting every file's role. No skill may read anything under `runs/` — the only inputs are the live Jira API, git, and `gh`. Recon's own Jira comments carry a marker line and are excluded from all evidence checks, so a run is never influenced by the output of a previous (possibly older-versioned) run. Every file a run may write is declared in the I/O contract above — an undeclared artifact is a contract violation.
+Every triage run starts from a clean workspace: step 0 runs `recon-triage/scripts/fresh-workspace.sh`, which archives all prior artifacts (dotfiles included) into `~/.claude/recon/<TICKET>/runs/<timestamp>/` and stamps the new run with `meta.yaml` (plugin version + start time). The step lives in a script — not inline in the skill — so it executes byte-identically every run, and it runs exactly once per run: a re-invocation within 30 minutes is refused (`SKIPPED`) so a run can never archive its own in-progress artifacts. Each skill writes only inside its own stage directory (`triage/`, `discovery/`, `route/`, `repro/`, `report/`); `scripts/lint-workspace.sh` verifies the tree against the artifact registry at the end of every stage, and step 0 drops a static `index.md` into each workspace documenting every file's role. No skill may read anything under `runs/` — the only inputs are the live Jira API, git, and `gh`. Recon's own Jira comments carry a marker line and are excluded from all evidence checks, so a run is never influenced by the output of a previous (possibly older-versioned) run. Every file a run may write is declared in the I/O contract above — an undeclared artifact is a contract violation.
 
 ## Principles baked in
 
