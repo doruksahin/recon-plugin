@@ -24,7 +24,7 @@ while IFS= read -r f; do
   case "$rel" in
     meta.yaml | index.md) ;;
     triage/ticket.json | triage/triage.yaml | triage/aux-*.json) ;;
-    triage/jira/comment.txt | triage/jira/post-result.json | triage/jira/attach-result.json) ;;
+    triage/jira/comment.txt | triage/jira/post-result.json | triage/jira/attach-result.json | triage/jira/bundle-manifest.txt) ;;
     discovery/discovery.md | discovery/spec-draft.md | discovery/gate.yaml) ;;
     route/routing.yaml | route/aux-intent-check.txt) ;;
     repro/repro.md | repro/exhibits/*.png) ;;
