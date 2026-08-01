@@ -107,3 +107,4 @@ All under `~/.claude/recon/<TICKET>/`. Producer → consumers.
 4. Mechanical checks in skills must be `find`-based — `ls`/`grep` may be aliased or function-wrapped in a user's shell with non-POSIX exit codes.
 5. Any new behavior must land as a rail (script/table/schema) or as judgment-with-evidence; update this doc's tables in the same commit.
 6. Governance adapters follow the convention: skill `recon-<governance>`, same contract as recon-decree (reads `discovery/`, writes `route/routing.yaml` incl. `handoff:` data, vocabulary quarantined in its own SKILL.md).
+7. Docs must not outlive the files they name: `tools/check-links.sh` (pre-commit hook — enable per clone with `git config core.hooksPath .githooks`) resolves every backticked script name, `../`-relative path, and `blob/master` link against the working tree, then runs lychee over the real links. Renaming a script without updating its references fails the commit.

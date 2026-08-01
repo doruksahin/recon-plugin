@@ -1,0 +1,26 @@
+# lychee config — repo-wide link check (see tools/check-links.sh).
+#
+# Excluded on purpose:
+#   - own-repo blob links: verified against the WORKING TREE by check-links.sh
+#     instead. GitHub's master branch lags a pre-commit run, so a file added in
+#     the commit being made would 404 on github.com while being perfectly correct
+#     locally. The local tree is the right source of truth here.
+#   - auth-walled hosts (Jira, claude.ai artifacts): a checker cannot see them.
+#   - placeholders: shell vars in example commands, «SLOT: …» template markers
+#     (percent-encoded to %C2%AB… once resolved).
+
+exclude = [
+  '^https://github\.com/doruksahin/recon-plugin/blob/',
+  'atlassian\.net',
+  'claude\.ai',
+  '\$\{?[A-Z_]+',
+  '%C2%AB',
+  '«',
+]
+
+exclude_path = [".git", "runs"]
+
+cache = true
+max_cache_age = "1d"
+max_retries = 2
+timeout = 15

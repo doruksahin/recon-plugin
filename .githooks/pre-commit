@@ -1,0 +1,5 @@
+#!/bin/bash
+# Blocks a commit whose docs point at files that don't exist.
+# Enable in a fresh clone:  git config core.hooksPath .githooks
+# Bypass once:              git commit --no-verify
+exec "$(git rev-parse --show-toplevel)/tools/check-links.sh"

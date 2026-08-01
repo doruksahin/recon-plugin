@@ -98,6 +98,17 @@ Full machine-readable spec of stages, invariants, artifacts, and triggers: [reco
 2. **decree CLI** (optional) — enables the decree governance adapter. Without it (or with `governance=none` in `~/.config/recon/config`), routing runs on the generic rail and no decree vocabulary appears anywhere.
 3. **gh CLI, logged in** — used by triage's conflict check (open PR scan). Degrades gracefully if absent.
 
+## Contributing to this repo
+
+Enable the link check once per clone — it runs on every commit and blocks docs that point at files which no longer exist:
+
+```bash
+git config core.hooksPath .githooks
+brew install lychee   # optional; without it, external URLs go unchecked
+```
+
+`tools/check-links.sh` resolves the docs' own file references against the working tree (backticked script names, `../`-relative paths, and the `blob/master` links in [docs/flow.html](docs/flow.html)), then hands real links to [lychee](https://github.com/lycheeverse/lychee). Rename a script and every doc still naming it fails the commit. Run it any time with `bash tools/check-links.sh`; bypass once with `git commit --no-verify`.
+
 ## Skills
 
 | Skill | Stage | What it does |
