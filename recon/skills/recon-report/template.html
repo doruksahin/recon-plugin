@@ -214,6 +214,7 @@
     font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
     font-weight: 700; color: var(--ink-2); display: block; margin-bottom: 4px;
   }
+  .callout ul { margin: 6px 0 0; padding-left: 20px; font-size: 14px; }
 
   figure.exhibit { margin: 0 0 26px; }
   .exhibit-frame {
@@ -273,6 +274,27 @@
       <div><dt>Next</dt><dd></dd></div>
     </dl>
     <p class="facts-note">Seven slots, same order, every dossier. A slot with nothing to report reads <em>None</em>. Each fact carries a coordinate, and every coordinate is a link. Line numbers are pinned to commit <!-- «SLOT: repo_commit link» — from route/routing.yaml evidence.repo_commit; if absent, write "unpinned (repo_commit not recorded)" and use plain paths, no GitHub links -->.</p>
+  </section>
+
+  <section id="blockers">
+    <p class="kicker">Blockers</p>
+    <h2>Blockers &amp; question packs</h2>
+    <!-- «SLOT: blockers» — one .callout card per triage/triage.yaml blockers[] entry, in
+         triage.yaml order; every value VERBATIM from triage.yaml (NO NEW FACTS — compress
+         wording only, never add options, evidence, or judgment). Card shape:
+         <div class="callout">
+           <span class="callout-label">Blocker N · owner <owner></span>
+           <p><b><title></b> — <ask></p>
+           <p>State: <detail.state></p>
+           <ul> one <li> per detail.options entry, verbatim </ul>
+           <p>Evidence:</p>
+           <ul> one <li> per detail.evidence line, verbatim; file:line / commands / HTTP
+                statuses wrapped in <code> </ul>
+           <p>Repro: <a href="#repro"><code><detail.repro_ref></code></a></p>
+                · this Repro line ONLY when detail.repro_ref is set; otherwise omit it
+         </div>
+         A detail field with no value: omit that line, never invent one. When blockers is
+         empty: the section body is the single word None — <p>None</p> (section always present). -->
   </section>
 
   <section>
