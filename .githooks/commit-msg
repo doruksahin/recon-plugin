@@ -1,0 +1,5 @@
+#!/bin/bash
+# Blocks a commit whose subject would not reach the changelog.
+# Enable in a fresh clone:  git config core.hooksPath .githooks
+# Bypass once:              git commit --no-verify
+exec "$(git rev-parse --show-toplevel)/tools/check-commit-msg.sh" "$1"

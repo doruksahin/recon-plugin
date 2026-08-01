@@ -1,0 +1,28 @@
+[tool.commitizen]
+# Release config. See CONTRIBUTING.md for the commit convention this reads.
+#
+# version_provider = "scm" makes the git tag the single source of truth for the
+# current version, so there is no version number stored in this file to drift
+# out of sync with plugin.json. `cz bump` reads the latest tag, computes the
+# next one from the commits since it, and writes that number into version_files.
+name = "cz_conventional_commits"
+version_provider = "scm"
+version_files = ["recon/.claude-plugin/plugin.json:version"]
+tag_format = "v$version"
+
+# Pre-1.0: a breaking change bumps the minor, never to 1.0.0. Drop this line on
+# the day recon goes 1.0 and `feat!` starts meaning a major bump.
+major_version_zero = true
+
+annotated_tag = true
+update_changelog_on_bump = true
+changelog_incremental = true
+change_type_order = ["BREAKING CHANGE", "Features", "Bug Fixes", "Performance", "Internal"]
+
+# Types absent from this map (docs, chore, ci, test, style) produce no changelog
+# line at all — that is deliberate, not an oversight.
+[tool.commitizen.change_type_map]
+feat = "Features"
+fix = "Bug Fixes"
+perf = "Performance"
+refactor = "Internal"
