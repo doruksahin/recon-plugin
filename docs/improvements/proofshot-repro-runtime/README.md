@@ -2,7 +2,8 @@
 
 > Run every repro under proofshot: action-log + video provenance; steps transcribed, not recalled
 
-- **Status:** in-progress — plan: [2026-08-02-proofshot-repro-runtime](../../plans/2026-08-02-proofshot-repro-runtime.md)
+- **Status:** shipped (v0.16.0) — plan: [2026-08-02-proofshot-repro-runtime](../../plans/2026-08-02-proofshot-repro-runtime.md)
+- **Shipped:** SPEC-01KZ1BD2V986MYTYD6PCB02BGX; validated live on ATT-5107 (recorded welcome-modal repro, 2 Aug 2026)
 - **Priority:** P1
 - **Theme:** determinism rail
 - **Origin:** Skill-design review on 2 Aug 2026 — post-v0.15.0 audit of `recon-repro`
