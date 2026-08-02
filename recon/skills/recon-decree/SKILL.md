@@ -115,6 +115,12 @@ Handoff blocks (write the matching one into `handoff:`):
 
 ## Report
 
+First log the routing to the ticket ledger (invariant 16 — route-generic.sh logs itself; the adapter logs here):
+
+```bash
+bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> routed route=<route> rule=<n>
+```
+
 Print (control returns to recon-discovery, which continues with the brief, repro triggers, and the gate):
 
 ```

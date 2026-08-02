@@ -102,9 +102,15 @@ gate:
 
 On Edit, apply the edits to the artifacts and re-present. On Reject: write `approved: false` + `rejected`, then print `Next: fix what the rejection names and re-run /recon:recon-discovery <TICKET>; if the ticket itself is wrong, re-run /recon:recon-triage <TICKET> or raise it with the reporter` — and STOP.
 
+Whenever `gate.yaml` is written (approve OR reject), log it (invariant 16):
+
+```bash
+bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> gate_answered approved=<true|false>
+```
+
 ### 8. Handoff (after approval — print, don't execute)
 
-Print `route/routing.yaml`'s `handoff:` block **verbatim** under a `Next:` line. Nothing is added, reworded, or dropped — the routing stage authored it; discovery only relays it.
+Print `route/routing.yaml`'s `handoff:` block **verbatim** under a `Next:` line. Nothing is added, reworded, or dropped — the routing stage authored it; discovery only relays it. Then log `bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> handoff_printed` (invariant 16).
 
 ---
 

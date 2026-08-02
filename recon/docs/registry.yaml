@@ -33,6 +33,11 @@
   producer: fresh-workspace.sh (archive of prior runs)
   consumers: nobody — reading archived runs is banned (invariant 3)
 
+- pattern: "history.ndjson"
+  token: "history.ndjson"
+  producer: log-event.sh (closed event vocabulary; survives step 0)
+  consumers: state canvas timeline, humans — OUTPUT, never evidence (invariant 16)
+
 - pattern: "triage/ticket.json"
   token: "ticket.json"
   producer: triage (step 1 fetch)

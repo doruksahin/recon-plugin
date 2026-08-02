@@ -61,5 +61,8 @@ EOF
   ROUTE=brief RULE=G1
 fi
 
+RECON_ROOT="$HOME/.claude/recon" \
+  bash "$(cd "$(dirname "$0")" && pwd)/log-event.sh" "$TICKET" routed "route=$ROUTE" "rule=$RULE" >/dev/null
+
 echo "route: $ROUTE (rule $RULE, $N scenario(s), governance: none/$SRC)"
 echo "wrote: $DIR/route/routing.yaml"

@@ -72,3 +72,5 @@ json.dump({"deleted": deleted, "uploaded": uploads},
           open(sys.argv[2], "w"), indent=2)
 ' "$TMP" "$DIR/attach-result.json"
 echo "attach-result: $DIR/attach-result.json"
+RECON_ROOT="$HOME/.claude/recon" \
+  bash "$(cd "$(dirname "$0")" && pwd)/log-event.sh" "$TICKET" attachments_replaced "count=$#"

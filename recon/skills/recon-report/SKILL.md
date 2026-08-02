@@ -57,7 +57,7 @@ Turns the current-run artifacts of `~/.claude/recon/<TICKET>/` into one designed
 3. **Prepare exhibits** per rule 5 (use the session scratchpad for temp JPEGs).
 4. **Fill the template** slot by slot per the map. Strip the instruction comments (`«SLOT: …»` markers and the leading file comment) from the output.
 5. **Write** `~/.claude/recon/<TICKET>/report/dossier.html`, then run `bash "<skill base dir>/../../scripts/lint-workspace.sh" <TICKET>` and fix any violation.
-6. **Publish** — on-demand mode ONLY; in render-only mode this step does not happen: STOP after step 5 and print the render-only report. Publish as an artifact: title `<TICKET> — Recon Dossier`, favicon `🗂️` (keep both stable across redeploys of the same ticket). If the environment requires a prerequisite skill before publishing (e.g. `artifact-design`), load it first. Re-running for the same ticket republishes the same file path — pass the existing artifact URL if this session didn't create it.
+6. **Publish** — on-demand mode ONLY; in render-only mode this step does not happen: STOP after step 5 and print the render-only report. Publish as an artifact: title `<TICKET> — Recon Dossier`, favicon `🗂️` (keep both stable across redeploys of the same ticket). If the environment requires a prerequisite skill before publishing (e.g. `artifact-design`), load it first. Re-running for the same ticket republishes the same file path — pass the existing artifact URL if this session didn't create it. After a successful publish, log `bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> dossier_published` (invariant 16).
 
 ## Report
 

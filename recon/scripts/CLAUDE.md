@@ -20,6 +20,7 @@ alias those). Adding a file here without a role line below fails
 | `detect-governance.sh` | Resolves the governance ladder: env var → `~/.config/recon/config` → repo probe. Detection alone never opts a developer in (`undecided` → one persisted question). |
 | `set-governance.sh` | Persists the user's governance answer to `~/.config/recon/config` so the question is asked once. |
 | `route-generic.sh` | The `governance: none` routing producer: writes `route/routing.yaml` with route, matched rule, rule trace, and the verbatim `handoff:` block. |
+| `log-event.sh` | Invariant 16: appends one JSON line per pipeline event to the cross-run ticket ledger `history.ndjson` (closed vocabulary — `--vocab` prints it; lint reads it from here). Output, never evidence. |
 | `doctor.sh` | The recon-help engine: prints version (from its own plugin.json), the skill list (from each sibling SKILL.md's frontmatter description), and live setup checks (Jira env + GET /myself, handoff style via detect-governance.sh). Read-only; every printed fact is derived at run time so help cannot drift. |
 | `activate-plugin.sh` | The recon-publish distribution rail — plugin-AGNOSTIC (built for later extraction to a shared devkit): reads the source repo's marketplace.json + each plugin.json, copies the new version into the plugin cache (old pinned dirs never deleted), repoints `installed_plugins.json` (validated first — surprise shape fails loudly, that file is Claude Code internal format), fast-forwards the marketplace clone. |
 

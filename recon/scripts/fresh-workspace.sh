@@ -36,12 +36,14 @@ if [ -f "$META" ] && [ "${RECON_STEP0_FORCE:-0}" != "1" ]; then
   fi
 fi
 
+# history.ndjson is the cross-run ticket ledger (output, never evidence): it
+# survives archiving on purpose, so views can tell the ticket's story.
 archived="nothing (fresh workspace)"
-if [ -n "$(find "$DIR" -maxdepth 1 -mindepth 1 ! -name runs -print -quit)" ]; then
+if [ -n "$(find "$DIR" -maxdepth 1 -mindepth 1 ! -name runs ! -name history.ndjson -print -quit)" ]; then
   TS="$(date +%Y%m%d-%H%M%S)"
   while [ -e "$DIR/runs/$TS" ]; do TS="${TS}x"; done
   mkdir -p "$DIR/runs/$TS"
-  find "$DIR" -maxdepth 1 -mindepth 1 ! -name runs -exec mv {} "$DIR/runs/$TS/" \;
+  find "$DIR" -maxdepth 1 -mindepth 1 ! -name runs ! -name history.ndjson -exec mv {} "$DIR/runs/$TS/" \;
   count="$(find "$DIR/runs/$TS" -maxdepth 1 -mindepth 1 | wc -l | tr -d ' ')"
   archived="$count entries -> runs/$TS/"
 fi
@@ -61,6 +63,9 @@ else
   indexed="index.md SKIPPED — $INDEX_SRC missing (broken install?)"
 fi
 
+RECON_ROOT="$HOME/.claude/recon" bash "$SELF/log-event.sh" "$TICKET" run_started >/dev/null
+
 echo "workspace: $DIR"
 echo "archived: $archived"
 echo "stamped: meta.yaml (plugin_version: ${V:-unknown}) + $indexed"
+echo "ledger: run_started appended to history.ndjson"

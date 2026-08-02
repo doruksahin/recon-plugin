@@ -45,6 +45,33 @@ while IFS= read -r f; do
   fi
 done < <(find "$DIR" -type f ! -path "$DIR/runs/*" | sort)
 
+# Ledger check: history.ndjson (the cross-run ticket ledger — output, never
+# evidence) must be machine-readable: every line parses as JSON and carries an
+# event from log-event.sh's closed vocabulary (that script is the only owner).
+LEDGER="$DIR/history.ndjson"
+if [ -f "$LEDGER" ] && command -v python3 >/dev/null 2>&1; then
+  EVOCAB="$(bash "$(cd "$(dirname "$0")" && pwd)/log-event.sh" --vocab)"
+  bad="$(EVOCAB="$EVOCAB" python3 - "$LEDGER" <<'PY'
+import json, os, sys
+vocab = set(os.environ["EVOCAB"].split())
+for n, line in enumerate(open(sys.argv[1]), 1):
+    if not line.strip():
+        continue
+    try:
+        row = json.loads(line)
+    except ValueError:
+        print(f"line {n}: not valid JSON"); continue
+    if row.get("event") not in vocab:
+        print(f"line {n}: event '{row.get('event')}' not in the ledger vocabulary")
+PY
+)"
+  if [ -n "$bad" ]; then
+    echo "VIOLATION: history.ndjson — malformed ledger (log-event.sh is its only writer)"
+    printf '%s\n' "$bad" | sed 's/^/    /'
+    violations=$((violations + $(printf '%s\n' "$bad" | wc -l | tr -d ' ')))
+  fi
+fi
+
 # Vocabulary fence: when this run resolved governance to "none", no artifact may
 # contain governance-system vocabulary — the developer opted out (or never opted
 # in) and must not see it. Verified by grep, not by trust.

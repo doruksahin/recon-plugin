@@ -122,6 +122,12 @@ bash "<skill base dir>/../../scripts/verify-triage.sh" <TICKET>
 
 Fix and re-run until it prints `verify: clean`. A disposition mismatch means the checks and the verdict disagree — fix the checks or write the missing blocker; never hand-edit the verdict to match.
 
+Once clean, record the verdict in the ticket ledger (invariant 16 — one line, mechanical):
+
+```bash
+bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> verdict disposition=<DISPOSITION> blockers=<n>
+```
+
 ### 4. Branch on disposition
 
 - **READY** → invoke the `recon:recon-discovery` skill now (rule 5 above).
@@ -173,7 +179,13 @@ Fix and re-run until it prints `verify: clean`. A disposition mismatch means the
      "${TMPDIR:-/tmp}/recon-dossier-<TICKET>.html" "<ZIP path from step 5's ZIP: line>"
    ```
 
-   The script deletes prior `recon-*-<TICKET>.*` attachments, uploads the new files, and writes `triage/jira/attach-result.json`; it is safe to re-run after a failure. THEN create the comment with the exact bytes of `comment.txt` — or, if the fetched comments already contain a marker comment, EDIT the most recent one instead (rule 9); never add a second marker comment. Save the API response to `triage/jira/post-result.json`. Then STOP.
+   The script deletes prior `recon-*-<TICKET>.*` attachments, uploads the new files, and writes `triage/jira/attach-result.json`; it is safe to re-run after a failure. THEN create the comment with the exact bytes of `comment.txt` — or, if the fetched comments already contain a marker comment, EDIT the most recent one instead (rule 9); never add a second marker comment. Save the API response to `triage/jira/post-result.json`, then log it (invariant 16):
+
+   ```bash
+   bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> comment_posted comment=<id> action=<created|edited>
+   ```
+
+   Then STOP.
 
 ---
 

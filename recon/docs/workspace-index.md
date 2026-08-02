@@ -29,6 +29,13 @@ under the current skill version, this is the file to check.
 This file. Copied verbatim from the plugin's `docs/workspace-index.md` by the
 step-0 script — never hand-edited, always identical across tickets.
 
+### `history.ndjson`
+The cross-run ticket ledger: one JSON line per pipeline event (`run_started`,
+`verdict`, `routed`, `gate_answered`, …), appended ONLY by `log-event.sh`
+(closed vocabulary) and preserved across runs by the step-0 script. It is
+OUTPUT, NEVER EVIDENCE (invariant 16): no check or decision reads it — it
+exists so humans and the state canvas can tell the ticket's story.
+
 ---
 
 ## `triage/` — stage 1: blocker triage (always present after a run)

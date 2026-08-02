@@ -39,6 +39,7 @@ Design formula (all changes must preserve it): **judgment stays in the model but
 13. **Comment shape is mechanical — and so is the comment.** A posting-path comment is exactly n+4 non-empty lines — header, n one-line blockers `*i. Title* — [~accountid]: ask?` numbered 1..n, attachment-links line, reply line, marker line LAST — with n ≥ 1, EMITTED from `triage.yaml` + `meta.yaml` by `recon/scripts/render-comment.sh` (the model never writes `comment.txt`; edits happen in `triage.yaml` and re-render) and independently verified by `recon/scripts/verify-comment-shape.sh` before the gate. All detail lives in the dossier question packs (`blockers[].detail`), never the comment.
 14. **Attachments replace, never accumulate.** Files named `recon-*-<TICKET>.*` are recon-owned; `recon/scripts/attach-artifacts.sh` deletes stale ones then uploads, always BEFORE the comment posts (Jira binds duplicate-filename `[^…]` links to the OLDER attachment). Same approval gate as invariant 6.
 15. **The disposition is derived.** `verify-triage.sh` re-computes the verdict from the six checks (any of checks 2–5 failing → `BLOCKED`; else check 1 `partial`/`false` → `NEEDS_INFO`; else `READY`; BLOCKED/NEEDS_INFO require blockers ≥ 1, READY requires 0) and fails on mismatch. The model fills the checks and blockers with evidence; it never reconciles the verdict by hand.
+16. **The ticket ledger is output, never evidence.** `history.ndjson` (workspace root) is the append-only cross-run event log: written ONLY by `log-event.sh` (closed vocabulary — `--vocab` prints it), preserved across runs by `fresh-workspace.sh`, validated by `lint-workspace.sh`. No check, verdict, or routing decision may read it — determinism (invariant 11) binds exactly as if it did not exist. Views (state canvas, humans) may render it as a timeline.
 
 ## Artifact registry
 
@@ -49,6 +50,7 @@ All under `~/.claude/recon/<TICKET>/`. Producer → consumers. **The authoritati
 | `meta.yaml` | step 0 script | discovery (current-run check), humans | plugin_version + start time; stamps the run |
 | `index.md` | step 0 script (copied from `docs/workspace-index.md`) | anyone opening the workspace | static per-file documentation; identical across tickets |
 | `runs/<ts>/…` | step 0 script | **nobody** (invariant 3) | archived prior runs, dotfiles included |
+| `history.ndjson` | `log-event.sh` (called by rails + skill report steps) | state canvas timeline, humans — **never evidence** (invariant 16) | append-only cross-run ledger; survives step 0 |
 | `triage/ticket.json` | triage | triage checks | Jira issue, API v2 plain-text |
 | `triage/aux-<slug>.json` | triage | triage checks | auxiliary GETs (linked tickets, Confluence) |
 | `triage/triage.yaml` | triage | discovery precondition, `verify-triage.sh`, `render-comment.sh`, humans | schema in recon-triage SKILL.md; disposition derived + quotes verified by `verify-triage.sh` (invariant 15) |
@@ -80,6 +82,7 @@ All under `~/.claude/recon/<TICKET>/`. Producer → consumers. **The authoritati
 | Dossier | auto render-only on the `BLOCKED`/`NEEDS_INFO` posting path; on demand otherwise (user asks, or a stage's report mentions it) | recon-report renders the fixed template from current-run artifacts; publishes private (on-demand only — render-only stops after write + lint) |
 | Blocked delivery | disposition ∈ {`BLOCKED`, `NEEDS_INFO`} (requires n ≥ 1 structured blockers) | recon-report render-only → `package-artifacts.sh` → gate → `attach-artifacts.sh` → comment (attach strictly first) |
 | Verdict verification | `triage/triage.yaml` written or edited | `verify-triage.sh` until `verify: clean` before branching on disposition |
+| Ledger events | the step happens (closed list) | `log-event.sh <TICKET> <event>`: step 0 → `run_started` (by the script itself) · verify clean → `verdict` · routing producer → `routed` (route-generic.sh logs itself; the adapter skill calls it) · attach rail → `attachments_replaced` · comment POST/edit → `comment_posted` · `gate.yaml` written → `gate_answered` · handoff printed → `handoff_printed` · dossier published → `dossier_published` · canvas published → `canvas_published` |
 | Comment render + shape gate | posting path, `triage.yaml` blockers written or edited | `render-comment.sh` emits `comment.txt`, then `verify-comment-shape.sh` until `shape: clean` before the approval gate — `comment.txt` is never hand-edited |
 
 ## Rails vs judgment
@@ -97,6 +100,7 @@ All under `~/.claude/recon/<TICKET>/`. Producer → consumers. **The authoritati
 | comment rendering from triage.yaml (`render-comment.sh`) | |
 | attachment replace + ordering (`attach-artifacts.sh`) | |
 | bundle packaging + manifest (`package-artifacts.sh`) | |
+| ledger append + vocabulary (`log-event.sh`, invariant 16) | |
 
 ## Consuming the artifacts (implementer sessions)
 
