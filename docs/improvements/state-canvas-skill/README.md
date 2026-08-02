@@ -2,7 +2,7 @@
 
 > New skill renders a node-canvas artifact per ticket; state derived from file presence, one stable URL
 
-- **Status:** proposed
+- **Status:** in-progress (plan: [../../plans/2026-08-02-state-canvas-ledger.md](../../plans/2026-08-02-state-canvas-ledger.md))
 - **Priority:** P2
 - **Theme:** operational robustness
 - **Origin:** 2 Aug 2026 — a session hand-built a state canvas for ATT-5047
