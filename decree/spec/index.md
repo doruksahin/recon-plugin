@@ -4,6 +4,7 @@
 
 | SPEC | Title | Status | Date |
 |-----|-----|-----|-----|
+| SPEC-01KZ14Q6A2WB6J6TTX3XWQC5QJ | Recon 0.15.0 Verified Handoff Chain | approved | 2026-08-02 |
 | SPEC-01KZ12BKG5B1E66ZV6R820JPQB | Recon 0.14.0 Local Host Hardening | implemented | 2026-08-02 |
 
 <!-- GENERATED:decree-graph — do not edit below this line -->
