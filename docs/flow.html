@@ -409,30 +409,41 @@
     </dl>
   </div>
 
+  <div class="step rail">
+    <div class="step-h"><span class="step-no">D7</span><h3>Render the gate questions</h3>
+      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-gate.sh">render-gate.sh</a></span></div>
+    <dl class="fields">
+      <dt>who</dt><dd><span class="w-rail">rail</span></dd>
+      <dt>in</dt><dd><code>discovery.md</code> + <code>routing.yaml</code></dd>
+      <dt>out</dt><dd><code>discovery/gate-questions.md</code> — one block per <code>OPEN-N</code> (options with exactly one <code>(recommended)</code>) + the <code>PACKAGE</code> block</dd>
+      <dt>rule</dt><dd>the gate presents these bytes word-for-word, never a paraphrase <span class="sep">·</span> never hand-edited — edit <code>discovery.md</code> and re-render <span class="sep">·</span> byte-deterministic for identical inputs</dd>
+    </dl>
+  </div>
+
   <div class="step human">
-    <div class="step-h"><span class="step-no">D7</span><h3>GATE — approval</h3>
+    <div class="step-h"><span class="step-no">D8</span><h3>GATE — approval</h3>
       <span class="src">you</span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-human">human</span></dd>
-      <dt>in</dt><dd>one question per OPEN scenario + the package</dd>
-      <dt>out</dt><dd><code>discovery/gate.yaml</code> — approve / edit / reject, exact <code>OPEN-N</code> keys recorded; approval also updates the same-ID brief entry</dd>
+      <dt>in</dt><dd>the rendered <code>OPEN-N</code> and <code>PACKAGE</code> blocks, quoted verbatim</dd>
+      <dt>out</dt><dd><code>discovery/gate.yaml</code> — approve / edit / reject, exact <code>OPEN-N</code> keys recorded plus one verbatim exchange per question (your exact answer next to its mapped resolution); approval also updates the same-ID brief entry</dd>
       <dt>rule</dt><dd>approved outcome copied verbatim to its deterministic destination <span class="sep">·</span> nothing proceeds past a reject — reason recorded, fix re-enters discovery <span class="sep">·</span> rejected packages retain exact OPEN-key parity</dd>
     </dl>
   </div>
 
   <div class="step rail">
-    <div class="step-h"><span class="step-no">D8</span><h3>Verify the recorded decision</h3>
+    <div class="step-h"><span class="step-no">D9</span><h3>Verify the recorded decision</h3>
       <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-discovery.sh">verify-discovery.sh post-gate</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span></dd>
-      <dt>in</dt><dd>pre-gate package + <code>gate.yaml</code></dd>
+      <dt>in</dt><dd>pre-gate package + <code>gate-questions.md</code> + <code>gate.yaml</code></dd>
       <dt>out</dt><dd><code>verify: clean</code> before rejection stop, dossier, or handoff</dd>
-      <dt>rule</dt><dd>parseable approval record + exact OPEN resolution parity + verbatim same-ID approved-outcome join</dd>
+      <dt>rule</dt><dd>parseable approval record + exact OPEN resolution parity + verbatim same-ID approved-outcome join <span class="sep">·</span> rendered questions cover every OPEN + PACKAGE, each with a non-empty verbatim answer whose resolution matches</dd>
     </dl>
   </div>
 
   <div class="step rail">
-    <div class="step-h"><span class="step-no">D9</span><h3>Handoff</h3></div>
+    <div class="step-h"><span class="step-no">D10</span><h3>Handoff</h3></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span></dd>
       <dt>in</dt><dd><code>routing.yaml</code> <code>handoff:</code> block</dd>
@@ -461,7 +472,7 @@
           <tr><td class="mono">triage/triage.yaml</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">triage</a>, verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-triage.sh">verify-triage.sh</a></td><td>discovery precondition; disposition derived + quotes verified from it; comment AND dossier both render from it</td></tr>
           <tr><td class="mono">triage/jira/{comment.txt, bundle-manifest.txt}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-comment.sh">render-comment.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/package-artifacts.sh">package-artifacts.sh</a></td><td>the gate (exact bytes + what ships), audit</td></tr>
           <tr><td class="mono">triage/jira/{attach-result.json, post-result.json}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/attach-artifacts.sh">attach-artifacts.sh</a> · comment rail (after "post")</td><td>audit — attach-result absent ⇒ attach never completed</td></tr>
-          <tr><td class="mono">discovery/{discovery.md, gate.yaml, spec-draft.md}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-discovery/SKILL.md">discovery</a>, verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-discovery.sh">verify-discovery.sh</a></td><td>gate, dossier decision cards, the implementing session; spec-draft absent for brief_kind none</td></tr>
+          <tr><td class="mono">discovery/{discovery.md, gate-questions.md, gate.yaml, spec-draft.md}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-discovery/SKILL.md">discovery</a> (gate-questions.md by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-gate.sh">render-gate.sh</a>), verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-discovery.sh">verify-discovery.sh</a></td><td>gate (exact asked bytes + verbatim exchanges), dossier decision cards, the implementing session; spec-draft absent for brief_kind none</td></tr>
           <tr><td class="mono">route/{routing.yaml, aux-intent-check.txt}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/route-generic.sh">route-generic.sh</a> | <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-decree/SKILL.md">recon-decree</a></td><td>discovery (route, brief_kind, verbatim handoff), dossier</td></tr>
           <tr><td class="mono">repro/{repro.md, exhibits/*.png}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-repro/SKILL.md">repro</a>, verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-repro.sh">verify-repro.sh</a></td><td>blocker detail packs, gate questions, Manual verification, PR "before" evidence</td></tr>
           <tr><td class="mono">repro/session/*</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/record-repro.sh">record-repro.sh</a> (proofshot bundle, finalized at stop)</td><td>verify-repro.sh log cross-check, delivery bundle (video), audit</td></tr>

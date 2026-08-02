@@ -19,7 +19,7 @@ surface independently.
 
 - **Input:** ticket ID (precondition: `$RECON_ROOT/<TICKET>/triage/triage.yaml` with `disposition: READY`)
 - **Reads:** the target repo (read-only), current-run artifacts in `$RECON_ROOT/<TICKET>/` (never `runs/`), `route/routing.yaml` after the routing stage runs
-- **Writes:** ONLY inside `$RECON_ROOT/<TICKET>/discovery/` — `discovery.md`, `gate.yaml`, and `spec-draft.md` only when `brief_kind` is not `none`. Create the directory before your first write — a stage directory existing means that stage ran. Anything else fails `lint-workspace.sh`.
+- **Writes:** ONLY inside `$RECON_ROOT/<TICKET>/discovery/` — `discovery.md`, `gate.yaml`, `gate-questions.md` (written by the `render-gate.sh` rail, never by hand), and `spec-draft.md` only when `brief_kind` is not `none`. Create the directory before your first write — a stage directory existing means that stage ran. Anything else fails `lint-workspace.sh`.
 - **External side effects:** NONE. Never posts to Jira without explicit user approval; after the gate it PRINTS the handoff verbatim from `routing.yaml`, never executes it.
 - **May invoke:** `recon:recon-repro` (primary scenario of UI defects + OPEN scenarios about visible UI), `recon:recon-triage` (missing or stale triage), and the governance adapter skill named by convention `recon:recon-<governance>` (only when governance resolves to something other than `none`)
 
@@ -43,6 +43,12 @@ surface independently.
     authored artifact that failed; never edit `route/routing.yaml` or weaken the
     verifier to make a package pass. The rail accepts only regular,
     non-symlinked inputs that resolve inside the current workspace.
+12. **The gate presents rail-rendered bytes and records the exchange verbatim.**
+    `render-gate.sh` emits `discovery/gate-questions.md` from `discovery.md` +
+    `routing.yaml`; you present those blocks word-for-word — NEVER a paraphrase —
+    and `gate.yaml` stores each exchange (the user's exact answer next to its
+    mapped resolution). `gate-questions.md` is never hand-edited: to change a
+    question, edit `discovery.md` and re-render.
 
 ---
 
@@ -71,8 +77,11 @@ An ID heading or `No scenarios:` declaration inside an HTML comment, fenced
 example, or indented code block is not part of the contract. Under every real
 heading write visible `Scenario:`, `Given`, `When`, and `Then` content; a fenced
 Gherkin block is allowed after the real heading because its contents render.
-OPEN scenarios also carry 2–3 labeled options (A/B/C). Option labels describe
-user-observable outcomes (rule 7), never internal state. Keep each ID unchanged
+OPEN scenarios also carry 2–3 labeled options as visible list lines in the
+exact shape `- A: <outcome>` (the gate renderer parses them), with EXACTLY one
+option ending in `(recommended)` — the recommendation is authored here, on the
+record, never improvised at the gate. Option outcomes describe user-observable
+behavior (rule 7), never internal state. Keep each ID unchanged
 through edits and the gate: the brief and gate use these IDs as join keys. If
 the change genuinely admits no scenario (copy fix, dead code, dep bump), write
 `No scenarios:` plus the evidenced reason in `discovery.md`; do not invent a
@@ -129,7 +138,10 @@ bash "<skill base dir>/../../scripts/verify-repro.sh" <TICKET>
   count. Technical
   design is the wiring in ≤10 lines and names the contract to reuse. Manual
   verification copies the verified `start_state` and numbered repro steps,
-  marking the buggy outcome BEFORE and expected outcome AFTER. If no repro was
+  marking the buggy outcome BEFORE and expected outcome AFTER, and — when
+  `repro/session/` exists — ends with the recorded-session pointer line
+  `Recorded session: repro/session/viewer.html` so the implementer can watch
+  the bug before reproducing it. If no repro was
   triggered, state the mechanical reason and environment verification needed.
   If an honest repro failed, copy its attempted start state and failure reason,
   not fictional steps. The implementer must be able to reach the affected
@@ -143,7 +155,7 @@ bash "<skill base dir>/../../scripts/verify-repro.sh" <TICKET>
   comments, fenced examples, and indented code are not entries. The downstream
   document named in the handoff starts from this evidence-backed statement.
 
-### 8. Verify, then present the approval gate
+### 8. Verify, render the gate, present it, record the exchange
 
 Run the pre-gate verifier and fix authored artifacts until clean:
 
@@ -151,13 +163,25 @@ Run the pre-gate verifier and fix authored artifacts until clean:
 bash "<skill base dir>/../../scripts/verify-discovery.sh" <TICKET> pre-gate
 ```
 
-Present via the host-native user interaction (see hosts.md):
-- One question per OPEN scenario decision (options A/B/C with a recommendation).
-- One question for the package itself: `Approve / Edit / Reject`.
+Then render the gate questions — NEVER write or paraphrase them by hand (rule
+12). The rail emits `discovery/gate-questions.md` from `discovery.md` +
+`routing.yaml`: one block per `OPEN-N` (scenario, options, the one
+`(recommended)` marker) plus the `PACKAGE` block:
+
+```bash
+bash "<skill base dir>/../../scripts/render-gate.sh" <TICKET>
+```
+
+Present via the host-native user interaction (see hosts.md), quoting each
+rendered block word-for-word:
+- One question per OPEN scenario decision — the `## OPEN-N` block verbatim.
+- One question for the package itself — the `## PACKAGE` block verbatim:
+  `Approve / Edit / Reject`.
 
 Record the outcome in `discovery/gate.yaml`. Resolution keys are the exact
-`OPEN-N` headings from `discovery.md`; never use summaries or option letters as
-keys:
+`OPEN-N` headings from `discovery.md` (never summaries or option letters), and
+`exchanges` stores the full exchange verbatim — one entry per `OPEN-N` plus one
+`PACKAGE` entry, exact two-space indent steps (the rails parse them):
 
 ```yaml
 gate:
@@ -165,17 +189,29 @@ gate:
   date: YYYY-MM-DD
   open_scenario_resolutions:
     OPEN-1: "<chosen option> — <user-observable summary>"
+  exchanges:
+    - id: OPEN-1
+      presented: gate-questions.md#OPEN-1
+      recommendation: "<the (recommended) option line's outcome>"
+      answer_verbatim: "<the user's answer, their exact words, unedited>"
+      resolution: "<chosen option> — <user-observable summary>"   # = the same-key resolution above
+    - id: PACKAGE
+      presented: gate-questions.md#PACKAGE
+      answer_verbatim: "<the user's answer, their exact words, unedited>"
+      resolution: approved | rejected                             # must match `approved` above
   rejected: "<user's reason — only present on Reject>"
 ```
 
-Use `open_scenario_resolutions: {}` only when there are no OPEN scenarios.
-Every post-gate package has exact OPEN-key parity, including a rejection: if the
-user rejected before selecting an option, record that key as `unresolved —
-package rejected before selection`. On approval, copy the complete resolution
-string verbatim into the same-ID entry: the `OPEN-N` acceptance checkbox for an
-implementation brief, or that visible `OPEN-N` line in a problem statement's
-`Open choices` section. Preserve the ID. On Edit, apply the edits to the artifacts,
-re-run pre-gate verification, and re-present.
+Use `open_scenario_resolutions: {}` only when there are no OPEN scenarios (the
+`exchanges` list then carries only the `PACKAGE` entry). Every post-gate
+package has exact OPEN-key parity, including a rejection: if the user rejected
+before selecting an option, record that key as `unresolved — package rejected
+before selection` and store the user's rejecting words as that exchange's
+`answer_verbatim`. On approval, copy the complete resolution string verbatim
+into the same-ID entry: the `OPEN-N` acceptance checkbox for an implementation
+brief, or that visible `OPEN-N` line in a problem statement's `Open choices`
+section. Preserve the ID. On Edit, apply the edits to the artifacts, re-run
+pre-gate verification, re-render the gate questions (rule 12), and re-present.
 
 Run `verify-discovery.sh <TICKET> post-gate` until it prints `verify: clean`.
 **NEVER proceed past a Reject.** On Reject: write `approved: false` +
@@ -203,7 +239,7 @@ If `$RECON_ROOT/<TICKET>/state/artifact-url` exists (mechanical check: `find` it
 Print:
 
 ```
-Wrote: <actual files: discovery.md + gate.yaml, and spec-draft.md unless brief_kind is none>
+Wrote: <actual files: discovery.md + gate-questions.md + gate.yaml, and spec-draft.md unless brief_kind is none>
 Route: <route> (rule <matched_rule>) — see route/routing.yaml
 Handoff style: <plain-words line from the table below> (governance: <governance>/<source>)
 Verify: <verify-discovery.sh post-gate verdict line, verbatim>

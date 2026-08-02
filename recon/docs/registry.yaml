@@ -83,9 +83,14 @@
   producer: discovery
   consumers: implementer session
 
+- pattern: "discovery/gate-questions.md"
+  token: "gate-questions.md"
+  producer: render-gate.sh (from discovery.md + routing.yaml)
+  consumers: the gate presentation (exact asked bytes), verify-discovery.sh post-gate, humans
+
 - pattern: "discovery/gate.yaml"
   token: "gate.yaml"
-  producer: discovery (the gate is discovery's act)
+  producer: discovery (the gate is discovery's act; exchanges recorded verbatim)
   consumers: recon-report decision cards, humans
 
 - pattern: "route/routing.yaml"

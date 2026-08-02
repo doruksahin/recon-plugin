@@ -8,6 +8,7 @@ schema drift instead of protecting the handoff boundary.
     python3 artifact-tools.py verify-repro <workspace-dir> <TICKET>
     python3 artifact-tools.py verify-discovery <workspace-dir> <TICKET> \
         <pre-gate|post-gate>
+    python3 artifact-tools.py render-gate <workspace-dir> <TICKET>
 """
 
 import ast
@@ -111,6 +112,20 @@ ROUTING_OPTIONAL_FIELDS = {
     "ddd_entry",
     "target_governs",
 }
+# Gate exchange record (invariant 17): the question is presented from the
+# rail-rendered discovery/gate-questions.md and the user's answer is stored
+# verbatim next to its mapped resolution — both sides of the mapping auditable.
+GATE_OPTION_LINE = re.compile(r"^\s{0,3}[-*+]\s+([A-Z])\s*[:—-]\s+(\S.*)$")
+GATE_RECOMMENDED = re.compile(r"\(recommended\)", re.IGNORECASE)
+GATE_EXCHANGE_KEYS = {
+    "id",
+    "presented",
+    "recommendation",
+    "answer_verbatim",
+    "resolution",
+}
+GATE_PACKAGE_HEADING = re.compile(r"^\s{0,3}##\s+PACKAGE\s*$")
+
 BRIEF_SECTIONS = {
     "implementation-brief": [
         "Overview",
@@ -1477,6 +1492,100 @@ def parse_inline_resolutions(raw, lineno, errors):
     return result
 
 
+def render_gate(workspace, ticket):
+    discovery_dir = workspace / "discovery"
+    discovery_path = discovery_dir / "discovery.md"
+    routing_path = workspace / "route" / "routing.yaml"
+    out_path = discovery_dir / "gate-questions.md"
+
+    for path, label in (
+        (discovery_path, "discovery/discovery.md"),
+        (routing_path, "route/routing.yaml"),
+    ):
+        if not path.is_file():
+            print(f"missing {label}: {path}", file=sys.stderr)
+            return 2
+
+    errors = []
+    text, problem = read_text(discovery_path, "discovery/discovery.md")
+    if problem:
+        errors.append(problem)
+        text = ""
+    parse_scenarios(text, errors)
+    routing = parse_routing(routing_path, errors)
+
+    lines = text.splitlines()
+    rendered_lines, semantic_lines = markdown_line_views(lines)
+    headings = [
+        (match.group(1), index)
+        for index, line in enumerate(semantic_lines)
+        if (match := SCENARIO_HEADING.match(line))
+    ]
+
+    open_blocks = []
+    for position, (scenario_id, start) in enumerate(headings):
+        if not scenario_id.startswith("OPEN-"):
+            continue
+        end = headings[position + 1][1] if position + 1 < len(headings) else len(lines)
+        block = rendered_lines[start:end]
+        while block and not block[-1].strip():
+            block.pop()
+
+        options = {}
+        recommended = 0
+        for line in semantic_lines[start + 1 : end]:
+            option = GATE_OPTION_LINE.match(line)
+            if not option:
+                continue
+            letter = option.group(1)
+            if letter in options:
+                errors.append(f"{scenario_id}: duplicate option letter {letter}")
+            options[letter] = option.group(2)
+            if GATE_RECOMMENDED.search(option.group(2)):
+                recommended += 1
+        if len(options) < 2:
+            errors.append(
+                f"{scenario_id}: needs at least 2 labeled options "
+                f"('- A: <outcome>') to render the gate (got {len(options)})"
+            )
+        if recommended != 1:
+            errors.append(
+                f"{scenario_id}: exactly one option must carry (recommended) "
+                f"(got {recommended})"
+            )
+        open_blocks.append((scenario_id, block))
+
+    if errors:
+        print_violations("RENDER-GATE", errors)
+        return 1
+
+    route = routing.get("route", "")
+    brief_kind = routing.get("brief_kind", "")
+    output = [f"# Gate questions — {ticket}", ""]
+    output.append(
+        "Answer each OPEN decision with an option letter or the outcome in "
+        "your own words; answer PACKAGE with Approve, Edit, or Reject."
+    )
+    for _, block in open_blocks:
+        output.append("")
+        output.extend(block)
+    output.extend(
+        [
+            "",
+            "## PACKAGE",
+            f"Approve, edit, or reject the discovery package — "
+            f"route: {route}, brief_kind: {brief_kind}.",
+        ]
+    )
+
+    out_path.write_text("\n".join(output) + "\n", encoding="utf-8")
+    print(
+        f"rendered: discovery/gate-questions.md "
+        f"({len(open_blocks)} OPEN + PACKAGE)"
+    )
+    return 0
+
+
 def parse_gate(path, open_ids, errors):
     text, problem = read_text(path, "discovery/gate.yaml")
     if problem:
@@ -1490,7 +1599,10 @@ def parse_gate(path, open_ids, errors):
 
     fields = {}
     resolutions = None
+    exchanges = None
+    exchange = None
     in_resolutions = False
+    in_exchanges = False
     index = gate_lines[0] + 1
     while index < len(lines):
         raw = lines[index]
@@ -1506,12 +1618,47 @@ def parse_gate(path, open_ids, errors):
                 errors.append(f"gate.yaml:{index + 1}: duplicate field '{key}'")
             fields[key] = unquote(value)
             in_resolutions = key == "open_scenario_resolutions" and value == ""
+            in_exchanges = key == "exchanges" and value == ""
             if key == "open_scenario_resolutions" and value:
                 resolutions = parse_inline_resolutions(value, index + 1, errors)
             elif key == "open_scenario_resolutions":
                 resolutions = {}
+            if key == "exchanges":
+                exchanges = []
+                exchange = None
+                if value:
+                    errors.append(
+                        f"gate.yaml:{index + 1}: exchanges must be a block list"
+                    )
             index += 1
             continue
+        if in_exchanges:
+            entry_start = re.match(r"^    - ([a-z_]+):\s*(.*)$", raw)
+            if entry_start:
+                key = entry_start.group(1)
+                if key != "id":
+                    errors.append(
+                        f"gate.yaml:{index + 1}: exchange entries must start with 'id'"
+                    )
+                exchange = {key: unquote(entry_start.group(2).strip())}
+                exchanges.append(exchange)
+                index += 1
+                continue
+            entry_field = re.match(r"^      ([a-z_]+):\s*(.*)$", raw)
+            if entry_field and exchange is not None:
+                key = entry_field.group(1)
+                if key not in GATE_EXCHANGE_KEYS:
+                    errors.append(
+                        f"gate.yaml:{index + 1}: unknown exchange field '{key}'"
+                    )
+                elif key in exchange:
+                    errors.append(
+                        f"gate.yaml:{index + 1}: duplicate exchange field '{key}'"
+                    )
+                else:
+                    exchange[key] = unquote(entry_field.group(2).strip())
+                index += 1
+                continue
         if in_resolutions:
             entry = re.match(r"^    ([^:]+):\s*(.*)$", raw)
             if entry:
@@ -1556,7 +1703,64 @@ def parse_gate(path, open_ids, errors):
         errors.append("rejected gate requires a non-empty rejected reason")
     if approved == "true" and rejected:
         errors.append("approved gate must not contain a rejected reason")
+
+    validate_exchanges(exchanges, open_ids, resolutions, approved, errors)
     return {"approved": approved, "resolutions": resolutions}
+
+
+def validate_exchanges(exchanges, open_ids, resolutions, approved, errors):
+    if exchanges is None:
+        errors.append(
+            "gate.exchanges is required (one entry per OPEN-N plus PACKAGE)"
+        )
+        return
+    expected = set(open_ids) | {"PACKAGE"}
+    seen = set()
+    for exchange in exchanges:
+        exchange_id = exchange.get("id", "")
+        if exchange_id not in expected:
+            errors.append(
+                f"gate exchange id '{exchange_id}' is not a contract OPEN-N or PACKAGE"
+            )
+            continue
+        if exchange_id in seen:
+            errors.append(f"duplicate gate exchange for {exchange_id}")
+            continue
+        seen.add(exchange_id)
+        presented = exchange.get("presented", "")
+        if presented != f"gate-questions.md#{exchange_id}":
+            errors.append(
+                f"exchange {exchange_id}: presented must be "
+                f"'gate-questions.md#{exchange_id}' (got '{presented}')"
+            )
+        if not exchange.get("answer_verbatim", "").strip():
+            errors.append(
+                f"exchange {exchange_id}: answer_verbatim must be non-empty "
+                "(the user's exact words)"
+            )
+        resolution = exchange.get("resolution", "").strip()
+        if not resolution:
+            errors.append(f"exchange {exchange_id}: resolution must be non-empty")
+        elif exchange_id == "PACKAGE":
+            package_expected = "approved" if approved == "true" else "rejected"
+            if resolution != package_expected:
+                errors.append(
+                    f"exchange PACKAGE: resolution must be '{package_expected}' "
+                    f"to match gate.approved (got '{resolution}')"
+                )
+        else:
+            if not exchange.get("recommendation", "").strip():
+                errors.append(
+                    f"exchange {exchange_id}: recommendation must be non-empty"
+                )
+            if resolution != resolutions.get(exchange_id, ""):
+                errors.append(
+                    f"exchange {exchange_id}: resolution does not match its "
+                    "open_scenario_resolutions value"
+                )
+    missing = sorted(expected - seen)
+    if missing:
+        errors.append("gate missing exchanges: " + ", ".join(missing))
 
 
 def verify_discovery(workspace, ticket, mode):
@@ -1567,6 +1771,7 @@ def verify_discovery(workspace, ticket, mode):
     routing_path = route_dir / "routing.yaml"
     brief_path = discovery_dir / "spec-draft.md"
     gate_path = discovery_dir / "gate.yaml"
+    questions_path = discovery_dir / "gate-questions.md"
     repro_path = repro_dir / "repro.md"
     exhibit_dir = repro_dir / "exhibits"
 
@@ -1594,6 +1799,13 @@ def verify_discovery(workspace, ticket, mode):
     )
     validate_existing_path(
         gate_path, discovery_dir, "discovery/gate.yaml", "file", path_errors
+    )
+    validate_existing_path(
+        questions_path,
+        discovery_dir,
+        "discovery/gate-questions.md",
+        "file",
+        path_errors,
     )
 
     repro_state = validate_existing_path(
@@ -1649,6 +1861,35 @@ def verify_discovery(workspace, ticket, mode):
         if not gate_path.is_file():
             print(f"missing discovery/gate.yaml: {gate_path}", file=sys.stderr)
             return 2
+        if not questions_path.is_file():
+            errors.append(
+                "gate answered without rendered discovery/gate-questions.md "
+                "(run render-gate.sh before presenting the gate)"
+            )
+        else:
+            questions_text, problem = read_text(
+                questions_path, "discovery/gate-questions.md"
+            )
+            if problem:
+                errors.append(problem)
+                questions_text = ""
+            _, questions_semantic = markdown_line_views(questions_text)
+            covered = {
+                match.group(1)
+                for line in questions_semantic
+                if (match := SCENARIO_HEADING.match(line))
+            }
+            if any(GATE_PACKAGE_HEADING.match(line) for line in questions_semantic):
+                covered.add("PACKAGE")
+            required = {
+                item for item in scenario_ids if item.startswith("OPEN-")
+            } | {"PACKAGE"}
+            uncovered = sorted(required - covered)
+            if uncovered:
+                errors.append(
+                    "gate-questions.md missing question blocks: "
+                    + ", ".join(uncovered)
+                )
         gate = parse_gate(
             gate_path,
             [item for item in scenario_ids if item.startswith("OPEN-")],
@@ -1678,7 +1919,8 @@ def main():
     if len(sys.argv) < 4:
         print(
             "usage: artifact-tools.py verify-repro <workspace-dir> <TICKET> | "
-            "verify-discovery <workspace-dir> <TICKET> <pre-gate|post-gate>",
+            "verify-discovery <workspace-dir> <TICKET> <pre-gate|post-gate> | "
+            "render-gate <workspace-dir> <TICKET>",
             file=sys.stderr,
         )
         return 2
@@ -1693,6 +1935,8 @@ def main():
         return 2
     if command == "verify-repro" and len(sys.argv) == 4:
         return verify_repro(workspace, ticket)
+    if command == "render-gate" and len(sys.argv) == 4:
+        return render_gate(workspace, ticket)
     if command == "verify-discovery" and len(sys.argv) == 5:
         mode = sys.argv[4]
         if mode not in {"pre-gate", "post-gate"}:

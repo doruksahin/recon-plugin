@@ -101,11 +101,20 @@ join the contract to brief checkboxes and gate resolutions. Implementers verify
 their work against these scenarios. An evidenced `No scenarios:` declaration is
 valid when no behavior contract is possible.
 
+### `discovery/gate-questions.md`
+The gate questions exactly as presented — rendered by `render-gate.sh` from
+`discovery.md` + `routing.yaml`, never written by hand: one block per `OPEN-N`
+(scenario, options, the single `(recommended)` marker) plus the `PACKAGE`
+block. The skill quotes these bytes at the gate, so what the approver was
+asked is on the record, not a chat paraphrase.
+
 ### `discovery/gate.yaml`
 The human approval record: whether the package was approved, when, every
 `OPEN-N` decision the gate resolved (exact key parity, including rejected
-packages), and — on a reject — the reason. The gate is discovery's act, so its
-record lives here, separate from routing.
+packages), the verbatim `exchanges` (per question: what was presented, the
+recommendation, the user's exact answer, and its mapped resolution), and — on
+a reject — the reason. The gate is discovery's act, so its record lives here,
+separate from routing.
 
 ### `discovery/spec-draft.md`
 The implementer's brief — self-sufficient by contract: acceptance criteria derived

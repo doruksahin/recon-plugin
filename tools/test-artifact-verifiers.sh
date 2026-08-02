@@ -8,6 +8,7 @@ REPRO_VERIFY="$ROOT/recon/scripts/verify-repro.sh"
 DISCOVERY_VERIFY="$ROOT/recon/scripts/verify-discovery.sh"
 ROUTE_GENERIC="$ROOT/recon/scripts/route-generic.sh"
 DERIVE_STATE="$ROOT/recon/scripts/derive-state.sh"
+RENDER_GATE="$ROOT/recon/scripts/render-gate.sh"
 BASE_TMP="${TMPDIR:-/tmp}"
 BASE_TMP="${BASE_TMP%/}"
 FIXTURE="$(mktemp -d "$BASE_TMP/recon-artifact-verifiers.XXXXXX")"
@@ -202,8 +203,16 @@ write_contract_all() {
     'Then the selected tab follows the approved visible outcome' \
     '' \
     '- A: select Collection2' \
-    '- B: show no selected tab' \
+    '- B: show no selected tab (recommended)' \
     >"$ws/discovery/discovery.md"
+}
+
+# Post-gate packages carry the rail-rendered question bytes (ADR 0002); run
+# the real renderer while preparing a fixture rather than hand-writing them.
+render_gate_fixture() {
+  local case_root="$1"
+  env RECON_ROOT="$case_root" bash "$RENDER_GATE" "$TICKET" >/dev/null \
+    || fail "render-gate.sh failed while preparing a fixture"
 }
 
 write_contract_simple() {
@@ -398,6 +407,16 @@ write_gate() {
         "  date: $TODAY" \
         '  open_scenario_resolutions:' \
         '    OPEN-1: "A — Collection2 becomes selected"' \
+        '  exchanges:' \
+        '    - id: OPEN-1' \
+        '      presented: gate-questions.md#OPEN-1' \
+        '      recommendation: "B — show no selected tab (recommended)"' \
+        '      answer_verbatim: "make collection2 the selected one"' \
+        '      resolution: "A — Collection2 becomes selected"' \
+        '    - id: PACKAGE' \
+        '      presented: gate-questions.md#PACKAGE' \
+        '      answer_verbatim: "approve"' \
+        '      resolution: approved' \
         >"$ws/discovery/gate.yaml"
       ;;
     rejected-open)
@@ -407,6 +426,16 @@ write_gate() {
         "  date: $TODAY" \
         '  open_scenario_resolutions:' \
         '    OPEN-1: "B — no tab remains selected"' \
+        '  exchanges:' \
+        '    - id: OPEN-1' \
+        '      presented: gate-questions.md#OPEN-1' \
+        '      recommendation: "B — show no selected tab (recommended)"' \
+        '      answer_verbatim: "option B"' \
+        '      resolution: "B — no tab remains selected"' \
+        '    - id: PACKAGE' \
+        '      presented: gate-questions.md#PACKAGE' \
+        '      answer_verbatim: "reject — check the tab behavior with Product first"' \
+        '      resolution: rejected' \
         '  rejected: confirm the desired tab behavior with Product' \
         >"$ws/discovery/gate.yaml"
       ;;
@@ -416,6 +445,11 @@ write_gate() {
         '  approved: true' \
         "  date: $TODAY" \
         '  open_scenario_resolutions: {}' \
+        '  exchanges:' \
+        '    - id: PACKAGE' \
+        '      presented: gate-questions.md#PACKAGE' \
+        '      answer_verbatim: "approve"' \
+        '      resolution: approved' \
         >"$ws/discovery/gate.yaml"
       ;;
     missing-open)
@@ -424,6 +458,11 @@ write_gate() {
         '  approved: true' \
         "  date: $TODAY" \
         '  open_scenario_resolutions: {}' \
+        '  exchanges:' \
+        '    - id: PACKAGE' \
+        '      presented: gate-questions.md#PACKAGE' \
+        '      answer_verbatim: "approve"' \
+        '      resolution: approved' \
         >"$ws/discovery/gate.yaml"
       ;;
     *) fail "unknown gate fixture shape: $shape" ;;
@@ -835,6 +874,7 @@ write_contract_simple "$CASE_WS"
 write_route "$CASE_WS" brief implementation-brief
 write_impl_brief "$CASE_WS" simple
 expect_pass "READY pre-gate" env RECON_ROOT="$CASE_ROOT" bash "$DISCOVERY_VERIFY" "$TICKET" pre-gate
+render_gate_fixture "$CASE_ROOT"
 write_gate "$CASE_WS" approved-none
 expect_pass "READY post-gate" env RECON_ROOT="$CASE_ROOT" bash "$DISCOVERY_VERIFY" "$TICKET" post-gate
 
@@ -852,6 +892,7 @@ new_workspace discovery-open-approved
 write_contract_all "$CASE_WS"
 write_route "$CASE_WS" brief implementation-brief
 write_impl_brief "$CASE_WS" all
+render_gate_fixture "$CASE_ROOT"
 write_gate "$CASE_WS" approved-open
 copy_open_resolution_to_brief "$CASE_WS"
 expect_pass "OPEN approved" env RECON_ROOT="$CASE_ROOT" bash "$DISCOVERY_VERIFY" "$TICKET" post-gate
@@ -863,6 +904,7 @@ write_impl_brief "$CASE_WS" all
 sed 's/^- \[ \] REQ-1 .*/- [ ] REQ-1 — A — Collection2 becomes selected/' \
   "$CASE_WS/discovery/spec-draft.md" >"$CASE_WS/discovery/spec.tmp"
 mv "$CASE_WS/discovery/spec.tmp" "$CASE_WS/discovery/spec-draft.md"
+render_gate_fixture "$CASE_ROOT"
 write_gate "$CASE_WS" approved-open
 expect_violation "approved OPEN resolution on wrong checkbox" \
   "approved resolution for OPEN-1 is not copied verbatim into its same-ID brief entry" \
@@ -872,6 +914,7 @@ new_workspace discovery-open-rejected
 write_contract_all "$CASE_WS"
 write_route "$CASE_WS" brief implementation-brief
 write_impl_brief "$CASE_WS" all
+render_gate_fixture "$CASE_ROOT"
 write_gate "$CASE_WS" rejected-open
 expect_pass "OPEN rejected" env RECON_ROOT="$CASE_ROOT" bash "$DISCOVERY_VERIFY" "$TICKET" post-gate
 
@@ -885,6 +928,7 @@ expect_pass "no-scenario no-brief pre-gate" env RECON_ROOT="$CASE_ROOT" bash "$D
 expect_pass "no-brief approval state" env RECON_ROOT="$CASE_ROOT" bash "$DERIVE_STATE" "$TICKET"
 grep -Fq 'stop: approval-gate' "$CASE_WS/state/state.yaml" || fail "no-brief route did not reach approval gate"
 grep -Fq 'node.brief: not-taken' "$CASE_WS/state/state.yaml" || fail "no-brief route marked brief as required"
+render_gate_fixture "$CASE_ROOT"
 write_gate "$CASE_WS" approved-none
 expect_pass "no-scenario no-brief route" env RECON_ROOT="$CASE_ROOT" bash "$DISCOVERY_VERIFY" "$TICKET" post-gate
 expect_pass "no-brief handed-off state" env RECON_ROOT="$CASE_ROOT" bash "$DERIVE_STATE" "$TICKET"
@@ -920,6 +964,7 @@ new_workspace discovery-problem-approved
 write_contract_all "$CASE_WS"
 write_route "$CASE_WS" prd-chain problem-statement
 write_problem_statement_all "$CASE_WS"
+render_gate_fixture "$CASE_ROOT"
 write_gate "$CASE_WS" approved-open
 copy_open_resolution_to_problem "$CASE_WS"
 expect_pass "problem statement binds approved OPEN resolution" env RECON_ROOT="$CASE_ROOT" bash "$DISCOVERY_VERIFY" "$TICKET" post-gate
@@ -931,6 +976,7 @@ write_problem_statement_all "$CASE_WS"
 sed 's/^REG-1 .*/REG-1 — A — Collection2 becomes selected/' \
   "$CASE_WS/discovery/spec-draft.md" >"$CASE_WS/discovery/spec.tmp"
 mv "$CASE_WS/discovery/spec.tmp" "$CASE_WS/discovery/spec-draft.md"
+render_gate_fixture "$CASE_ROOT"
 write_gate "$CASE_WS" approved-open
 expect_violation "problem statement approved OPEN resolution on wrong entry" \
   "approved resolution for OPEN-1 is not copied verbatim into its same-ID brief entry" \
@@ -960,6 +1006,7 @@ printf '%s\n' \
   'The selected-tab behavior requires a visible decision.' \
   '    OPEN-1 — A — Collection2 becomes selected' \
   >"$CASE_WS/discovery/spec-draft.md"
+render_gate_fixture "$CASE_ROOT"
 write_gate "$CASE_WS" approved-open
 expect_violation "problem statement hidden scenario entries" \
   "problem statement missing scenario IDs: OPEN-1, REG-1, REQ-1" \
@@ -1047,6 +1094,7 @@ new_workspace discovery-open-drift
 write_contract_all "$CASE_WS"
 write_route "$CASE_WS" brief implementation-brief
 write_impl_brief "$CASE_WS" all
+render_gate_fixture "$CASE_ROOT"
 write_gate "$CASE_WS" missing-open
 expect_violation "missing OPEN gate key" "gate missing OPEN resolutions: OPEN-1" \
   env RECON_ROOT="$CASE_ROOT" bash "$DISCOVERY_VERIFY" "$TICKET" post-gate
@@ -1311,11 +1359,145 @@ new_workspace discovery-rejection-reason-missing
 write_contract_all "$CASE_WS"
 write_route "$CASE_WS" brief implementation-brief
 write_impl_brief "$CASE_WS" all
+render_gate_fixture "$CASE_ROOT"
 write_gate "$CASE_WS" rejected-open
 sed '/^  rejected:/d' "$CASE_WS/discovery/gate.yaml" >"$CASE_WS/discovery/gate.tmp"
 mv "$CASE_WS/discovery/gate.tmp" "$CASE_WS/discovery/gate.yaml"
 expect_violation "missing rejection reason" \
   "rejected gate requires a non-empty rejected reason" \
+  env RECON_ROOT="$CASE_ROOT" bash "$DISCOVERY_VERIFY" "$TICKET" post-gate
+
+# Railed gate presentation (ADR 0002): the renderer is deterministic, refuses
+# a contract without exactly one recommended option, and post-gate requires
+# the rendered questions plus a verbatim exchange per OPEN-N and PACKAGE.
+new_workspace gate-render-deterministic
+write_contract_all "$CASE_WS"
+write_route "$CASE_WS" brief implementation-brief
+expect_pass "gate render" env RECON_ROOT="$CASE_ROOT" bash "$RENDER_GATE" "$TICKET"
+grep -Fq '## OPEN-1' "$CASE_WS/discovery/gate-questions.md" \
+  || fail "rendered gate questions missing the OPEN-1 block"
+grep -Fq '## PACKAGE' "$CASE_WS/discovery/gate-questions.md" \
+  || fail "rendered gate questions missing the PACKAGE block"
+cp "$CASE_WS/discovery/gate-questions.md" "$CASE_ROOT/first-render.md"
+expect_pass "gate re-render" env RECON_ROOT="$CASE_ROOT" bash "$RENDER_GATE" "$TICKET"
+cmp -s "$CASE_ROOT/first-render.md" "$CASE_WS/discovery/gate-questions.md" \
+  || fail "gate render is not byte-deterministic for identical inputs"
+PASS_COUNT=$((PASS_COUNT + 1))
+
+new_workspace gate-render-no-recommendation
+write_contract_all "$CASE_WS"
+sed 's/ (recommended)//' "$CASE_WS/discovery/discovery.md" \
+  >"$CASE_WS/discovery/discovery.tmp"
+mv "$CASE_WS/discovery/discovery.tmp" "$CASE_WS/discovery/discovery.md"
+write_route "$CASE_WS" brief implementation-brief
+expect_violation "gate render without recommendation" \
+  "exactly one option must carry (recommended) (got 0)" \
+  env RECON_ROOT="$CASE_ROOT" bash "$RENDER_GATE" "$TICKET"
+
+new_workspace gate-render-single-option
+write_contract_all "$CASE_WS"
+sed '/^- A: select Collection2$/d' "$CASE_WS/discovery/discovery.md" \
+  >"$CASE_WS/discovery/discovery.tmp"
+mv "$CASE_WS/discovery/discovery.tmp" "$CASE_WS/discovery/discovery.md"
+write_route "$CASE_WS" brief implementation-brief
+expect_violation "gate render with one option" \
+  "needs at least 2 labeled options" \
+  env RECON_ROOT="$CASE_ROOT" bash "$RENDER_GATE" "$TICKET"
+
+new_workspace gate-questions-missing
+write_contract_all "$CASE_WS"
+write_route "$CASE_WS" brief implementation-brief
+write_impl_brief "$CASE_WS" all
+write_gate "$CASE_WS" approved-open
+copy_open_resolution_to_brief "$CASE_WS"
+expect_violation "gate answered without rendered questions" \
+  "gate answered without rendered discovery/gate-questions.md" \
+  env RECON_ROOT="$CASE_ROOT" bash "$DISCOVERY_VERIFY" "$TICKET" post-gate
+
+new_workspace gate-questions-uncovered-open
+write_contract_all "$CASE_WS"
+write_route "$CASE_WS" brief implementation-brief
+write_impl_brief "$CASE_WS" all
+printf '%s\n' \
+  "# Gate questions — $TICKET" \
+  '' \
+  '## PACKAGE' \
+  'Approve, edit, or reject the discovery package — route: brief, brief_kind: implementation-brief.' \
+  >"$CASE_WS/discovery/gate-questions.md"
+write_gate "$CASE_WS" approved-open
+copy_open_resolution_to_brief "$CASE_WS"
+expect_violation "gate questions missing an OPEN block" \
+  "gate-questions.md missing question blocks: OPEN-1" \
+  env RECON_ROOT="$CASE_ROOT" bash "$DISCOVERY_VERIFY" "$TICKET" post-gate
+
+new_workspace gate-exchanges-missing
+write_contract_all "$CASE_WS"
+write_route "$CASE_WS" brief implementation-brief
+write_impl_brief "$CASE_WS" all
+render_gate_fixture "$CASE_ROOT"
+write_gate "$CASE_WS" approved-open
+copy_open_resolution_to_brief "$CASE_WS"
+sed '/^  exchanges:/,$d' "$CASE_WS/discovery/gate.yaml" \
+  >"$CASE_WS/discovery/gate.tmp"
+mv "$CASE_WS/discovery/gate.tmp" "$CASE_WS/discovery/gate.yaml"
+expect_violation "gate without exchanges" \
+  "gate.exchanges is required" \
+  env RECON_ROOT="$CASE_ROOT" bash "$DISCOVERY_VERIFY" "$TICKET" post-gate
+
+new_workspace gate-exchange-open-missing
+write_contract_all "$CASE_WS"
+write_route "$CASE_WS" brief implementation-brief
+write_impl_brief "$CASE_WS" all
+render_gate_fixture "$CASE_ROOT"
+write_gate "$CASE_WS" approved-open
+copy_open_resolution_to_brief "$CASE_WS"
+sed '/^    - id: OPEN-1$/,/^      resolution: "A — Collection2 becomes selected"$/d' \
+  "$CASE_WS/discovery/gate.yaml" >"$CASE_WS/discovery/gate.tmp"
+mv "$CASE_WS/discovery/gate.tmp" "$CASE_WS/discovery/gate.yaml"
+expect_violation "gate missing an OPEN exchange" \
+  "gate missing exchanges: OPEN-1" \
+  env RECON_ROOT="$CASE_ROOT" bash "$DISCOVERY_VERIFY" "$TICKET" post-gate
+
+new_workspace gate-exchange-empty-answer
+write_contract_all "$CASE_WS"
+write_route "$CASE_WS" brief implementation-brief
+write_impl_brief "$CASE_WS" all
+render_gate_fixture "$CASE_ROOT"
+write_gate "$CASE_WS" approved-open
+copy_open_resolution_to_brief "$CASE_WS"
+sed 's/^      answer_verbatim: "make collection2 the selected one"$/      answer_verbatim: ""/' \
+  "$CASE_WS/discovery/gate.yaml" >"$CASE_WS/discovery/gate.tmp"
+mv "$CASE_WS/discovery/gate.tmp" "$CASE_WS/discovery/gate.yaml"
+expect_violation "gate exchange with empty verbatim answer" \
+  "exchange OPEN-1: answer_verbatim must be non-empty" \
+  env RECON_ROOT="$CASE_ROOT" bash "$DISCOVERY_VERIFY" "$TICKET" post-gate
+
+new_workspace gate-exchange-resolution-drift
+write_contract_all "$CASE_WS"
+write_route "$CASE_WS" brief implementation-brief
+write_impl_brief "$CASE_WS" all
+render_gate_fixture "$CASE_ROOT"
+write_gate "$CASE_WS" approved-open
+copy_open_resolution_to_brief "$CASE_WS"
+sed 's/^      resolution: "A — Collection2 becomes selected"$/      resolution: "B — no tab remains selected"/' \
+  "$CASE_WS/discovery/gate.yaml" >"$CASE_WS/discovery/gate.tmp"
+mv "$CASE_WS/discovery/gate.tmp" "$CASE_WS/discovery/gate.yaml"
+expect_violation "gate exchange resolution drift" \
+  "exchange OPEN-1: resolution does not match its open_scenario_resolutions value" \
+  env RECON_ROOT="$CASE_ROOT" bash "$DISCOVERY_VERIFY" "$TICKET" post-gate
+
+new_workspace gate-exchange-package-drift
+write_contract_all "$CASE_WS"
+write_route "$CASE_WS" brief implementation-brief
+write_impl_brief "$CASE_WS" all
+render_gate_fixture "$CASE_ROOT"
+write_gate "$CASE_WS" approved-open
+copy_open_resolution_to_brief "$CASE_WS"
+sed 's/^      resolution: approved$/      resolution: rejected/' \
+  "$CASE_WS/discovery/gate.yaml" >"$CASE_WS/discovery/gate.tmp"
+mv "$CASE_WS/discovery/gate.tmp" "$CASE_WS/discovery/gate.yaml"
+expect_violation "gate PACKAGE exchange contradicts approved" \
+  "exchange PACKAGE: resolution must be 'approved' to match gate.approved" \
   env RECON_ROOT="$CASE_ROOT" bash "$DISCOVERY_VERIFY" "$TICKET" post-gate
 
 echo "artifact verifiers: PASS — $PASS_COUNT isolated cases"
