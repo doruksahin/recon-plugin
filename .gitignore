@@ -1,2 +1,7 @@
 # lychee link-check cache (tools/check-links.sh)
 .lycheecache
+
+# machine-local tool caches (session state, code indexes) — never repo content
+.claude/
+.codebrain/
+.serena/
