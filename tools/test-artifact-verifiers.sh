@@ -1735,4 +1735,66 @@ expect_violation "declined record beside a posted comment" \
   "contradiction: triage/jira/post-gate.yaml records a declined gate" \
   env RECON_ROOT="$CASE_ROOT" bash "$DERIVE_STATE" "$TICKET"
 
+# Governance exchange rail (ADR 0003): the question belongs to the rail, and a
+# persisted standing choice always carries the answer that produced it. HOME is
+# redirected so the developer's real ~/.config/recon is never touched.
+SET_GOVERNANCE="$ROOT/recon/scripts/set-governance.sh"
+GOV_HOME="$FIXTURE/gov-home"
+mkdir -p "$GOV_HOME"
+GOV_CONFIG="$GOV_HOME/.config/recon/config"
+GOV_LOG="$GOV_HOME/.config/recon/governance-exchanges.ndjson"
+
+expect_pass "governance question renders" \
+  env HOME="$GOV_HOME" bash "$SET_GOVERNANCE" question decree
+env HOME="$GOV_HOME" bash "$SET_GOVERNANCE" question decree >"$FIXTURE/gov-q1.txt"
+env HOME="$GOV_HOME" bash "$SET_GOVERNANCE" question decree >"$FIXTURE/gov-q2.txt"
+cmp -s "$FIXTURE/gov-q1.txt" "$FIXTURE/gov-q2.txt" \
+  || fail "governance question is not byte-deterministic"
+grep -Fq 'how should recon hand off the work?' "$FIXTURE/gov-q1.txt" \
+  || fail "governance question lost its asked sentence"
+PASS_COUNT=$((PASS_COUNT + 1))
+
+expect_exit_code "governance answer without the developer's words" \
+  "answer needs the developer's exact words" 2 \
+  env HOME="$GOV_HOME" bash "$SET_GOVERNANCE" answer decree decree "   "
+[ ! -e "$GOV_CONFIG" ] || fail "a rejected governance answer still persisted the config"
+[ ! -e "$GOV_LOG" ] || fail "a rejected governance answer still wrote an exchange"
+PASS_COUNT=$((PASS_COUNT + 1))
+
+expect_exit_code "governance answer with an invalid value" \
+  "invalid governance value" 2 \
+  env HOME="$GOV_HOME" bash "$SET_GOVERNANCE" answer sometimes decree "whatever"
+[ ! -e "$GOV_CONFIG" ] || fail "an invalid governance value still persisted the config"
+
+expect_pass "governance answer persists config and exchange" \
+  env HOME="$GOV_HOME" bash "$SET_GOVERNANCE" answer auto decree \
+  "follow each repo — decree here, plain briefs elsewhere"
+grep -Fqx 'governance=auto' "$GOV_CONFIG" \
+  || fail "governance answer did not persist the standing choice"
+python3 - "$GOV_LOG" <<'PY' || fail "governance exchange record is not the expected JSON line"
+import json, sys
+
+rows = [json.loads(line) for line in open(sys.argv[1]) if line.strip()]
+assert len(rows) == 1, rows
+row = rows[0]
+assert row["value"] == "auto", row
+assert row["source"] == "gate", row
+assert row["tool"] == "decree", row
+assert row["answer_verbatim"].startswith("follow each repo"), row
+assert "how should recon hand off the work?" in row["question"], row
+PY
+PASS_COUNT=$((PASS_COUNT + 1))
+
+expect_pass "governance manual change is recorded as manual" \
+  env HOME="$GOV_HOME" bash "$SET_GOVERNANCE" none
+python3 - "$GOV_LOG" <<'PY' || fail "manual governance change was not appended as manual"
+import json, sys
+
+rows = [json.loads(line) for line in open(sys.argv[1]) if line.strip()]
+assert len(rows) == 2, rows
+assert rows[0]["source"] == "gate", rows
+assert rows[1] == {"date": rows[1]["date"], "value": "none", "source": "manual"}, rows
+PY
+PASS_COUNT=$((PASS_COUNT + 1))
+
 echo "artifact verifiers: PASS — $PASS_COUNT isolated cases"

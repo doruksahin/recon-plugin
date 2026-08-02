@@ -32,7 +32,7 @@ surface independently.
 3. **No prose unknowns.** Every "unknown" MUST be either resolved by running a command, or converted into a question with a named owner. "It is not yet known whether…" is a forbidden sentence.
 4. **Every claim carries evidence** — `file:line` or command output. A responsibility map without line numbers is not done.
 5. **Routing is consumed, never composed.** The route comes from the routing stage — `scripts/route-generic.sh` (a rail) or the governance adapter skill — as `route/routing.yaml`. NEVER route by feel, NEVER edit `routing.yaml`, and quote its `handoff:` block VERBATIM wherever the handoff is shown. Discovery's authority ends at describing; the routing stage decides the path.
-6. **Governance is the developer's choice, resolved mechanically.** Run `scripts/detect-governance.sh` (the ladder: env > config > probe); on `undecided`, ask the one-time question (step 4) and persist the answer via `scripts/set-governance.sh` — NEVER decide silently, NEVER let detection alone opt a developer in. When governance resolves to `none`, governance-system vocabulary is BANNED from every artifact and printed line (`lint-workspace.sh` greps for it).
+6. **Governance is the developer's choice, resolved mechanically.** Run `scripts/detect-governance.sh` (the ladder: env > config > probe); on `undecided`, ask the one-time question (step 4) and persist the answer via `scripts/set-governance.sh answer` — NEVER decide silently, NEVER let detection alone opt a developer in. When governance resolves to `none`, governance-system vocabulary is BANNED from every artifact and printed line (`lint-workspace.sh` greps for it).
 7. **Human-facing questions MUST be concrete.** Gate questions and OPEN scenarios must be answerable without reading code: numbered repro steps from a stated start state (e.g. the project's mock-mode dev command, which page), concrete entity names from the running system, before/after state, and options phrased as user-observable outcomes ("the tab appears and becomes selected"), never code outcomes ("activeTab is set"). Internal identifiers are BANNED from question text — they belong in the evidence tables, not the question. If an OPEN scenario concerns observable UI behavior, invoke the `recon:recon-repro` skill to attach visual evidence BEFORE presenting the gate.
 8. **NEVER post to Jira without explicit approval in this session** — same rule as triage. Discovery normally posts nothing; if a short status comment is ever warranted, draft it, ask via the host-native user interaction (see hosts.md), and POST only on an explicit yes.
 9. **NEVER read archived runs.** `$RECON_ROOT/<TICKET>/runs/` holds artifacts from prior runs (possibly produced by older skill versions) — you MUST NOT open, list, or cite anything under it. Consume only the current-run stage directories (`triage/`, `route/`, `repro/`, …); a current run is one whose root `meta.yaml` exists alongside `triage/triage.yaml`.
@@ -49,6 +49,12 @@ surface independently.
     and `gate.yaml` stores each exchange (the user's exact answer next to its
     mapped resolution). `gate-questions.md` is never hand-edited: to change a
     question, edit `discovery.md` and re-render.
+13. **The handoff-style question is the rail's own text, and its answer is on
+    the record.** `set-governance.sh question <tool>` owns the wording; you
+    present those bytes word-for-word and hand the developer's exact words back
+    through `set-governance.sh answer`, which writes the standing config and
+    the exchange record together or writes neither. NEVER retype the question,
+    NEVER persist a mapped value without the answer that produced it.
 
 ---
 
@@ -96,12 +102,19 @@ bash "<skill base dir>/../../scripts/detect-governance.sh"   # run from the repo
 ```
 
 - `governance: none` or a concrete adapter → proceed to step 5 with the printed `source`.
-- `governance: undecided` (a doc tool is present but the developer never chose) → ask once via the host-native user interaction in `hosts.md`. Take the tool's name from the script's evidence line and ask:
-  - *"This repo has <tool> set up. When a ticket is approved, how should recon hand off the work?"*
-    - **Write <tool> docs (Recommended)** — approved tickets route into this repo's <tool> flow (the handoff prints its commands)
-    - **Plain briefs** — approved tickets end at a standalone implementation brief; <tool> is never involved and its vocabulary never appears
-    - **Follow each repo** — <tool> docs wherever a repo has it set up, plain briefs everywhere else
-  - Persist the mapped value — docs → the tool's name, plain briefs → `none`, follow each repo → `auto`: `bash "<skill base dir>/../../scripts/set-governance.sh" <the tool's name | none | auto>` — then re-run `detect-governance.sh`; it now resolves from config and the question never fires again (change it anytime by re-running `set-governance.sh`).
+- `governance: undecided` (a doc tool is present but the developer never chose) → ask once, from the rail's own bytes. Take the tool's name from the script's evidence line, render the question, and present it word-for-word via the host-native user interaction in `hosts.md` — the wording lives in the rail, so NEVER retype or paraphrase it (rule 13):
+
+  ```bash
+  bash "<skill base dir>/../../scripts/set-governance.sh" question <tool>
+  ```
+
+  Then map the answer — docs → the tool's name, plain briefs → `none`, follow each repo → `auto` — and persist it together with the developer's exact words. The rail writes the config and the exchange record or neither:
+
+  ```bash
+  bash "<skill base dir>/../../scripts/set-governance.sh" answer <the tool's name | none | auto> <tool> "<the developer's answer, their exact words, unedited>"
+  ```
+
+  Then re-run `detect-governance.sh`; it now resolves from config and the question never fires again (change it anytime by re-running `set-governance.sh <value>`).
 
 ### 5. Route (the routing stage — never done by hand)
 
