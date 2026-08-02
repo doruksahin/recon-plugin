@@ -30,7 +30,7 @@ Failure modes observed live that the skills don't handle or handle ambiguously.
 | [doc-coherence-rail](doc-coherence-rail/README.md) | shipped (v0.9.0) | P1 | One owner per shared fact; check-coherence.sh fails commits whose mirrors drift |
 | [governance-ux](governance-ux/README.md) | shipped (v0.10.0) | P2 | One-time question and reports phrased as handoff outcomes; ladder demoted to internals |
 | [help-doctor-skill](help-doctor-skill/README.md) | shipped (v0.10.0) | P2 | recon-help + doctor.sh: orientation and setup checks, every fact derived live |
-| [publish-skill](publish-skill/README.md) | in-progress | P2 | recon-publish + activate-plugin.sh: gated release, cache activation, mirror republish |
+| [publish-skill](publish-skill/README.md) | shipped (v0.12.0) | P2 | recon-publish + activate-plugin.sh: gated release, cache activation, mirror republish |
 | [credential-preflight](credential-preflight/README.md) | proposed | P1 | GET /myself before the ticket fetch; expired tokens fail loudly with a fix |
 | [owner-resolution-order](owner-resolution-order/README.md) | proposed | P2 | Resolve accountIds from ticket data first; user search only as fallback |
 | [answered-blocker-rule](answered-blocker-rule/README.md) | proposed | P2 | A reply closes a blocker only if it supplies the asked value; delegation ≠ answer |

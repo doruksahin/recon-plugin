@@ -2,9 +2,8 @@
 
 > recon-publish + activate-plugin.sh: release, distribute, republish mirrors, smoke test
 
-- **Status:** in-progress — implemented 2 Aug 2026 (`recon/skills/recon-publish/`,
-  `recon/scripts/activate-plugin.sh`, `release.sh --yes` + coherence guard);
-  pending commit/release
+- **Status:** shipped (v0.12.0) — implemented 2 Aug 2026 (`recon/skills/recon-publish/`,
+  `recon/scripts/activate-plugin.sh`, `release.sh --yes` + coherence guard)
 - **Priority:** P2
 - **Theme:** operational robustness
 - **Origin:** 1–2 Aug 2026 — the publish ritual (push, two GitHub releases,
