@@ -1,3 +1,13 @@
+## v0.15.0 (2026-08-02)
+
+### BREAKING CHANGE
+
+- Repro and Discovery artifacts now require fixed metadata, stable visible IDs, a complete pinned route envelope, and verifier-clean parity before handoff.
+
+### Features
+
+- **pipeline**: verify the company handoff chain
+
 ## v0.14.1 (2026-08-02)
 
 ### Bug Fixes
