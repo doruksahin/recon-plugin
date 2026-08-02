@@ -21,7 +21,7 @@ Read-only blocker triage: decides READY / BLOCKED / NEEDS_INFO for a Jira ticket
 1. **READ-ONLY.** You MUST NOT write code, create branches, or modify any repo. The only writes allowed are artifacts under `~/.claude/recon/<TICKET-ID>/`, plus delivery files staged in the temp dir on the posting path (the `package-artifacts.sh` zip and the renamed dossier copy — step 4's posting path).
 2. **NEVER post to Jira without explicit approval in this session.** You draft comments and stage attachments; the user approves via AskUserQuestion before any mutating Jira call (comment create/edit, attachment delete/upload). NEVER skip this, even if the user previously approved a different comment.
 3. **Every checklist answer MUST carry evidence** — a command output, a `file:line`, an HTTP status, or an exact quote from the ticket. A check without evidence is not done.
-4. **The verdict MUST be the `triage.yaml` schema below**, written to `~/.claude/recon/<TICKET-ID>/triage/triage.yaml`. Prose around it is ≤10 lines.
+4. **The verdict MUST be the `triage.yaml` schema below**, written to `~/.claude/recon/<TICKET-ID>/triage/triage.yaml`, and MUST pass `verify-triage.sh` — the rail re-derives the disposition from the six checks and verifies every quoted evidence entry verbatim against `ticket.json`. On failure fix the checks or the evidence, never the verdict. Prose around it is ≤10 lines.
 5. **On READY, auto-chain:** immediately invoke the `recon:recon-discovery` skill (Skill tool) in the same run — unless the user said "triage only".
 6. **Triage decides; it never plans.** NEVER include implementation direction, candidate code changes, or governance decisions ("no SPEC needed") in triage output. That authority belongs to later stages.
 7. **Human-facing questions MUST be concrete.** Every question must be answerable without reading code. The concreteness pack — numbered repro steps from a stated start state (e.g. the project's mock-mode dev command, which page), concrete entity names from the running system ("Collection3", not "a collection"), the before and after state, and options phrased as user-observable outcomes ("the tab appears and becomes selected"), never code outcomes ("activeTab is set") — goes in the dossier question packs (`blockers[].detail` in `triage.yaml`); the comment's `ask` line stays ONE rule-7-clean sentence ending in "?". Internal identifiers (service/method/prop names) are BANNED from all human-facing text, `ask` and `detail` alike. If a question concerns observable UI behavior, invoke the `recon:recon-repro` skill to attach visual evidence BEFORE presenting the draft.
@@ -82,7 +82,7 @@ recon: triage
 ticket: ATT-XXXX
 title: "<summary>"
 task_class: defect | capability-change | chore   # defect = existing behavior broken
-disposition: READY | BLOCKED | NEEDS_INFO
+disposition: READY | BLOCKED | NEEDS_INFO        # DERIVED from the checks — see below
 outcome_decidable: true | partial | false
 evidence_ok: true | false
 product_decision_open: true | false
@@ -90,22 +90,37 @@ design_dependency: true | false
 backend_dependency: true | false
 status_drift: "<note or omit>"
 stale_blocker_note: "<note or omit>"
-blockers: []          # each entry:
+blockers: []          # each entry (exact two-space indent steps — the rails parse them):
 #  - title: "Updated design"            # ≤5 words, names the blocker
-#    owner: osman                       # handle; resolve to accountId at draft time (step 4)
+#    owner: osman                       # handle as written on the ticket
+#    owner_account_id: "712020:…"       # resolved on the posting path (step 1), never guessed
 #    ask: "deliver the updated design, or should I build to the attached PNG?"
 #                                       # ONE sentence, ends in "?", rule-7 clean
 #    detail:                            # rule-7 question pack — rendered ONLY in the dossier
 #      state: "<where this blocker stands, dated>"
-#      options: ["<user-observable outcome a>", "<user-observable outcome b>"]
-#      evidence: ["<quote / file:line / HTTP status>"]
+#      options:                         # block list, user-observable outcomes
+#        - "<outcome a>"
+#        - "<outcome b>"
+#      evidence:                        # TYPED entries — kind ∈ quote|http|git|file|note
+#        - kind: quote                  # quote: must appear VERBATIM in its source
+#          text: "<exact words from the ticket>"
+#          source: "comment <id>"       # or description | summary — human content only
+#        - kind: http
+#          text: "design link → HTTP 403 (anonymous, this run)"
 #      repro_ref: repro/exhibits/…      # when recon-repro ran
 conflicts: []         # [{ticket, pr, state, surface, note}]
-evidence:             # one line per claim above
-  - "<command/file:line/quote>"
+evidence:             # one TYPED entry per claim above (same kinds as detail.evidence)
+  - kind: git
+    text: "git branch -a | grep -iE '<keywords>' → none"
 ```
 
-Disposition rule: any of checks 2–5 failing with an unanswered owner-question → `BLOCKED`. Only soft ambiguity (check 1 `partial`) → `NEEDS_INFO` — and NEEDS_INFO MUST materialize each ambiguity as a blocker entry (owner = whoever can decide it; the `ask` IS the clarifying question). All clear → `READY` (conflicts don't block; they ride along as guardrails). BLOCKED and NEEDS_INFO both require `blockers` to be non-empty — the posting path demands n ≥ 1; if no blocker entry can be written, the ticket is not NEEDS_INFO.
+**The disposition is derived, not chosen.** Any of checks 2–5 failing (each failure's owner-question written as a blocker) → `BLOCKED`; otherwise check 1 `partial`/`false` → `NEEDS_INFO` (each ambiguity materialized as a blocker; owner = whoever can decide it, the `ask` IS the clarifying question); otherwise `READY`. Conflicts never block — they ride along as guardrails. BLOCKED and NEEDS_INFO require `blockers` non-empty (the posting path demands n ≥ 1); READY requires it empty. After writing the yaml, run the rail — it re-derives the disposition, validates the schema, and greps every `kind: quote` verbatim (whitespace/curly-quote normalized) against the human content of `ticket.json`:
+
+```bash
+bash "<skill base dir>/../../scripts/verify-triage.sh" <TICKET>
+```
+
+Fix and re-run until it prints `verify: clean`. A disposition mismatch means the checks and the verdict disagree — fix the checks or write the missing blocker; never hand-edit the verdict to match.
 
 ### 4. Branch on disposition
 
@@ -114,10 +129,16 @@ Disposition rule: any of checks 2–5 failing with an unanswered owner-question 
 
 #### Posting path (BLOCKED / NEEDS_INFO)
 
-1. **Structure the blockers.** Every `triage.yaml` blocker follows the schema above: `title` (≤5 words), `owner`, a one-sentence `ask` ending in "?", and a `detail` question pack — list entries at exactly the schema's two-space indentation (`  - title:`; the shape rail counts that pattern). Rule 7 applies to `ask` AND `detail`: internal identifiers are BANNED from both.
+1. **Structure the blockers and resolve their owners.** Every `triage.yaml` blocker follows the schema above: `title` (≤5 words), `owner`, `owner_account_id`, a one-sentence `ask` ending in "?", and a `detail` question pack — list entries at exactly the schema's two-space indentation (`  - title:`; the rails parse that pattern). Rule 7 applies to `ask` AND `detail`: internal identifiers are BANNED from both. Resolve each `owner` to its `owner_account_id` now: `GET "https://$HOST/rest/api/2/user/search?query=<name>"` (same creds/HOST as workflow step 1), save each response as `triage/aux-user-<slug>.json`, and write the `accountId` into the blocker — NEVER guess an accountId or fall back to a display name; if several accounts match one name, prefer the accountId already active on the ticket (reporter, assignee, or a comment author in `ticket.json`). Re-run `verify-triage.sh` until `verify: clean`.
 2. **Repro first.** Any blocker concerning observable UI behavior → invoke the `recon:recon-repro` skill and capture its evidence BEFORE drafting (rule 7).
 3. **Render the dossier.** Invoke the `recon:recon-report` skill in render-only mode → writes `report/dossier.html`. NO artifact publishing on this path — the Jira attachment is the delivery.
-4. **Draft the comment** — EXACT shape, n+4 non-empty lines, generated from `triage.yaml` ONLY:
+4. **Render the comment** — NEVER write it by hand. The rail emits `triage/jira/comment.txt` from `triage.yaml` + `meta.yaml` only (header date from `started`, marker version from `plugin_version`, mentions from each blocker's `owner_account_id`):
+
+   ```bash
+   bash "<skill base dir>/../../scripts/render-comment.sh" <TICKET>
+   ```
+
+   It produces invariant 13's exact shape — n+4 non-empty lines:
 
    ```
    h2. Recon triage: <DISPOSITION> — <n> blocker(s) (<d MMM>)
@@ -129,13 +150,13 @@ Disposition rule: any of checks 2–5 failing with an unanswered owner-question 
    ~recon-triage v<plugin_version from meta.yaml>~
    ```
 
-   One `*i. <title>* — [~accountid:…]: <ask>` line per blocker, numbered 1..n. Resolve each `owner` handle to its accountId at draft time — `comment.txt` is the exact posted body: `GET "https://$HOST/rest/api/2/user/search?query=<name>"` (same creds/HOST as step 1), save each response as `triage/aux-user-<slug>.json`, and take `accountId` from it; NEVER guess an accountId or fall back to a display name. NO history, NO stale-blocker narration, NO technical values beyond what an ask needs — that lives in the dossier's question packs. Split-scope proposals appear ONLY inside an ask line. Save to `triage/jira/comment.txt`, then run:
+   NO history, NO stale-blocker narration, NO technical values beyond what an ask needs (that lives in the dossier's question packs), and split-scope proposals ONLY inside an ask line — these are now properties of the `ask` fields in `triage.yaml`, the single place comment content comes from. Then run the independent shape check:
 
    ```bash
    bash "<skill base dir>/../../scripts/verify-comment-shape.sh" <TICKET>
    ```
 
-   Fix and re-run until it prints `shape: clean`.
+   `shape: clean` is expected first try — a failure means the renderer and the shape rail disagree: report it as a plugin bug; do NOT hand-edit `comment.txt`.
 5. **Package the bundle** — AFTER the dossier exists, so the zip contains it:
 
    ```bash
@@ -143,7 +164,7 @@ Disposition rule: any of checks 2–5 failing with an unanswered owner-question 
    ```
 
    Writes `triage/jira/bundle-manifest.txt` and stages `recon-artifacts-<TICKET>.zip` in a temp dir (never inside the workspace). Quote its `MANIFEST:` and `ZIP:` lines in your progress note.
-6. **Gate (single approval).** AskUserQuestion shows the comment draft AND the attachment manifest: the two filenames (`recon-dossier-<TICKET>.html`, `recon-artifacts-<TICKET>.zip`), their sizes, and the bundle file count from the `MANIFEST:` line. Options: `Post to Jira now (comment + 2 attachments)` / `Edit first` / `Don't post`. One "post" answer authorizes the comment AND both attachments. NEVER post or attach without it (rule 2). On `Edit first`: after ANY change to `comment.txt`, re-run `verify-comment-shape.sh` until `shape: clean` AND re-run step 5 (package) — the zip bundles `comment.txt`, so the gate-displayed bundle must match the posted bytes — then re-show this gate: the posted bytes are always shape-verified and freshly approved. Any edit that changes `triage.yaml` blockers also requires re-running posting-path steps 3–5 (dossier render, package) so the attached dossier and zip match the comment being approved.
+6. **Gate (single approval).** AskUserQuestion shows the comment draft AND the attachment manifest: the two filenames (`recon-dossier-<TICKET>.html`, `recon-artifacts-<TICKET>.zip`), their sizes, and the bundle file count from the `MANIFEST:` line. Options: `Post to Jira now (comment + 2 attachments)` / `Edit first` / `Don't post`. One "post" answer authorizes the comment AND both attachments. NEVER post or attach without it (rule 2). On `Edit first`: edits happen in `triage.yaml` (asks, owners, blockers) — NEVER directly in `comment.txt` — then re-run the chain: `verify-triage.sh` → posting-path steps 3–5 (dossier render, comment render, shape check, package) — the zip bundles `comment.txt`, so the gate-displayed bundle must match the posted bytes — then re-show this gate: the posted bytes are always rendered from the verified yaml and freshly approved.
 7. **On "post": attachments FIRST, then the comment.** Duplicate filenames bind `[^…]` links to the OLDER attachment, so replacement MUST precede the comment. The uploaded filename is the file's basename, so stage a renamed dossier copy in the temp dir (never inside the workspace):
 
    ```bash
@@ -172,6 +193,7 @@ Wrote: ~/.claude/recon/<TICKET>/triage/{ticket.json, triage.yaml} (+ jira/{comme
        bundle-manifest.txt} on the posting path; + jira/{attach-result.json,
        post-result.json} only after a "post" answer)
 Lint: <lint-workspace.sh verdict line, verbatim — fix any violation before reporting>
+Verify: <verify-triage.sh verdict line, verbatim>
 Shape: <verify-comment-shape.sh verdict line, verbatim — posting path only; omit on READY>
 Disposition: <READY|BLOCKED|NEEDS_INFO> (<n> blockers, <n> conflicts)
 Next: <one of:

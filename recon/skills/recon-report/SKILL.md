@@ -36,7 +36,7 @@ Turns the current-run artifacts of `~/.claude/recon/<TICKET>/` into one designed
 | headline + lede | judgment (rule 1) — facts only from `triage.yaml`/`discovery.md` |
 | Seven facts: Verdict / Where / Reuse / Scope / Decided / Open / Next | `triage/triage.yaml` + repro outcome · root-cause `file:line` from `discovery/discovery.md` · `route/routing.yaml` `evidence.reuses_existing_contract` · `evidence.blast_radius` · `discovery/gate.yaml` resolutions · open items/findings · route + verbatim handoff |
 | repo_commit link, footer | `route/routing.yaml` `evidence.repo_commit`, `meta.yaml` plugin_version + started |
-| Blockers & question packs | `triage/triage.yaml` `blockers[]` — each entry's title / owner / one-line ask / `detail` pack (state · options as a list · evidence lines verbatim · `repro_ref` → link to the repro exhibit); empty → `None` |
+| Blockers & question packs | `triage/triage.yaml` `blockers[]` — each entry's title / owner / one-line ask / `detail` pack (state · options as a list · typed evidence entries: each entry's `text` verbatim, labeled by its `kind` · `repro_ref` → link to the repro exhibit); empty → `None` |
 | Pipeline stages 0–5 | `meta.yaml` (step 0), each stage's directory; a missing stage directory ⇒ `not run — <reason>` |
 | Six-checks table | `triage.yaml` checks + matching `evidence:` lines, one row each |
 | Cross-checks table | `triage.yaml` `status_drift`, `stale_blocker_note` |

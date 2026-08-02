@@ -54,15 +54,19 @@ verdict is auditable without re-fetching anything.
 ### `triage/triage.yaml`
 **The stage-1 verdict.** Disposition (`READY | BLOCKED | NEEDS_INFO`), the six
 check results, cross-checks (status drift, stale blockers), blockers with named
-owners, ride-along PR conflicts, and one evidence line per claim. Discovery's
-precondition: it will not start unless this says `READY`.
+owners (handles + resolved accountIds), ride-along PR conflicts, and one TYPED
+evidence entry per claim (`kind: quote | http | git | file | note`). The
+disposition is derived from the checks, and every quote is verified verbatim
+against `ticket.json`, by `verify-triage.sh`. Discovery's precondition: it will
+not start unless this says `READY`.
 
 ### `triage/jira/` — present only if the posting path ran (BLOCKED/NEEDS_INFO)
-- **`comment.txt`** — the exact comment body drafted for Jira, saved *before* the
-  human approved posting. The body is the mechanical n+4 progressive-disclosure
-  shape — header, one line per blocker, attachment-links line, reply line,
-  marker line — so full detail never lives here; it lives in the dossier's
-  question packs. Ends with the `~recon-triage v<version>~` marker.
+- **`comment.txt`** — the exact comment body for Jira, RENDERED from
+  `triage.yaml` + `meta.yaml` by `render-comment.sh` (never hand-written) and
+  saved *before* the human approved posting. The body is the mechanical n+4
+  progressive-disclosure shape — header, one line per blocker, attachment-links
+  line, reply line, marker line — so full detail never lives here; it lives in
+  the dossier's question packs. Ends with the `~recon-triage v<version>~` marker.
 - **`bundle-manifest.txt`** — written by `package-artifacts.sh`: one line per
   bundled file (size + relative path). The zip it describes
   (`recon-artifacts-<TICKET>.zip`) is staged in a temp dir — never inside this
