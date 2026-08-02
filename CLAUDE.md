@@ -8,7 +8,7 @@ A Claude Code **plugin marketplace** shipping one plugin, `recon` — a determin
 
 - `.claude-plugin/marketplace.json` — marketplace root, points at `./recon`
 - `recon/.claude-plugin/plugin.json` — the plugin manifest; its `version` is written by the release tool, **never edit by hand**
-- `recon/skills/` — the six skills: `recon-triage` (stage 0), `recon-discovery` (stage 1), `recon-repro` (on-demand live repro), `recon-report` (HTML dossier), `recon-decree` (governance adapter), `recon-help` (orientation + setup doctor)
+- `recon/skills/` — the seven skills: `recon-triage` (stage 0), `recon-discovery` (stage 1), `recon-repro` (on-demand live repro), `recon-report` (HTML dossier), `recon-decree` (governance adapter), `recon-help` (orientation + setup doctor), `recon-publish` (maintainer release + distribution)
 - `recon/scripts/` — the mechanical rails the skills call (workspace lifecycle, verdict/comment rails, routing, Jira delivery, workspace lint, doctor)
 - `recon/docs/pipeline.md` — the machine spec: state machine, invariants, artifact registry mirror, trigger tables, the binding Change protocol
 - `recon/docs/registry.yaml` — THE artifact registry (single source; `lint-workspace.sh` executes it)

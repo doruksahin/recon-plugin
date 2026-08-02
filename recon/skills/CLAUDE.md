@@ -13,6 +13,7 @@ directory without a role line below fails `tools/check-coherence.sh`.
 | `recon-report/` | D | The dossier: fills its `template.html` from current-run artifacts (a view, NO new facts). Render-only on the posting path; publishes a private artifact on demand. |
 | `recon-decree/` | RT | Governance adapter for decree: same contract as `route-generic.sh` (writes `route/routing.yaml` incl. verbatim `handoff:`). ALL decree vocabulary is quarantined here — a `governance: none` run never loads it. |
 | `recon-help/` | utility | Orientation + setup doctor (not a pipeline stage). Presents `doctor.sh` output verbatim — version, skill list, and setup checks are all derived live by the rail, so the help surface cannot drift. Writes nothing. |
+| `recon-publish/` | utility | Release + distribute (not a pipeline stage): gated `release.sh --yes`, cache activation via `activate-plugin.sh`, marketplace-clone sync, republish of changed artifact mirrors, smoke test from the activated path. Parked here for later extraction to a shared devkit. |
 
 New governance adapters follow the `recon-<governance>` convention with the
 same contract as `recon-decree/` (pipeline.md Change protocol, item 6).

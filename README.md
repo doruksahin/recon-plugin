@@ -117,6 +117,7 @@ brew install uv       # optional; without it, commit messages go unchecked
 | Skill | Stage | What it does |
 |---|---|---|
 | `/recon:recon-help` | any time | Orientation + setup doctor: the one command, every skill's own description, and live checks (Jira credentials, handoff style) — all derived by `doctor.sh` at run time, never restated from memory |
+| `/recon:recon-publish` | maintainer | Release + distribute behind one approval gate: `release.sh --yes` (bump, tag, push, GitHub Release), cache activation + clone sync via `activate-plugin.sh`, republish of changed artifact mirrors, smoke test |
 | `/recon:recon-triage` | 0 | Blocker verdict (READY/BLOCKED/NEEDS_INFO) from six mechanical checks; drafts owner-addressed questions; never plans |
 | `/recon:recon-discovery` | 1 | Code surface with `file:line` evidence, Gherkin behavior contract, routing via the governance adapter or generic rail, approval gate |
 | `/recon:recon-repro` | on demand | Live-reproduces observable behavior: numbered steps + one screenshot per state; honest about failed repros |
