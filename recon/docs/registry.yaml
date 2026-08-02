@@ -1,5 +1,5 @@
 # registry.yaml — THE artifact registry. Single source of truth for what a
-# recon run may write into ~/.claude/recon/<TICKET>/.
+# recon run may write into RECON_ROOT/<TICKET>/ (legacy default: ~/.claude/recon/<TICKET>/).
 #
 # Consumers:
 #   - recon/scripts/lint-workspace.sh matches every workspace file against the
@@ -125,6 +125,5 @@
 
 - pattern: "state/artifact-url"
   token: "artifact-url"
-  producer: recon-state (first gated publish)
-  consumers: recon-state republish, the auto-refresh trigger
-
+  producer: recon-state (first gated publish; publish_stable_url required)
+  consumers: recon-state republish on capable hosts

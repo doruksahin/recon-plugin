@@ -1,0 +1,4 @@
+interface:
+  display_name: "Recon Help"
+  short_description: "Check setup and explain the Recon workflow"
+  default_prompt: "Use $recon-help to check this Recon installation and show the next command."

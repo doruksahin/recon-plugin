@@ -4,4 +4,5 @@
 # machine-local tool caches (session state, code indexes) — never repo content
 .claude/
 .codebrain/
+.decree/
 .serena/

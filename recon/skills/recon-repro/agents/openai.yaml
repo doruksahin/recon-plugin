@@ -1,0 +1,4 @@
+interface:
+  display_name: "Recon Repro"
+  short_description: "Capture honest UI reproduction evidence"
+  default_prompt: "Use $recon-repro to reproduce this visible behavior and capture evidence."

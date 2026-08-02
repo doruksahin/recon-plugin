@@ -1,0 +1,4 @@
+interface:
+  display_name: "Recon Publish"
+  short_description: "Release and distribute Recon safely"
+  default_prompt: "Use $recon-publish to preview and gate a Recon release."

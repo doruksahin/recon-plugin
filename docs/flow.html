@@ -189,13 +189,13 @@
       <span class="chip rail">RAIL</span>
       <span class="chip judge">JUDGMENT</span>
       <span class="chip human">HUMAN GATE</span>
-      <!-- coherence:version --><span class="chip ver">recon v0.13.0</span>
+      <!-- coherence:version --><span class="chip ver">recon v0.14.0</span>
     </div>
   </header>
 
   <div class="stage">
     <h2>Stage 0–1 · Triage</h2>
-    <small>entry: /recon:recon-triage ATT-1234 · skill: <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">recon-triage/SKILL.md</a></small>
+    <small>entry: Recon Triage ATT-1234 (host invocation rendered by reconctl) · skill: <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">recon-triage/SKILL.md</a></small>
   </div>
 
   <div class="step rail">
@@ -285,7 +285,7 @@
       <div class="cm"><b>*3. AC #5 events*</b> — <span class="m">@Osman</span>: exact event names and properties — or split AC #5 to a follow-up?</div>
       <div class="cm">Full detail, options, and evidence: <span class="att">recon-dossier-ATT-5107.html</span> · <span class="att">recon-artifacts-ATT-5107.zip</span></div>
       <div class="cm">Reply here — answers on this ticket un-block the pipeline.</div>
-      <div class="cm dim">~recon-triage v0.13.0~</div>
+      <div class="cm dim">~recon-triage v0.14.0~</div>
     </div>
     <p class="cm-caption">header · one line per blocker · links · reply · marker</p>
   </div>
@@ -325,7 +325,7 @@
 
   <div class="stopbar">
     <span class="stamp">Stop</span>
-    <p>Owners answer <em>on the ticket</em>. A human reply after the marker comment counts as answered — re-run <code>/recon:recon-triage</code> and the stale-blocker check re-evaluates.</p>
+    <p>Owners answer <em>on the ticket</em>. A human reply after the marker comment counts as answered — run Recon Triage again using the host-rendered invocation and the stale-blocker check re-evaluates.</p>
   </div>
 
   <div class="stage">
@@ -398,7 +398,7 @@
 
   <div class="stopbar">
     <span class="stamp">Stop</span>
-    <p>After any stop, <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a> on demand: fills <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/template.html">the fixed template</a>, publishes <strong>private</strong> — no new facts, sharing is your call. (On the posting path it already ran render-only.) And <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-state/SKILL.md">recon-state</a> keeps the ticket's living canvas honest: state derived from artifact presence by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/derive-state.sh">rail</a>, republished to one stable URL at every stop.</p>
+    <p>After any stop, <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a> fills <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/template.html">the fixed template</a> and publishes only when the local host exposes a publisher. <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-state/SKILL.md">recon-state</a> keeps the living canvas honest: state is derived from artifact presence by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/derive-state.sh">rail</a>, always rendered locally, and republished only when stable-URL publishing is available.</p>
   </div>
 
   <section class="reg">
@@ -409,9 +409,9 @@
       <table>
         <thead><tr><th>Artifact</th><th>Producer</th><th>Consumed by</th></tr></thead>
         <tbody>
-          <tr><td class="mono">meta.yaml · index.md</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/fresh-workspace.sh">fresh-workspace.sh</a></td><td>current-run check, dossier footer, humans</td></tr>
+          <tr><td class="mono">meta.yaml · index.md</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/fresh-workspace.sh">fresh-workspace.sh</a></td><td>current-run check, starting host/surface provenance, humans</td></tr>
           <tr><td class="mono">runs/&lt;ts&gt;/…</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/fresh-workspace.sh">fresh-workspace.sh</a></td><td><strong>nobody</strong> — reading archived runs is banned</td></tr>
-          <tr><td class="mono">history.ndjson</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/log-event.sh">log-event.sh</a> (closed vocabulary; survives step 0)</td><td>state canvas timeline, humans — output, <strong>never evidence</strong></td></tr>
+          <tr><td class="mono">history.ndjson</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/log-event.sh">log-event.sh</a> (closed vocabulary + current host/surface; survives step 0)</td><td>state canvas timeline, humans — output, <strong>never evidence</strong></td></tr>
           <tr><td class="mono">triage/{ticket.json, aux-*.json}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">triage</a></td><td>the six checks; aux-user-*.json backs the @mentions</td></tr>
           <tr><td class="mono">triage/triage.yaml</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">triage</a>, verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-triage.sh">verify-triage.sh</a></td><td>discovery precondition; disposition derived + quotes verified from it; comment AND dossier both render from it</td></tr>
           <tr><td class="mono">triage/jira/{comment.txt, bundle-manifest.txt}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-comment.sh">render-comment.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/package-artifacts.sh">package-artifacts.sh</a></td><td>the gate (exact bytes + what ships), audit</td></tr>
@@ -420,14 +420,14 @@
           <tr><td class="mono">route/{routing.yaml, aux-intent-check.txt}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/route-generic.sh">route-generic.sh</a> | <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-decree/SKILL.md">recon-decree</a></td><td>discovery (route, brief_kind, verbatim handoff), dossier</td></tr>
           <tr><td class="mono">repro/{repro.md, exhibits/*.png}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-repro/SKILL.md">repro</a></td><td>blocker detail packs, gate questions, Manual verification, PR "before" evidence</td></tr>
           <tr><td class="mono">report/dossier.html</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a></td><td>attached to the ticket on the posting path; published private on demand</td></tr>
-          <tr><td class="mono">state/{state.yaml, canvas.html, artifact-url}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/derive-state.sh">derive-state.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-state-canvas.sh">render-state-canvas.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-state/SKILL.md">recon-state</a></td><td>the living state canvas — one stable private URL per ticket, refreshed at every stop</td></tr>
+          <tr><td class="mono">state/{state.yaml, canvas.html, artifact-url}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/derive-state.sh">derive-state.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-state-canvas.sh">render-state-canvas.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-state/SKILL.md">recon-state</a></td><td>living state: canonical next action + local canvas; stable URL only on capable hosts</td></tr>
         </tbody>
       </table>
     </div>
   </section>
 
   <footer>
-    <!-- coherence:version -->recon <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/.claude-plugin/plugin.json">v0.13.0</a> ·
+    <!-- coherence:version -->recon <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/.claude-plugin/plugin.json">v0.14.0</a> ·
     repo: <a href="https://github.com/doruksahin/recon-plugin">doruksahin/recon-plugin</a> ·
     machine spec: <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/docs/pipeline.md">pipeline.md</a> ·
     ADR: <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/docs/decisions/0001-jira-rest-api-over-mcp.md">0001 — REST API over MCP</a><br>

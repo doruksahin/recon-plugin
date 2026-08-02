@@ -15,9 +15,11 @@ case "$TICKET" in
   *[!A-Za-z0-9-]* | "") echo "invalid ticket id: $TICKET" >&2; exit 2 ;;
 esac
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+TRIAGE_INVOCATION="$(bash "$SCRIPT_DIR/reconctl.sh" invocation recon.triage "$TICKET")"
 DIR="${RECON_ROOT:-$HOME/.claude/recon}/$TICKET"
 META="$DIR/meta.yaml"
-[ -f "$META" ] || { echo "no run: $META missing — run /recon:recon-triage $TICKET first" >&2; exit 2; }
+[ -f "$META" ] || { echo "no run: $META missing — $TRIAGE_INVOCATION first" >&2; exit 2; }
 
 TRIAGE="$DIR/triage/triage.yaml"
 DISC="$DIR/discovery/discovery.md"
@@ -32,11 +34,12 @@ DOSS="$DIR/report/dossier.html"
 n_workspace=done n_triage=queued n_blocked=queued n_contract=queued
 n_repro=absent n_routing=queued n_brief=queued n_gate=queued
 n_handoff=queued n_implement=queued n_dossier=absent
-stop="" next="" DISP=""
+stop="" next="" next_action="" DISP=""
 
 if [ ! -f "$TRIAGE" ]; then
   stop=triage-in-progress; n_triage=current
-  next="triage is mid-run — finish /recon:recon-triage $TICKET (six checks, derived verdict)"
+  next_action=recon.triage
+  next="triage is mid-run — finish Recon Triage for $TICKET (six checks, derived verdict)"
 else
   n_triage=done
   DISP="$(sed -n 's/^disposition: *//p' "$TRIAGE" | head -1)"
@@ -51,27 +54,33 @@ else
       fi
       if [ ! -f "$DISC" ]; then
         stop=discovery-in-progress; n_contract=current
+        next_action=recon.discovery
         next="discovery is mid-run — the behavior contract (discovery.md) is being written"
       elif [ ! -f "$ROUT" ]; then
         stop=discovery-in-progress; n_contract=done; n_routing=current
+        next_action=recon.discovery
         next="discovery is mid-run — the routing stage has not produced route/routing.yaml yet"
       elif [ ! -f "$BRIEF" ]; then
         stop=discovery-in-progress; n_contract=done; n_routing=done; n_brief=current
+        next_action=recon.discovery
         next="discovery is mid-run — the implementer brief (spec-draft.md) is being drafted"
       elif [ ! -f "$GATE" ]; then
         stop=approval-gate; n_contract=done; n_routing=done; n_brief=done; n_gate=current
-        next="answer the approval gate — resolve any OPEN scenario and Approve/Edit/Reject; the answer writes discovery/gate.yaml (re-present with /recon:recon-discovery $TICKET)"
+        next_action=human.approval
+        next="answer the approval gate — resolve any OPEN scenario and Approve/Edit/Reject; the answer writes discovery/gate.yaml (re-present with Recon Discovery for $TICKET)"
       else
         APPROVED="$(sed -n 's/^ *approved: *//p' "$GATE" | head -1)"
         n_contract=done; n_routing=done; n_brief=done; n_gate=done
         case "$APPROVED" in
           true)
             stop=handed-off; n_handoff=done; n_implement=current
+            next_action=implementation.start
             next="recon is done — implement in a NEW session via the handoff printed verbatim from route/routing.yaml"
             ;;
           false)
             stop=rejected; n_handoff=not-taken; n_implement=not-taken
-            next="gate rejected — fix what gate.yaml names, then re-run /recon:recon-discovery $TICKET"
+            next_action=recon.discovery
+            next="gate rejected — fix what gate.yaml names, then run Recon Discovery for $TICKET again"
             ;;
           *)
             echo "contradiction: discovery/gate.yaml has no parseable 'approved:' line" >&2; exit 1
@@ -84,10 +93,12 @@ else
       n_gate=not-taken; n_handoff=not-taken; n_implement=not-taken
       if [ ! -f "$POST" ]; then
         stop=comment-gate; n_blocked=current
+        next_action=human.approval
         next="approve the Jira comment + attachments gate in the triage session (nothing posts without it)"
       else
         stop=awaiting-replies; n_blocked=done
-        next="paused — answers on the ticket un-block it; then re-run /recon:recon-triage $TICKET"
+        next_action=recon.triage
+        next="paused — answers on the ticket un-block it; then run Recon Triage for $TICKET again"
       fi
       ;;
     *)
@@ -123,6 +134,7 @@ mkdir -p "$DIR/state"
   printf 'run_started: %s\n' "$STARTED"
   printf 'run_version: %s\n' "$V"
   printf 'stop: %s\n' "$stop"
+  printf 'next_action: %s\n' "$next_action"
   printf 'next: "%s"\n' "$next"
   printf 'node.workspace: %s\n' "$n_workspace"
   printf 'node.triage: %s\n' "$n_triage"

@@ -1,7 +1,7 @@
 #!/bin/bash
 # fresh-workspace.sh <TICKET-ID> — recon step 0: deterministic clean workspace.
 #
-# Archives every prior artifact in ~/.claude/recon/<TICKET>/ into runs/<timestamp>/
+# Archives every prior artifact in RECON_ROOT/<TICKET>/ into runs/<timestamp>/
 # (dotfiles included), stamps the new run with meta.yaml, and copies the static
 # workspace index (docs/workspace-index.md -> index.md). The archive check is
 # find-based on purpose: `ls`/`grep` may be aliased or wrapped by a user's shell,
@@ -15,7 +15,14 @@ case "$TICKET" in
   *[!A-Za-z0-9-]* | "") echo "invalid ticket id: $TICKET" >&2; exit 2 ;;
 esac
 
-DIR="$HOME/.claude/recon/$TICKET"
+SELF="$(cd "$(dirname "$0")" && pwd)"
+if ! PREFLIGHT="$(bash "$SELF/reconctl.sh" preflight base)"; then
+  printf '%s\n' "$PREFLIGHT" >&2
+  exit 2
+fi
+
+RECON_ROOT="${RECON_ROOT:-$HOME/.claude/recon}"
+DIR="$RECON_ROOT/$TICKET"
 mkdir -p "$DIR"
 
 # Once-per-run guard: a triage run invokes this script exactly once. A second
@@ -48,12 +55,13 @@ if [ -n "$(find "$DIR" -maxdepth 1 -mindepth 1 ! -name runs ! -name history.ndjs
   archived="$count entries -> runs/$TS/"
 fi
 
-SELF="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_JSON="$SELF/../.claude-plugin/plugin.json"
 V="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$PLUGIN_JSON" 2>/dev/null | head -1)"
+STARTED_HOST="$(bash "$SELF/reconctl.sh" detect-host)"
+STARTED_SURFACE="$(bash "$SELF/reconctl.sh" detect-surface)"
 
-printf 'skill: recon-triage\nplugin_version: %s\nstarted: %s\nticket: %s\n' \
-  "${V:-unknown}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$TICKET" > "$DIR/meta.yaml"
+printf 'skill: recon-triage\nplugin_version: %s\nstarted: %s\nstarted_host: %s\nstarted_surface: %s\nticket: %s\n' \
+  "${V:-unknown}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$STARTED_HOST" "$STARTED_SURFACE" "$TICKET" > "$DIR/meta.yaml"
 
 INDEX_SRC="$SELF/../docs/workspace-index.md"
 indexed="index.md (copied from plugin docs)"
@@ -63,9 +71,9 @@ else
   indexed="index.md SKIPPED — $INDEX_SRC missing (broken install?)"
 fi
 
-RECON_ROOT="$HOME/.claude/recon" bash "$SELF/log-event.sh" "$TICKET" run_started >/dev/null
+RECON_ROOT="$RECON_ROOT" bash "$SELF/log-event.sh" "$TICKET" run_started >/dev/null
 
 echo "workspace: $DIR"
 echo "archived: $archived"
-echo "stamped: meta.yaml (plugin_version: ${V:-unknown}) + $indexed"
+echo "stamped: meta.yaml (plugin_version: ${V:-unknown}, host: $STARTED_HOST, surface: $STARTED_SURFACE) + $indexed"
 echo "ledger: run_started appended to history.ndjson"

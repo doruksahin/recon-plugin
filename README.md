@@ -1,9 +1,9 @@
 # recon
 
-Deterministic Jira task recon pipeline for Claude Code. Runs **before** any planning: decides whether a task is actionable, maps the code surface with evidence, and routes it into [decree](https://github.com/doruksahin/decree) — ending at a human approval gate, never at code.
+Deterministic Jira task recon pipeline for Claude Code and Codex. Runs **before** any planning: decides whether a task is actionable, maps the code surface with evidence, and routes it into [decree](https://github.com/doruksahin/decree) — ending at a human approval gate, never at code. The same Agent Skills power both hosts; native manifests and UI metadata are generated and drift-checked.
 
-```
-/recon:recon-triage ATT-1234
+```text
+Recon Triage ATT-1234
   ├─ six blocker checks → triage.yaml
   ├─ BLOCKED → repro (if UI) → render-only dossier → n+4 comment + artifact zip → you approve → attach, then post → stop
   └─ READY  → auto-chains recon-discovery
@@ -12,7 +12,7 @@ Deterministic Jira task recon pipeline for Claude Code. Runs **before** any plan
                │  adapter skill (opt-in) → route/routing.yaml, handoff as data
                ├─ UI defects + UI edge cases → recon-repro captures repro steps + screenshots
                └─ approval gate → prints decree handoff commands → stop
-  on demand: /recon:recon-report → self-contained HTML dossier (private artifact); the BLOCKED path renders it automatically, attachment-only
+  on demand: Recon Report → self-contained HTML dossier; publishes only when the local host has a publisher
 ```
 
 Your touchpoints per ticket: answer the gate, review the PR. That's it.
@@ -23,7 +23,8 @@ Color legend — **blue**: mechanical rails (scripted/table-driven, no model fre
 
 ```mermaid
 flowchart TD
-    START(["/recon:recon-triage TICKET"]) --> S0["step 0 — fresh-workspace.sh<br>archive prior run → runs/&lt;ts&gt;/<br>stamp meta.yaml + copy index.md (once per run)"]
+    START(["Recon Triage TICKET"]) --> PRE["reconctl preflight triage<br>host + surface + commands + root + Jira"]
+    PRE --> S0["step 0 — fresh-workspace.sh<br>archive prior run → runs/&lt;ts&gt;/<br>stamp meta.yaml + copy index.md (once per run)"]
     S0 --> FETCH["fetch ticket — Jira GET v2<br>triage/ticket.json + aux-&lt;slug&gt;.json"]
     FETCH --> PART["partition comments<br>marker ~recon-triage~ = pipeline output, excluded<br>human comments = evidence"]
     PART --> CHECKS["six checks + cross-checks<br>one evidence line per claim"]
@@ -58,7 +59,7 @@ flowchart TD
     SPEC --> GATE{{"human approval gate<br>OPEN decisions + approve / edit / reject"}}
     GATE -->|reject| REJ["discovery/gate.yaml records the reject → STOP"]
     GATE -->|approve| HAND["gate recorded in discovery/gate.yaml<br>handoff printed VERBATIM from<br>route/routing.yaml (data, never recomposed)"]
-    HAND --> HALT2(["STOP — implementation is a NEW session<br>via /decree:ddd from the routed phase"])
+    HAND --> HALT2(["STOP — implementation is a NEW session<br>from the routed host-neutral handoff"])
 
     HALT1 -.->|"on demand"| REPORT["recon-report — fixed template,<br>no new facts, screenshots embedded<br>→ report/dossier.html + private artifact"]
     HALT2 -.->|"on demand"| REPORT
@@ -67,7 +68,7 @@ flowchart TD
     classDef judge fill:#fef9c3,stroke:#ca8a04,color:#713f12
     classDef human fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
     classDef stop fill:#f3f4f6,stroke:#6b7280,color:#374151
-    class S0,FETCH,PART,BREPRO,RENDER,PKG,ATTACH,POST,GOV,GSEL,RGEN,RDEC,RTRIG,HAND,REPORT rail
+    class PRE,S0,FETCH,PART,BREPRO,RENDER,PKG,ATTACH,POST,GOV,GSEL,RGEN,RDEC,RTRIG,HAND,REPORT rail
     class CHECKS,DISP,MAP,GHERKIN,DRAFT,BR,REPRO,SPEC judge
     class UIQ,GATE human
     class HALT1,HALT2,REJ stop
@@ -77,10 +78,32 @@ Full machine-readable spec of stages, invariants, artifacts, and triggers: [reco
 
 ## Install
 
+### Claude Code
+
 ```
 /plugin marketplace add doruksahin/recon-plugin
 /plugin install recon@recon-plugin
 ```
+
+### Codex
+
+```bash
+codex plugin marketplace add doruksahin/recon-plugin
+codex plugin add recon@recon-plugin
+```
+
+Restart or start a new task after installation so the host discovers the new
+skills. Invoke Recon Triage through the native skill UI (for example,
+`$recon:recon-triage ATT-1234` in Codex). Runtime detection, preflight,
+capability levels, and invocation rendering are defined in
+[recon/docs/hosts.md](recon/docs/hosts.md).
+
+### Runtime scope
+
+Version `0.14.0` executes on Claude Code and local Codex (app or CLI). Hosted
+ChatGPT, Codex Cloud, MCP, centralized Jira authentication, shared remote state,
+and remote publishing are intentionally outside this release rather than
+partially supported.
 
 ## Prerequisites (each user, own machine)
 
@@ -96,7 +119,10 @@ Full machine-readable spec of stages, invariants, artifacts, and triggers: [reco
    ```
 
 2. **decree CLI** (optional) — enables the decree governance adapter. Without it (or with `governance=none` in `~/.config/recon/config`), routing runs on the generic rail and no decree vocabulary appears anywhere.
-3. **gh CLI, logged in** — used by triage's conflict check (open PR scan). Degrades gracefully if absent.
+3. **gh CLI, logged in** — required by triage's conflict check. `reconctl.sh preflight triage` fails before workspace mutation when it is absent or unauthenticated.
+4. **Workspace root** — optional. The backward-compatible default is
+   `~/.claude/recon`; set `RECON_ROOT` to any absolute path to use a neutral or
+   shared location. `recon/scripts/reconctl.sh root` prints the active value.
 
 ## Contributing to this repo
 
@@ -112,28 +138,35 @@ brew install uv       # optional; without it, commit messages go unchecked
 
 `tools/check-links.sh` resolves the docs' own file references against the working tree (backticked script names, `../`-relative paths, and the `blob/master` links in [docs/flow.html](docs/flow.html)), then hands real links to [lychee](https://github.com/lycheeverse/lychee). Rename a script and every doc still naming it fails the commit. Run it any time with `bash tools/check-links.sh`; bypass once with `git commit --no-verify`.
 
+Native adapter files are generated, not hand-authored:
+
+```bash
+python3 tools/generate-adapters.py
+python3 tools/generate-adapters.py --check
+```
+
 ## Skills
 
 | Skill | Stage | What it does |
 |---|---|---|
-| `/recon:recon-help` | any time | Orientation + setup doctor: the one command, every skill's own description, and live checks (Jira credentials, handoff style) — all derived by `doctor.sh` at run time, never restated from memory |
-| `/recon:recon-publish` | maintainer | Release + distribute behind one approval gate: `release.sh --yes` (bump, tag, push, GitHub Release), cache activation + clone sync via `activate-plugin.sh`, republish of changed artifact mirrors, smoke test |
-| `/recon:recon-triage` | 0 | Blocker verdict (READY/BLOCKED/NEEDS_INFO) from six mechanical checks; drafts owner-addressed questions; never plans |
-| `/recon:recon-discovery` | 1 | Code surface with `file:line` evidence, Gherkin behavior contract, routing via the governance adapter or generic rail, approval gate |
-| `/recon:recon-repro` | on demand | Live-reproduces observable behavior: numbered steps + one screenshot per state; honest about failed repros |
-| `/recon:recon-report` | on demand / render-only | Renders the run's artifacts into a designed HTML dossier (fixed template, no new facts) — published as a private artifact on demand, or rendered render-only for triage to attach to the ticket on the BLOCKED/NEEDS_INFO path |
-| `/recon:recon-state` | on demand / auto-refresh | The ticket's living state canvas: stop + node statuses derived from artifact presence by `derive-state.sh`, rendered by `render-state-canvas.sh`, republished to one stable private URL at every STOP/gate; timeline from the ticket ledger |
+| `recon-help` | any time | Orientation + setup doctor: the native entrypoint, every skill's own description, and shared preflight/handoff checks — all derived by `doctor.sh` |
+| `recon-publish` | maintainer | Release + distribute behind one approval gate: `release.sh --yes`, native activation, mirror republish, smoke test |
+| `recon-triage` | 0 | Preflight plus blocker verdict (READY/BLOCKED/NEEDS_INFO) from six mechanical checks; drafts owner-addressed questions; never plans |
+| `recon-discovery` | 1 | Code surface with `file:line` evidence, Gherkin behavior contract, routing via the governance adapter or generic rail, approval gate |
+| `recon-repro` | on demand | Live-reproduces observable behavior: numbered steps + one screenshot per state; honest about failed repros |
+| `recon-report` | on demand / render-only | Always renders a fixed HTML dossier; publishes only when `publish_once` is available |
+| `recon-state` | on demand / auto-refresh | Derives and renders the living state canvas; writes a stable URL only when `publish_stable_url` is available |
 | `recon-decree` | adapter | Decree governance adapter — invoked by discovery only when governance resolves to `decree`; ALL decree vocabulary lives here |
 
 ## I/O contract
 
-| Skill | Input | Writes (all under `~/.claude/recon/<TICKET>/`) | External side effects |
+| Skill | Input | Writes (all under `$RECON_ROOT/<TICKET>/`) | External side effects |
 |---|---|---|---|
 | `recon-triage` | ticket ID/URL | root `meta.yaml` + `index.md` (step-0 script); `triage/{ticket.json, triage.yaml, aux-<slug>.json}`; on posting `triage/jira/{comment.txt, bundle-manifest.txt, post-result.json, attach-result.json}` (the zip is staged in a temp dir); prior runs archived to `runs/<timestamp>/` | at most one Jira comment (marker-signed) plus replacement of recon-owned `recon-*-<TICKET>.*` attachments — drafted/staged first, sent only after one explicit approval |
 | `recon-discovery` | ticket ID (READY triage) | `discovery/{discovery.md, spec-draft.md, gate.yaml}` | none — quotes the handoff verbatim from `route/routing.yaml`, never executes it |
 | routing stage | governance resolution | `route/routing.yaml` (route, rule trace, `handoff:` as data); adapter also writes `route/aux-intent-check.txt` | none — produced by `scripts/route-generic.sh` or the `recon-decree` adapter |
 | `recon-repro` | ticket ID + claim | `repro/repro.md` + `repro/exhibits/*.png` | none (local only: boots the dev server, shows screenshots) |
-| `recon-report` | ticket ID (run exists) | `report/dossier.html` | on demand: publishes one **private** artifact (dossier URL); render-only (BLOCKED path): none — triage attaches the dossier behind its own gate. Never posts to Jira itself |
+| `recon-report` | ticket ID (run exists) | `report/dossier.html` | always renders; with `publish_once`, an on-demand run publishes one **private** artifact. Otherwise none — on the BLOCKED path, triage attaches the dossier behind its own gate. Never posts to Jira itself |
 
 Nothing is ever pushed, committed, or posted anywhere without an explicit per-action approval. Jira gets at most one short comment per stage — edited on re-runs (detected by the `recon-triage` marker line), never appended — and attachments in the `recon-*-<TICKET>.*` namespace are replaced, never accumulated.
 
@@ -145,7 +178,7 @@ Internals (for debugging, not onboarding): resolution is a ladder, most explicit
 
 ## Deterministic re-runs
 
-Every triage run starts from a clean workspace: step 0 runs `recon-triage/scripts/fresh-workspace.sh`, which archives all prior artifacts (dotfiles included) into `~/.claude/recon/<TICKET>/runs/<timestamp>/` and stamps the new run with `meta.yaml` (plugin version + start time). The step lives in a script — not inline in the skill — so it executes byte-identically every run, and it runs exactly once per run: a re-invocation within 30 minutes is refused (`SKIPPED`) so a run can never archive its own in-progress artifacts. Each skill writes only inside its own stage directory (`triage/`, `discovery/`, `route/`, `repro/`, `report/`); `scripts/lint-workspace.sh` verifies the tree against the artifact registry at the end of every stage, and step 0 drops a static `index.md` into each workspace documenting every file's role. No skill may read anything under `runs/` — the only inputs are the live Jira API, git, and `gh`. Recon's own Jira comments carry a marker line and are excluded from all evidence checks, so a run is never influenced by the output of a previous (possibly older-versioned) run. Every file a run may write is declared in the I/O contract above — an undeclared artifact is a contract violation.
+Every triage run starts with `reconctl.sh preflight triage`; failure stops before workspace mutation. Step 0 then runs `recon/scripts/fresh-workspace.sh`, archives prior artifacts into `$RECON_ROOT/<TICKET>/runs/<timestamp>/`, and stamps `meta.yaml` with plugin version, start time, starting host, and starting surface. Every ledger event records its current host and surface, so cross-harness continuation is auditable. The step runs exactly once per run: a re-invocation within 30 minutes is refused (`SKIPPED`). Each skill writes only inside its own stage directory; `scripts/lint-workspace.sh` verifies the artifact registry. No skill may read `runs/`; inputs are the live Jira API, git, and `gh`. Recon-authored Jira comments are excluded from evidence checks, and undeclared artifacts are contract violations.
 
 ## Principles baked in
 

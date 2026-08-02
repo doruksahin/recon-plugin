@@ -3,6 +3,7 @@
 #
 # Appends exactly one JSON line to ~/.claude/recon/<TICKET>/history.ndjson:
 #   {"ts":"<utc now>","run":"<meta started>","v":"<meta plugin_version>",
+#    "host":"<current host>","surface":"<current surface>",
 #    "event":"<event>", "<key>":"<value>", ...}
 # The event vocabulary is CLOSED (print it with --vocab; lint-workspace.sh
 # reads it from here — this script is the vocabulary's only owner). The ledger
@@ -44,14 +45,19 @@ DIR="${RECON_ROOT:-$HOME/.claude/recon}/$TICKET"
 META="$DIR/meta.yaml"
 [ -f "$META" ] || { echo "no meta.yaml in $DIR — run fresh-workspace.sh first" >&2; exit 2; }
 command -v python3 >/dev/null 2>&1 || { echo "python3 required (ships with macOS CLT)" >&2; exit 2; }
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+[ -x "$SCRIPT_DIR/reconctl.sh" ] || { echo "no $SCRIPT_DIR/reconctl.sh — broken plugin install" >&2; exit 2; }
 
 RUN="$(sed -n 's/^started: *//p' "$META" | head -1)"
 V="$(sed -n 's/^plugin_version: *//p' "$META" | head -1)"
 TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+EVENT_HOST="$(bash "$SCRIPT_DIR/reconctl.sh" detect-host)"
+EVENT_SURFACE="$(bash "$SCRIPT_DIR/reconctl.sh" detect-surface)"
 
-TS="$TS" RUN="$RUN" V="$V" EVENT="$EVENT" python3 - "$@" <<'PY' >> "$DIR/history.ndjson"
+TS="$TS" RUN="$RUN" V="$V" EVENT="$EVENT" EVENT_HOST="$EVENT_HOST" EVENT_SURFACE="$EVENT_SURFACE" python3 - "$@" <<'PY' >> "$DIR/history.ndjson"
 import json, os, sys
 row = {"ts": os.environ["TS"], "run": os.environ["RUN"], "v": os.environ["V"],
+       "host": os.environ["EVENT_HOST"], "surface": os.environ["EVENT_SURFACE"],
        "event": os.environ["EVENT"]}
 for pair in sys.argv[1:]:
     k, _, v = pair.partition("=")

@@ -14,7 +14,8 @@ case "$TICKET" in
   *[!A-Za-z0-9-]* | "") echo "invalid ticket id: $TICKET" >&2; exit 2 ;;
 esac
 
-DIR="$HOME/.claude/recon/$TICKET"
+RECON_ROOT="${RECON_ROOT:-$HOME/.claude/recon}"
+DIR="$RECON_ROOT/$TICKET"
 [ -d "$DIR" ] || { echo "no workspace: $DIR" >&2; exit 2; }
 
 # Match patterns come from the registry data file that ships next to this
@@ -63,6 +64,10 @@ for n, line in enumerate(open(sys.argv[1]), 1):
         print(f"line {n}: not valid JSON"); continue
     if row.get("event") not in vocab:
         print(f"line {n}: event '{row.get('event')}' not in the ledger vocabulary")
+    if str(row.get("v", "")).startswith("0.14."):
+        for field in ("host", "surface"):
+            if not row.get(field):
+                print(f"line {n}: v0.14 event missing '{field}' provenance")
 PY
 )"
   if [ -n "$bad" ]; then

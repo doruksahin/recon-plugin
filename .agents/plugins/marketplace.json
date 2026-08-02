@@ -1,0 +1,20 @@
+{
+  "name": "recon-plugin",
+  "interface": {
+    "displayName": "Recon Plugin"
+  },
+  "plugins": [
+    {
+      "name": "recon",
+      "source": {
+        "source": "local",
+        "path": "./recon"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "name": "recon",
+  "version": "0.14.0",
+  "description": "Deterministic Jira task recon pipeline: blocker triage → code discovery → decree routing, with live visual evidence. Runs before planning; ends at a human approval gate.",
+  "author": {
+    "name": "doruk"
+  },
+  "keywords": [
+    "jira",
+    "recon",
+    "triage",
+    "decree",
+    "planning",
+    "pipeline"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Recon",
+    "shortDescription": "Evidence-first Jira ticket reconnaissance",
+    "longDescription": "Deterministic Jira task recon pipeline: blocker triage → code discovery → decree routing, with live visual evidence. Runs before planning; ends at a human approval gate.",
+    "developerName": "doruk",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Triage this Jira ticket before planning.",
+      "Prepare this READY ticket for implementation.",
+      "Show the current Recon state for this ticket."
+    ]
+  }
+}

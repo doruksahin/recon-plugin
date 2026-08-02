@@ -1,0 +1,4 @@
+interface:
+  display_name: "Recon Decree"
+  short_description: "Route discovery through Decree governance"
+  default_prompt: "Use $recon-decree to route this discovery through the Decree policy table."

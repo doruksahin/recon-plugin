@@ -1,4 +1,5 @@
 ---
+name: recon-help
 description: Orientation and setup check for the recon pipeline. Use when someone asks what recon is, how to use it, which command to run, whether their setup works (Jira credentials, handoff style), or for recon help, doctor, or onboarding a colleague.
 ---
 
@@ -7,6 +8,10 @@ description: Orientation and setup check for the recon pipeline. Use when someon
 One screen that orients a new user and verifies their setup. Everything it
 states is derived live by the doctor rail — this skill carries almost no facts
 of its own, so it cannot drift from the pipeline it describes.
+
+Read `../../docs/hosts.md` before translating any host-specific interaction.
+Run `doctor.sh`; it owns `reconctl` host/surface detection, invocation
+rendering, and triage preflight, and prints the active workspace root.
 
 ## Contract
 

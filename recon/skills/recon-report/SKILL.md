@@ -1,17 +1,26 @@
 ---
-description: Render a ticket's recon workspace into a self-contained HTML dossier and publish it as a private artifact — or, invoked render-only by recon-triage's BLOCKED/NEEDS_INFO posting path, render and stop (no publishing). Use after a recon run finishes (gate answered, or BLOCKED comment handled), or when asked for a recon report, dossier, or shareable summary of a recon run.
+name: recon-report
+description: Render a ticket's recon workspace into a self-contained HTML dossier and, when the local host exposes publishing, publish it as a private artifact; otherwise return the rendered file. Use after a recon run finishes, for recon-triage's render-only posting path, or when asked for a recon report, dossier, or shareable summary.
 ---
 
 # Recon Report
 
-Turns the current-run artifacts of `~/.claude/recon/<TICKET>/` into one designed, self-contained HTML page — verdict chips, seven-slot facts, blockers & question packs, stage-by-stage narrative, evidence tables, screenshot exhibits, gate decisions, handoff — published as a **private** artifact the user can choose to share (on-demand), or left on disk for recon-triage to attach to the ticket (render-only).
+Turns the current-run artifacts of `$RECON_ROOT/<TICKET>/` into one designed, self-contained HTML page — verdict chips, seven-slot facts, blockers & question packs, stage-by-stage narrative, evidence tables, screenshot exhibits, gate decisions, handoff. On a host with `publish_once`, an on-demand run may publish the page as a **private** artifact the user can choose to share; every other run returns the file on disk.
+
+## Host setup
+
+Before the first path or tool action, read `../../docs/hosts.md`. Resolve the
+absolute workspace root, host, and surface with `reconctl.sh`; inspect
+`capabilities`, then run `reconctl.sh preflight base`. Retain the printed values
+for the run. A failed preflight is a hard STOP. Use `publish_once` only when it
+is declared available; otherwise return the local dossier path as render-only.
 
 ## Contract
 
 - **Input:** ticket ID (precondition: current run exists — root `meta.yaml` + `triage/triage.yaml`)
-- **Reads:** current-run artifacts in `~/.claude/recon/<TICKET>/` (never `runs/`), the shipped `template.html`
-- **Writes:** ONLY inside `~/.claude/recon/<TICKET>/report/` — `dossier.html`. Create the directory before writing. Anything else fails `lint-workspace.sh`
-- **External side effects:** publishes `report/dossier.html` as a private artifact (visible only to the user) — **unless invoked render-only** (the BLOCKED/NEEDS_INFO posting path of `recon:recon-triage`), where it renders and STOPS: no publishing, no Jira, nothing else. In either mode this skill never posts to Jira and never touches the repo.
+- **Reads:** current-run artifacts in `$RECON_ROOT/<TICKET>/` (never `runs/`), the shipped `template.html`
+- **Writes:** ONLY inside `$RECON_ROOT/<TICKET>/report/` — `dossier.html`. Create the directory before writing. Anything else fails `lint-workspace.sh`
+- **External side effects:** only when on-demand mode and `publish_once` are both active, publishes `report/dossier.html` as a private artifact visible only to the user. Every other path renders and STOPS with no publishing. In every mode this skill never posts to Jira and never touches the repo.
 
 ---
 
@@ -22,7 +31,7 @@ Turns the current-run artifacts of `~/.claude/recon/<TICKET>/` into one designed
 3. **NEVER read `runs/`.** The dossier documents the current run only. Prior runs are invisible (pipeline invariant 3).
 4. **Pin code links mechanically.** GitHub links use the commit from `route/routing.yaml` `evidence.repo_commit`. If that field is absent, write file paths as plain `code` (or `.pathcopy` buttons) with the footer noting `unpinned` — NEVER guess a SHA or link to a branch.
 5. **Self-contained page.** Screenshots are embedded as `data:` URIs (external hosts are blocked by the artifact CSP). Recompress each PNG to JPEG before embedding: `sips -s format jpeg -s formatOptions 72 --resampleWidth 1600 <in>.png --out <tmp>.jpg` (fall back to the raw PNG only when `sips` is unavailable and the file is < 300 KB). Keep the final page under ~3 MB.
-6. **Private by default.** On-demand: publish, print the URL, stop. Sharing the link is the user's action — never post the URL to Jira or anywhere else. Render-only: publishing is SKIPPED entirely — there is no URL; the Jira attachment (uploaded by recon-triage, behind its gate) is the delivery.
+6. **Private when publishing is available.** On-demand with `publish_once`: publish, print the URL, stop. Sharing the link is the user's action — never post the URL to Jira or anywhere else. Without that capability, or in explicit render-only mode, publishing is SKIPPED entirely — there is no URL; the local file is the result. On the triage posting path, the Jira attachment (uploaded by recon-triage behind its gate) is the delivery.
 7. **BLOCKED runs get dossiers too.** Chips show the real disposition; discovery/repro/gate sections read `not run` with the reason; the handoff block shows the re-entry instruction. Do not skip the report because the pipeline stopped early. On BLOCKED/NEEDS_INFO runs the Blockers & question packs section is the dossier's lead content, rendered from the structured `blockers[]` in `triage.yaml` — the layer of detail the short Jira comment points readers to.
 
 ---
@@ -47,33 +56,33 @@ Turns the current-run artifacts of `~/.claude/recon/<TICKET>/` into one designed
 
 ## Modes
 
-- **On-demand** (default — the user asked for a report/dossier/shareable summary): run workflow steps 1–6; the run ends with a published private artifact URL.
+- **On-demand** (default — the user asked for a report/dossier/shareable summary): run workflow steps 1–6. Publish only when `publish_once` is available; otherwise the run ends with the rendered local file.
 - **Render-only** (auto-invoked by `recon:recon-triage` on its BLOCKED/NEEDS_INFO posting path): run workflow steps 1–5 — verify workspace, read artifacts, prepare exhibits, fill the template, write + lint — then STOP. SKIP step 6: no publishing, no Jira, nothing else. The Jira attachment is the delivery — recon-triage uploads `report/dossier.html` behind its own gate. Report `Rendered (render-only): <path> (<size>)` plus the Lint line instead of the Published line.
 
 ## Workflow
 
-1. **Verify the workspace.** Root `meta.yaml` + `triage/triage.yaml` must exist. If missing, stop: tell the user to run `/recon:recon-triage <TICKET>` first — never reconstruct from memory or `runs/`.
+1. **Verify the workspace.** Root `meta.yaml` + `triage/triage.yaml` must exist. If missing, stop: render the Triage invocation with `reconctl.sh invocation recon.triage <TICKET>` and tell the user to run it first — never reconstruct from memory or `runs/`.
 2. **Read every current-run artifact** across the stage directories (registry in `../../docs/pipeline.md`, and each workspace carries its own `index.md`). A stage ran ⇔ its directory exists.
 3. **Prepare exhibits** per rule 5 (use the session scratchpad for temp JPEGs).
 4. **Fill the template** slot by slot per the map. Strip the instruction comments (`«SLOT: …»` markers and the leading file comment) from the output.
-5. **Write** `~/.claude/recon/<TICKET>/report/dossier.html`, then run `bash "<skill base dir>/../../scripts/lint-workspace.sh" <TICKET>` and fix any violation.
-6. **Publish** — on-demand mode ONLY; in render-only mode this step does not happen: STOP after step 5 and print the render-only report. Publish as an artifact: title `<TICKET> — Recon Dossier`, favicon `🗂️` (keep both stable across redeploys of the same ticket). If the environment requires a prerequisite skill before publishing (e.g. `artifact-design`), load it first. Re-running for the same ticket republishes the same file path — pass the existing artifact URL if this session didn't create it. After a successful publish, log `bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> dossier_published` (invariant 16).
+5. **Write** `$RECON_ROOT/<TICKET>/report/dossier.html`, then run `bash "<skill base dir>/../../scripts/lint-workspace.sh" <TICKET>` and fix any violation.
+6. **Publish when available** — on-demand mode ONLY. If `publish_once` is unavailable, STOP after step 5 and print the render-only report. Otherwise publish as an artifact: title `<TICKET> — Recon Dossier`, favicon `🗂️` (keep both stable across redeploys of the same ticket). If the environment requires a prerequisite skill before publishing, load it first. After a successful publish, log `bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> dossier_published` (invariant 16).
 
 ## Report
 
-On-demand, print:
+On-demand with a successful publish, print:
 
 ```
-Wrote: ~/.claude/recon/<TICKET>/report/dossier.html (<size>)
+Wrote: $RECON_ROOT/<TICKET>/report/dossier.html (<size>)
 Lint: <lint-workspace.sh verdict line, verbatim>
 Published: <artifact URL> (private — sharing is your call)
 Coverage: <stages included> · <n> exhibits · commit <sha|unpinned>
 ```
 
-Render-only (the recon-triage posting path), print — no Published line, nothing was published:
+Without `publish_once`, or in explicit render-only mode (including the recon-triage posting path), print — no Published line, nothing was published:
 
 ```
-Rendered (render-only): ~/.claude/recon/<TICKET>/report/dossier.html (<size>)
+Rendered (render-only): $RECON_ROOT/<TICKET>/report/dossier.html (<size>)
 Lint: <lint-workspace.sh verdict line, verbatim>
 ```
 
@@ -82,4 +91,4 @@ Lint: <lint-workspace.sh verdict line, verbatim>
 ## Reference
 
 - Whole-chain spec (stages, invariants, artifact registry, trigger table): `../../docs/pipeline.md` relative to this skill's base directory. On conflict, this SKILL.md wins.
-- Two ways in: on-demand (the user asks — full render + publish), AND auto-invoked in render-only mode by `recon:recon-triage` on its BLOCKED/NEEDS_INFO posting path — there the delivery is the Jira attachment triage uploads, never artifact publishing.
+- Two ways in: on-demand (the user asks — always render, publish only with `publish_once`), AND auto-invoked in render-only mode by `recon:recon-triage` on its BLOCKED/NEEDS_INFO posting path — there the delivery is the Jira attachment triage uploads, never artifact publishing.

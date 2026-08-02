@@ -1,4 +1,5 @@
 ---
+name: recon-repro
 description: Reproduce an observable app behavior live and capture numbered repro steps plus annotated screenshots as evidence. Use when a recon question or finding concerns visible UI behavior, when asked to make a finding concrete or reproducible, or to capture manual-smoke evidence for a SPEC or PR.
 ---
 
@@ -6,12 +7,21 @@ description: Reproduce an observable app behavior live and capture numbered repr
 
 Turns an abstract claim or question ("selecting a hidden collection produces a tab value with no tab") into evidence a human can verify in 60 seconds: a stated start state, numbered steps, and a screenshot per state — written to the ticket's recon workspace.
 
+## Host setup
+
+Before the first path or tool action, read `../../docs/hosts.md`. Resolve the
+absolute workspace root, host, and surface with `reconctl.sh`; inspect
+`capabilities`, then run `reconctl.sh preflight base`. Retain the printed values
+for the run. A failed preflight is a hard STOP. Use only the declared browser
+and file-display capabilities; missing browser capability is an honest
+failed-repro finding, never permission to fabricate evidence.
+
 ## Contract
 
 - **Input:** ticket ID + the claim/question to make concrete
-- **Reads:** current-run stage directories in `~/.claude/recon/<TICKET>/` (never `runs/`), the running app's UI
-- **Writes:** ONLY inside `~/.claude/recon/<TICKET>/repro/` — `repro.md` + `exhibits/<n>-<slug>.png`. Create the directory before your first write — a stage directory existing means that stage ran. Anything else fails `lint-workspace.sh`
-- **Local side effects:** starts the project's dev server (preview tools, mock mode preferred); renders the screenshots to the user's screen (SendUserFile)
+- **Reads:** current-run stage directories in `$RECON_ROOT/<TICKET>/` (never `runs/`), the running app's UI
+- **Writes:** ONLY inside `$RECON_ROOT/<TICKET>/repro/` — `repro.md` + `exhibits/<n>-<slug>.png`. Create the directory before your first write — a stage directory existing means that stage ran. Anything else fails `lint-workspace.sh`
+- **Local side effects:** starts the project's dev server (preview tools, mock mode preferred); renders the screenshots to the user's screen (host file-display capability (see hosts.md))
 - **External side effects:** NONE — never touches Jira or the repo.
 
 ---
@@ -19,12 +29,12 @@ Turns an abstract claim or question ("selecting a hidden collection produces a t
 ## ⚠️ CRITICAL: Rules
 
 1. **Never fabricate.** Every step MUST actually be performed this run and every screenshot actually captured this run. If reproduction fails (build broken, missing mock data, behavior doesn't reproduce), report the failure honestly with what you observed — a failed repro is itself a finding. NEVER describe steps you did not execute as if you had.
-2. **READ-ONLY on the repo.** You MUST NOT edit source code to make the behavior reproducible. Writes go only to `~/.claude/recon/<TICKET>/repro/`.
+2. **READ-ONLY on the repo.** You MUST NOT edit source code to make the behavior reproducible. Writes go only to `$RECON_ROOT/<TICKET>/repro/`.
 3. **The start state MUST be stated and reachable**: prefer the project's mock/dev mode (no backend needed), name the exact page/route. A repro that starts from "wherever the app happens to be" is not reproducible.
 4. **Steps MUST be numbered and re-runnable by a human** — each step is one user action on a named, visible element ("click the eye icon on Collection3's row"), never a code operation.
 5. **Human-facing language**: user-observable outcomes only; internal identifiers (service/method/prop names) are BANNED from repro.md and question text.
-6. **Use the Browser pane preview tools** (`preview_start` with a launch.json entry) to run the dev server — NEVER Bash.
-7. **NEVER read archived runs.** `~/.claude/recon/<TICKET>/runs/` holds prior-run artifacts — you MUST NOT open, list, or reuse anything under it, including old screenshots. Every screenshot and step you reference must be produced this run (rule 1).
+6. **Use the host preview/start capability** from `hosts.md`. If the host has no preview launcher but exposes a local shell, start the project's already-documented dev command without editing the repo. If neither capability exists, report an unavailable-runtime finding and stop.
+7. **NEVER read archived runs.** `$RECON_ROOT/<TICKET>/runs/` holds prior-run artifacts — you MUST NOT open, list, or reuse anything under it, including old screenshots. Every screenshot and step you reference must be produced this run (rule 1).
 
 ---
 
@@ -32,11 +42,11 @@ Turns an abstract claim or question ("selecting a hidden collection produces a t
 
 ### 1. Input
 
-Ticket ID + the claim/question to make concrete (from `~/.claude/recon/<TICKET>/triage/triage.yaml`, `discovery/discovery.md`, or the user's message). Restate it as the *observable* thing to demonstrate: baseline state → user action → resulting state.
+Ticket ID + the claim/question to make concrete (from `$RECON_ROOT/<TICKET>/triage/triage.yaml`, `discovery/discovery.md`, or the user's message). Restate it as the *observable* thing to demonstrate: baseline state → user action → resulting state.
 
 ### 2. Boot the app
 
-`preview_start` with the project's dev-server config (create a `.claude/launch.json` entry if missing; prefer the project's mock mode so no backend is needed). Navigate to the named page. Verify the needed entities exist in mock data — if not, note which handler/fixture is missing and stop honestly (rule 1).
+Use the host preview/start capability with the project's existing dev-server config; prefer the project's mock mode so no backend is needed. Do not create host configuration in the target repo because this stage is read-only. Navigate to the named page. Verify the needed entities exist in mock data — if not, note which handler/fixture is missing and stop honestly (rule 1).
 
 ### 3. Plan the state sequence
 
@@ -44,7 +54,7 @@ Minimal set of states that makes the question answerable — typically: **baseli
 
 ### 4. Execute and capture
 
-Drive the UI (`read_page` to find elements, `computer` to click, screenshot per state). Save each as `~/.claude/recon/<TICKET>/repro/exhibits/<n>-<slug>.png`. Verify each screenshot actually shows the state you claim (read it back if unsure).
+Drive the UI (the host page-inspection capability to find elements, the host browser-control capability to click, screenshot per state). Save each as `$RECON_ROOT/<TICKET>/repro/exhibits/<n>-<slug>.png`. Verify each screenshot actually shows the state you claim (read it back if unsure).
 
 ### 5. Write `repro.md`
 
@@ -62,7 +72,7 @@ Start state: <dev command>, <page>, <any preconditions>
 
 ### 6. Return — and SHOW the evidence
 
-**Send the screenshots to the user** (SendUserFile with `display: render`, or the client's inline equivalent) so they are visible on screen BEFORE any question is asked — a file path is not shown evidence. Then print the concrete question text for the calling skill — `recon:recon-triage`/`recon:recon-discovery` embed it in their drafted comment or gate question. When invoked for SPEC/PR smoke evidence, send + print the evidence paths instead.
+**Show the screenshots to the user** through the host file-display capability in `hosts.md` so they are visible on screen BEFORE any question is asked — a plain file path is not shown evidence. Then print the concrete question text for the calling skill — `recon:recon-triage`/`recon:recon-discovery` embed it in their drafted comment or gate question. When invoked for SPEC/PR smoke evidence, show and print the evidence paths instead.
 
 ---
 
@@ -71,7 +81,7 @@ Start state: <dev command>, <page>, <any preconditions>
 Print:
 
 ```
-Wrote: ~/.claude/recon/<TICKET>/repro/repro.md (+ <n> screenshots in repro/exhibits/)
+Wrote: $RECON_ROOT/<TICKET>/repro/repro.md (+ <n> screenshots in repro/exhibits/)
 Repro: <reproduced | failed — <honest reason>>
 Next: <calling skill embeds the concrete question | attach evidence to PR>
 ```

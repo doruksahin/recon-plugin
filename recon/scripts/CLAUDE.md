@@ -9,7 +9,7 @@ alias those). Adding a file here without a role line below fails
 
 | File | Role |
 | --- | --- |
-| `fresh-workspace.sh` | Step 0: archives every prior artifact into `runs/<ts>/`, stamps `meta.yaml` (plugin version + start time), copies `index.md`. Once-per-run guard (30 min). |
+| `fresh-workspace.sh` | Step 0: passes base preflight, archives prior artifacts into `runs/<ts>/`, stamps `meta.yaml` (version, time, starting host/surface), copies `index.md`. Once-per-run guard (30 min). |
 | `lint-workspace.sh` | Invariant 10: every workspace file must match a pattern in `../docs/registry.yaml`; also the governance vocabulary fence when routing resolved to `none`. Every stage runs it in its Report step. |
 | `verify-triage.sh` | Invariant 15: re-derives the disposition from the six checks, validates the `triage.yaml` schema, verifies every `kind: quote` verbatim against `ticket.json`. Wrapper over `triage-tools.py verify`. |
 | `render-comment.sh` | Invariant 13: emits `triage/jira/comment.txt` from `triage.yaml` + `meta.yaml` — the model never writes the comment. Wrapper over `triage-tools.py render`. |
@@ -20,11 +20,13 @@ alias those). Adding a file here without a role line below fails
 | `detect-governance.sh` | Resolves the governance ladder: env var → `~/.config/recon/config` → repo probe. Detection alone never opts a developer in (`undecided` → one persisted question). |
 | `set-governance.sh` | Persists the user's governance answer to `~/.config/recon/config` so the question is asked once. |
 | `route-generic.sh` | The `governance: none` routing producer: writes `route/routing.yaml` with route, matched rule, rule trace, and the verbatim `handoff:` block. |
-| `log-event.sh` | Invariant 16: appends one JSON line per pipeline event to the cross-run ticket ledger `history.ndjson` (closed vocabulary — `--vocab` prints it; lint reads it from here). Output, never evidence. |
-| `derive-state.sh` | The state-canvas derivation rail: a closed decision table over artifact presence (+ disposition, gate answer) → flat `state/state.yaml` with stop label, node statuses, fact counts, next action. Unrecognized presence combinations exit 1 as contradictions. |
+| `log-event.sh` | Invariant 16: appends one JSON line with current host/surface per pipeline event to `history.ndjson` (closed vocabulary; output, never evidence). |
+| `derive-state.sh` | Closed state derivation table → `state/state.yaml` with stop, nodes, facts, canonical `next_action`, and host-neutral next prose. Unrecognized combinations exit 1. |
 | `render-state-canvas.sh` | Fills the recon-state `template.html` from `state/state.yaml` (+ the ledger as timeline VIEW) → `state/canvas.html`. An unresolved template marker fails the render — the model authors nothing in the canvas. |
-| `doctor.sh` | The recon-help engine: prints version (from its own plugin.json), the skill list (from each sibling SKILL.md's frontmatter description), and live setup checks (Jira env + GET /myself, handoff style via detect-governance.sh). Read-only; every printed fact is derived at run time so help cannot drift. |
+| `doctor.sh` | Recon-help engine: prints version, generated skill list, detected host/surface, host-rendered entrypoint, shared triage preflight, and handoff style. Read-only. |
 | `activate-plugin.sh` | The recon-publish distribution rail — plugin-AGNOSTIC (built for later extraction to a shared devkit): reads the source repo's marketplace.json + each plugin.json, copies the new version into the plugin cache (old pinned dirs never deleted), repoints `installed_plugins.json` (validated first — surprise shape fails loudly, that file is Claude Code internal format), fast-forwards the marketplace clone. |
+| `activate-codex-plugin.sh` | Codex activation rail: reads generated marketplace/plugin metadata, refreshes a configured marketplace and reinstalls Recon through the Codex CLI; if not configured, prints exact setup commands without editing config directly. |
+| `reconctl.sh` | Local runtime contract: root/ticket paths, Claude/Codex host and surface detection, canonical invocation rendering, capability levels, and base/triage preflight. Read-only. |
 
 New-script checklist: role line here · registry entry in `../docs/registry.yaml`
 if it writes a new workspace artifact · rails/trigger tables in

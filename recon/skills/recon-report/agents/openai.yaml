@@ -1,0 +1,4 @@
+interface:
+  display_name: "Recon Report"
+  short_description: "Render a self-contained Recon dossier"
+  default_prompt: "Use $recon-report to render the current ticket's Recon dossier."

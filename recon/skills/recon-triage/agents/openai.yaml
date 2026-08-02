@@ -1,0 +1,4 @@
+interface:
+  display_name: "Recon Triage"
+  short_description: "Evidence-first Jira blocker triage"
+  default_prompt: "Use $recon-triage to assess whether this Jira ticket is ready or blocked."

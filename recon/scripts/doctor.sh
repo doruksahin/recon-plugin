@@ -21,8 +21,22 @@ SKILLS_DIR="$SCRIPT_DIR/../skills"
 VERSION="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$PLUGIN_JSON" | head -1)"
 echo "recon v$VERSION — pipeline doctor"
 echo
+if [ -x "$SCRIPT_DIR/reconctl.sh" ]; then
+  AGENT_HOST="$(bash "$SCRIPT_DIR/reconctl.sh" detect-host)"
+  AGENT_SURFACE="$(bash "$SCRIPT_DIR/reconctl.sh" detect-surface)"
+  ENTRYPOINT="$(bash "$SCRIPT_DIR/reconctl.sh" invocation recon.triage ATT-1234)"
+  echo "WORKSPACE"
+  echo "  root               $(bash "$SCRIPT_DIR/reconctl.sh" root)"
+  echo "  override           set RECON_ROOT to an absolute path"
+  echo "  host               $AGENT_HOST"
+  echo "  surface            $AGENT_SURFACE"
+  echo
+else
+  echo "broken install: no $SCRIPT_DIR/reconctl.sh" >&2
+  exit 2
+fi
 echo "ONE COMMAND"
-echo "  /recon:recon-triage <TICKET-ID>   # everything else chains or fires on triggers"
+echo "  $ENTRYPOINT   # everything else chains or fires on triggers"
 echo
 echo "SKILLS (each line is that skill's own description, first sentence)"
 while IFS= read -r skill_md; do
@@ -34,34 +48,10 @@ done < <(find "$SKILLS_DIR" -mindepth 2 -maxdepth 2 -name SKILL.md | sort)
 echo
 echo "CHECKS"
 
-# --- Jira credentials: the #1 onboarding cliff. Present, then actually valid.
-ENV_FILE="$HOME/.config/jira/env"
-if [ ! -f "$ENV_FILE" ]; then
-  echo "  jira credentials    ✗ $ENV_FILE missing — create it with:"
-  echo "                        JIRA_HOST=<your>.atlassian.net"
-  echo "                        JIRA_EMAIL=<you>@<company>"
-  echo "                        JIRA_API_TOKEN=<from id.atlassian.com/manage-profile/security/api-tokens>"
-else
-  # shellcheck disable=SC1090
-  set -a; source "$ENV_FILE"; set +a
-  HOST="${JIRA_HOST#https://}"; HOST="${HOST%/}"
-  CODE="$(curl -sS -o ${TMPDIR:-/tmp}/recon-doctor-myself.$$ -w '%{http_code}' --max-time 8 \
-    -u "${JIRA_EMAIL:-}:${JIRA_API_TOKEN:-}" "https://$HOST/rest/api/2/myself" 2>/dev/null || echo 000)"
-  case "$CODE" in
-    200)
-      WHO="$(sed -n 's/.*"displayName": *"\([^"]*\)".*/\1/p' "${TMPDIR:-/tmp}/recon-doctor-myself.$$" | head -1)"
-      echo "  jira credentials    ✓ env present; token valid (authenticated as ${WHO:-unknown})" ;;
-    401 | 403)
-      echo "  jira credentials    ✗ token rejected (HTTP $CODE) — likely expired; regenerate at"
-      echo "                        https://id.atlassian.com/manage-profile/security/api-tokens"
-      echo "                        then update JIRA_API_TOKEN in $ENV_FILE" ;;
-    000)
-      echo "  jira credentials    ! could not reach https://$HOST (offline?) — env file present, token unverified" ;;
-    *)
-      echo "  jira credentials    ! unexpected HTTP $CODE from GET /myself — check JIRA_HOST in $ENV_FILE" ;;
-  esac
-  rm -f "${TMPDIR:-/tmp}/recon-doctor-myself.$$"
-fi
+# --- Runtime + Jira: one shared preflight rail, no second implementation.
+PREFLIGHT="$(bash "$SCRIPT_DIR/reconctl.sh" preflight triage)" || PREFLIGHT_STATUS=$?
+printf '%s\n' "$PREFLIGHT" | sed 's/^/  /'
+[ "${PREFLIGHT_STATUS:-0}" -eq 0 ] || echo "  fix the failed preflight checks before running Recon Triage"
 
 # --- Handoff style: repo-dependent; reuse the resolution rail verbatim.
 GOV_OUT="$("$SCRIPT_DIR/detect-governance.sh" 2>/dev/null)" || GOV_OUT=""
@@ -85,5 +75,5 @@ EVIDENCE="$(printf '%s\n' "$GOV_OUT" | sed -n 's/^evidence: //p')"
 
 echo
 echo "NEXT"
-echo "  /recon:recon-triage <TICKET-ID>"
+echo "  $ENTRYPOINT"
 echo "  Deeper: recon/docs/pipeline.md (machine spec) · README.md (overview + flow diagram)"

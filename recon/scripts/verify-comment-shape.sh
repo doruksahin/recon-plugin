@@ -10,7 +10,8 @@ TICKET="${1:?usage: verify-comment-shape.sh <TICKET-ID>}"
 case "$TICKET" in
   *[!A-Za-z0-9-]* | "") echo "invalid ticket id: $TICKET" >&2; exit 2 ;;
 esac
-DIR="$HOME/.claude/recon/$TICKET"
+RECON_ROOT="${RECON_ROOT:-$HOME/.claude/recon}"
+DIR="$RECON_ROOT/$TICKET"
 C="$DIR/triage/jira/comment.txt"
 Y="$DIR/triage/triage.yaml"
 [ -f "$C" ] || { echo "no comment draft: $C" >&2; exit 2; }

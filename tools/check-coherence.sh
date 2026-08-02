@@ -4,20 +4,25 @@
 # live in more than one place still AGREE. Ownership table: the Change
 # protocol in recon/docs/pipeline.md.
 #
-# Four passes:
+# Six passes:
 #   1. VERSION STAMPS — lines marked `coherence:version` must carry the exact
 #      version in recon/.claude-plugin/plugin.json. Unmarked mentions (release
 #      history, design-doc names) are untouched — the marker is what makes a
 #      mention a claim about NOW. Caught live: docs/flow.html shipped a v0.7.0
 #      chip while plugin.json said 0.8.0 (2026-08-01).
-#   2. REGISTRY MIRRORS — every `token` in recon/docs/registry.yaml (the
+#   2. GENERATED ADAPTERS — native Codex manifest + skill UI metadata must
+#      exactly match the canonical Claude manifest and SKILL.md frontmatter.
+#   3. LOCAL HOST CONTRACT — isolated detection, invocation, capability,
+#      preflight, provenance, and durable-state tests pass; shared scripts and
+#      skills contain no slash commands outside the single renderer.
+#   4. REGISTRY MIRRORS — every `token` in recon/docs/registry.yaml (the
 #      single-source artifact registry that lint-workspace.sh executes) must
 #      appear in each doc that mirrors the registry: pipeline.md's table,
 #      workspace-index.md, docs/flow.html's workspace table.
-#   3. ROLE COVERAGE — every file in a directory that carries a role-doc
+#   5. ROLE COVERAGE — every file in a directory that carries a role-doc
 #      CLAUDE.md must be named in it. Docs must not outlive files
 #      (check-links.sh); files must not outrun their role docs (this).
-#   4. INVARIANT CITATIONS — every "invariant N" mention repo-wide must cite a
+#   6. INVARIANT CITATIONS — every "invariant N" mention repo-wide must cite a
 #      number that exists in pipeline.md's Invariants section (renumbering or
 #      deleting an invariant fails here, not silently).
 #
@@ -31,16 +36,20 @@ fail=0
 say_fail() { echo "  ✗ $1"; fail=1; }
 
 PLUGIN_JSON="recon/.claude-plugin/plugin.json"
+CODEX_PLUGIN_JSON="recon/.codex-plugin/plugin.json"
 REGISTRY="recon/docs/registry.yaml"
 PIPELINE="recon/docs/pipeline.md"
 [ -f "$PLUGIN_JSON" ] || { echo "missing $PLUGIN_JSON" >&2; exit 2; }
+[ -f "$CODEX_PLUGIN_JSON" ] || { echo "missing $CODEX_PLUGIN_JSON" >&2; exit 2; }
 [ -f "$REGISTRY" ] || { echo "missing $REGISTRY" >&2; exit 2; }
 [ -f "$PIPELINE" ] || { echo "missing $PIPELINE" >&2; exit 2; }
 
 # ------------------------------------------------------------ 1. version stamps
-echo "[1/4] version stamps → plugin.json"
+echo "[1/6] version stamps → native plugin manifests"
 VERSION="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$PLUGIN_JSON" | head -1)"
 [ -n "$VERSION" ] || { echo "cannot read version from $PLUGIN_JSON" >&2; exit 2; }
+CODEX_VERSION="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$CODEX_PLUGIN_JSON" | head -1)"
+[ "$CODEX_VERSION" = "$VERSION" ] || say_fail "$CODEX_PLUGIN_JSON version $CODEX_VERSION != canonical $VERSION"
 while IFS=: read -r file line content; do
   [ -n "$file" ] || continue
   case "$content" in
@@ -49,8 +58,27 @@ while IFS=: read -r file line content; do
   esac
 done < <(grep -rn '<!-- coherence:version -->' --include='*.md' --include='*.html' . 2>/dev/null)
 
-# --------------------------------------------------------- 2. registry mirrors
-echo "[2/4] registry tokens → mirror docs"
+# ------------------------------------------------------ 2. generated adapters
+echo "[2/6] generated adapters → canonical metadata"
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "python3 is required for adapter validation" >&2
+  exit 2
+fi
+python3 tools/generate-adapters.py --check || say_fail "generated native adapters drifted"
+
+# ---------------------------------------------------- 3. local host contract
+echo "[3/6] local host contract → rails + durable content"
+if ! bash tools/test-host-contract.sh; then
+  say_fail "tools/test-host-contract.sh failed"
+fi
+HOST_LEAKS="$(rg -n '/recon:|/decree:' recon/scripts recon/skills --glob '!reconctl.sh' 2>/dev/null || true)"
+if [ -n "$HOST_LEAKS" ]; then
+  say_fail "host-specific slash command outside reconctl.sh"
+  printf '%s\n' "$HOST_LEAKS" | sed 's/^/      /'
+fi
+
+# --------------------------------------------------------- 4. registry mirrors
+echo "[4/6] registry tokens → mirror docs"
 MIRRORS=("$PIPELINE" "recon/docs/workspace-index.md" "docs/flow.html")
 for m in "${MIRRORS[@]}"; do
   [ -f "$m" ] || { echo "missing registry mirror $m" >&2; exit 2; }
@@ -62,8 +90,8 @@ while IFS= read -r token; do
   done
 done < <(sed -n 's/^  token: *"\(.*\)"$/\1/p' "$REGISTRY")
 
-# ------------------------------------------------------------- 3. role coverage
-echo "[3/4] role coverage → directory CLAUDE.md files"
+# ------------------------------------------------------------- 5. role coverage
+echo "[5/6] role coverage → directory CLAUDE.md files"
 for dir in recon/scripts recon/docs recon/skills tools docs; do
   roledoc="$dir/CLAUDE.md"
   [ -f "$roledoc" ] || { say_fail "$dir/ has no role doc ($roledoc)"; continue; }
@@ -85,8 +113,8 @@ while IFS= read -r entry; do
   fi
 done < <(find recon/skills -mindepth 1 -maxdepth 1 -type d | sort)
 
-# ------------------------------------------------------- 4. invariant citations
-echo "[4/4] invariant citations → pipeline.md"
+# ------------------------------------------------------- 6. invariant citations
+echo "[6/6] invariant citations → pipeline.md"
 MAX_INV="$(awk '/^## Invariants/{f=1;next} /^## /{f=0} f && /^[0-9]+\./{n=$1} END{sub(/\./,"",n); print n}' "$PIPELINE")"
 if [ -z "$MAX_INV" ]; then
   say_fail "cannot determine invariant count from $PIPELINE"
@@ -102,7 +130,7 @@ else
 fi
 
 if [ "$fail" -eq 0 ]; then
-  echo "coherence: clean — version v$VERSION stamped, registry mirrored, roles covered, citations valid"
+  echo "coherence: clean — version v$VERSION stamped, adapters generated, local host contract passed, registry mirrored, roles covered, citations valid"
   exit 0
 else
   echo "coherence: DRIFT — fix the facts above, or commit with --no-verify"

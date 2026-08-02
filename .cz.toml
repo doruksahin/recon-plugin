@@ -9,6 +9,10 @@ name = "cz_conventional_commits"
 version_provider = "scm"
 version_files = [
   "recon/.claude-plugin/plugin.json:version",
+  # Codex manifest is generated from the Claude manifest, but the bump commit's
+  # pre-commit hook runs before a post-bump generator could. Update its version
+  # in the same atomic commit; generate-adapters.py --check verifies agreement.
+  "recon/.codex-plugin/plugin.json:version",
   # docs/flow.html mirrors the current version (chip + footer, marked
   # `coherence:version`, plus the comment-mock marker line). Bumping them here
   # keeps tools/check-coherence.sh green DURING the bump commit itself.

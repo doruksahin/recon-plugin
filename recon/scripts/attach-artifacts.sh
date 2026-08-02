@@ -18,7 +18,8 @@ for f in "$@"; do [ -f "$f" ] || { echo "no such file: $f" >&2; exit 2; }; done
 
 set -a; . "$HOME/.config/jira/env"; set +a
 HOST="${JIRA_HOST#https://}"; HOST="${HOST%/}"
-DIR="$HOME/.claude/recon/$TICKET/triage/jira"; mkdir -p "$DIR"
+RECON_ROOT="${RECON_ROOT:-$HOME/.claude/recon}"
+DIR="$RECON_ROOT/$TICKET/triage/jira"; mkdir -p "$DIR"
 rm -f "$DIR/attach-result.json"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 
@@ -72,5 +73,5 @@ json.dump({"deleted": deleted, "uploaded": uploads},
           open(sys.argv[2], "w"), indent=2)
 ' "$TMP" "$DIR/attach-result.json"
 echo "attach-result: $DIR/attach-result.json"
-RECON_ROOT="$HOME/.claude/recon" \
+RECON_ROOT="$RECON_ROOT" \
   bash "$(cd "$(dirname "$0")" && pwd)/log-event.sh" "$TICKET" attachments_replaced "count=$#"

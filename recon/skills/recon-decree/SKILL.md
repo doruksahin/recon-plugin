@@ -1,4 +1,5 @@
 ---
+name: recon-decree
 description: Decree governance adapter for the recon pipeline — routes a discovered ticket into decree (no-doc / amend-spec / new-spec / prd-chain) via the policy table. Invoked by recon-discovery when governance resolves to decree; not a user entry point.
 ---
 
@@ -6,11 +7,19 @@ description: Decree governance adapter for the recon pipeline — routes a disco
 
 The decree adapter of the recon pipeline's routing stage. Consumes discovery's behavior contract, runs the decree CLI checks, routes via the policy table, and writes `route/routing.yaml` — including the handoff as verbatim data. **All decree vocabulary in the pipeline lives in this skill and its outputs**; a developer whose governance resolves to `none` never loads this file.
 
+## Host setup
+
+Before the first path or tool action, read `../../docs/hosts.md`. Resolve the
+absolute workspace root, host, and surface with `reconctl.sh`; inspect
+`capabilities`, then run `reconctl.sh preflight base`. Retain the printed values
+for the run. A failed preflight is a hard STOP. Do not change the routing
+policy.
+
 ## Contract
 
 - **Input:** ticket ID (preconditions: `discovery/discovery.md` exists; governance resolved to `decree` by `scripts/detect-governance.sh`)
 - **Reads:** the target repo (read-only), `discovery/` artifacts, `decree` CLI output
-- **Writes:** ONLY inside `~/.claude/recon/<TICKET>/route/` — `routing.yaml`, `aux-intent-check.txt` (raw CLI output). Create the directory before your first write. Anything else fails `lint-workspace.sh`.
+- **Writes:** ONLY inside `$RECON_ROOT/<TICKET>/route/` — `routing.yaml`, `aux-intent-check.txt` (raw CLI output). Create the directory before your first write. Anything else fails `lint-workspace.sh`.
 - **Local side effects:** `decree index rebuild` (refreshes decree's own index)
 - **External side effects:** NONE. Never posts anywhere; never executes its own handoff.
 - **Invoked by:** `recon:recon-discovery` (adapter convention: skill name = `recon-<governance>`). Do not invoke directly unless re-routing an existing discovery.
@@ -22,7 +31,7 @@ The decree adapter of the recon pipeline's routing stage. Consumes discovery's b
 1. **READ-ONLY on the repo.** You MUST NOT implement, branch, or edit code.
 2. **Routing MUST come from the policy table below** — emitted with `matched_rule` AND `rules_not_matched` (one-line reason each). NEVER route by feel.
 3. **Every claim carries evidence** — CLI output, `file:line`, or a fact from `discovery/` artifacts. Raw `decree intent-check` output is saved to `route/aux-intent-check.txt` so the verdict is auditable.
-4. **The handoff is data.** Write the route's exact next commands into `routing.yaml`'s `handoff:` block. Consumers (discovery's report, the dossier) quote it verbatim — never compose handoff prose anywhere else.
+4. **The handoff is data.** Write the route's exact host-neutral next steps into `routing.yaml`'s `handoff:` block. Consumers quote it verbatim — never compose handoff prose anywhere else and never persist Claude/Codex invocation syntax.
 5. **NEVER read archived runs** (`runs/` — pipeline invariant 3).
 6. **Record `repo_commit`** (`git rev-parse HEAD`) — it pins every `file:line` claim.
 
@@ -32,7 +41,7 @@ The decree adapter of the recon pipeline's routing stage. Consumes discovery's b
 
 ### 1. Load context
 
-Read `triage/triage.yaml` (task_class) and `discovery/discovery.md` (the contract; OPEN scenarios count). Confirm you are in the repo the ticket targets. `mkdir -p ~/.claude/recon/<TICKET>/route`.
+Read `triage/triage.yaml` (task_class) and `discovery/discovery.md` (the contract; OPEN scenarios count). Confirm you are in the repo the ticket targets. `mkdir -p "$RECON_ROOT/<TICKET>/route"`.
 
 ### 2. Run the decree checks
 
@@ -40,7 +49,7 @@ Read `triage/triage.yaml` (task_class) and `discovery/discovery.md` (the contrac
 decree index rebuild        # ALWAYS first — `decree why` fails on a stale index
 decree why <candidate files>
 decree intent-check --plan "<one-line candidate plan>" --files <candidate files> \
-  | tee ~/.claude/recon/<TICKET>/route/aux-intent-check.txt
+  | tee "$RECON_ROOT/<TICKET>/route/aux-intent-check.txt"
 ```
 
 If the `decree` CLI errors or the repo has no `decree.toml`, STOP and report it — governance resolved to `decree`, so a broken decree setup is a finding for the user, not something to silently route around.
@@ -82,26 +91,26 @@ routing:
 
 `brief_kind`: `prd-chain` → `problem-statement`; `no-doc` → `none`; all other routes → `implementation-brief`.
 
-Handoff blocks (write the matching one into `handoff:`):
+Handoff blocks (write the matching host-neutral one into `handoff:`):
 
 **new-spec**
 ```
-→ decree new spec "<title>"        # fill from discovery/spec-draft.md (add governs: from target_governs), then decree lint
-→ /decree:ddd                      # picks up at Phase 3 and drives implementation
-→ implementation brief: ~/.claude/recon/<TICKET>/discovery/spec-draft.md
+→ create a decree SPEC titled "<title>" from discovery/spec-draft.md; add target_governs and lint it
+→ start the Decree DDD workflow at Phase 3 in a new implementation session
+→ implementation brief: $RECON_ROOT/<TICKET>/discovery/spec-draft.md
 ```
 
 **amend-spec**
 ```
 → add the acceptance-criteria checkboxes from discovery/spec-draft.md to <SPEC-id>
   (extend its governs: with target_governs if not covered), then decree lint
-→ /decree:ddd                      # picks up at Phase 4 — the new unchecked items
+→ start the Decree DDD workflow at Phase 4 in a new implementation session
 ```
 
 **prd-chain**
 ```
-→ /decree:prd                      # problem statement already drafted in ~/.claude/recon/<TICKET>/discovery/
-→ /decree:ddd                      # drives Phase 1→2→3 from there
+→ create a decree PRD from the problem statement in $RECON_ROOT/<TICKET>/discovery/
+→ start the Decree DDD workflow to drive Phase 1→2→3 in a new session
 ```
 
 **no-doc**
@@ -124,7 +133,7 @@ bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> routed route=<route>
 Print (control returns to recon-discovery, which continues with the brief, repro triggers, and the gate):
 
 ```
-Wrote: ~/.claude/recon/<TICKET>/route/{routing.yaml, aux-intent-check.txt}
+Wrote: $RECON_ROOT/<TICKET>/route/{routing.yaml, aux-intent-check.txt}
 Route: <route> (rule <n>) → ddd <phase|—>
 Lint: <run `bash "<skill base dir>/../../scripts/lint-workspace.sh" <TICKET>` — quote its verdict line>
 ```

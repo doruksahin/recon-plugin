@@ -1,0 +1,4 @@
+interface:
+  display_name: "Recon State"
+  short_description: "Render the living ticket state canvas"
+  default_prompt: "Use $recon-state to render the current state of this Recon ticket."

@@ -1,6 +1,6 @@
 # Recon workspace — what each file is
 
-You are looking at `~/.claude/recon/<TICKET>/` — the working directory of one recon
+You are looking at `$RECON_ROOT/<TICKET>/` — the working directory of one recon
 run for one Jira ticket. It is produced by the `recon` plugin
 (https://github.com/doruksahin/recon-plugin). Two rules govern everything here:
 
@@ -21,7 +21,7 @@ directory means that stage did not run — that is information, not an error.
 ### `meta.yaml`
 The run sentinel, written by the step-0 script before anything else. Records which
 plugin version produced this run (`plugin_version`), when it started (`started`),
-and the ticket. Its presence means "a current run exists"; its age drives the
+the starting host/surface, and the ticket. Its presence means "a current run exists"; its age drives the
 once-per-run guard. If you need to know whether artifacts here are trustworthy
 under the current skill version, this is the file to check.
 
@@ -32,7 +32,7 @@ step-0 script — never hand-edited, always identical across tickets.
 ### `history.ndjson`
 The cross-run ticket ledger: one JSON line per pipeline event (`run_started`,
 `verdict`, `routed`, `gate_answered`, …), appended ONLY by `log-event.sh`
-(closed vocabulary) and preserved across runs by the step-0 script. It is
+(closed vocabulary, with current host/surface provenance) and preserved across runs by the step-0 script. It is
 OUTPUT, NEVER EVIDENCE (invariant 16): no check or decision reads it — it
 exists so humans and the state canvas can tell the ticket's story.
 
@@ -169,18 +169,19 @@ If the dossier and an artifact disagree, the artifact wins.
 
 ### `state/state.yaml`
 Flat derived state, written by `derive-state.sh` from artifact presence alone:
-the stop label, one status per canvas node, `fact.*` counts, and the fixed
-next-action sentence. Re-derived on every refresh — never hand-edited.
+the stop label, one status per canvas node, `fact.*` counts, a canonical
+`next_action`, and neutral next-action prose. Re-derived on every refresh.
 
 ### `state/canvas.html`
 The node-canvas view, rendered mechanically from `state.yaml` (+ the ledger
 timeline) by `render-state-canvas.sh`. Republished to the ticket's stable
-artifact URL as the run moves — the LIVING view, unlike the frozen dossier.
+artifact URL only when the local host supports stable publishing; otherwise it
+remains a local LIVING view, unlike the frozen dossier.
 
 ### `state/artifact-url`
 Exactly one line: the ticket's stable canvas artifact URL, written after the
-first (gated) publish. Its presence is what lets stages auto-refresh the
-canvas without asking again.
+first gated publish by a host with `publish_stable_url`. Render-only hosts
+never create or modify it.
 
 ---
 

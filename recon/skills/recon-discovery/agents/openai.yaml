@@ -1,0 +1,4 @@
+interface:
+  display_name: "Recon Discovery"
+  short_description: "Map code, behavior, routing, and handoff"
+  default_prompt: "Use $recon-discovery to prepare this READY ticket for an approval gate."

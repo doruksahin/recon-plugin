@@ -3,7 +3,7 @@
 #
 # commitizen does the decisions: it reads the commit types since the last tag,
 # picks the next version (see CONTRIBUTING.md for the rules), prepends a section
-# to CHANGELOG.md, writes the number into recon/.claude-plugin/plugin.json, and
+# to CHANGELOG.md, writes the number into both native plugin manifests, and
 # creates an annotated tag. This script adds only what commitizen does not:
 #
 #   1. GUARDS   — refuse on the wrong branch, a dirty tree, or an empty range,

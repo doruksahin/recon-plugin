@@ -12,7 +12,8 @@ TICKET="${1:?usage: package-artifacts.sh <TICKET-ID>}"
 case "$TICKET" in
   *[!A-Za-z0-9-]* | "") echo "invalid ticket id: $TICKET" >&2; exit 2 ;;
 esac
-DIR="$HOME/.claude/recon/$TICKET"
+RECON_ROOT="${RECON_ROOT:-$HOME/.claude/recon}"
+DIR="$RECON_ROOT/$TICKET"
 [ -d "$DIR" ] || { echo "no workspace: $DIR" >&2; exit 2; }
 
 OUT="${RECON_BUNDLE_DIR:-${TMPDIR:-/tmp}}/recon-artifacts-$TICKET.zip"
