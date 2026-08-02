@@ -28,17 +28,40 @@ assert_eq "$(clean_env RECON_HOST=claude bash "$CTL" detect-host)" "claude-code"
 assert_eq "$(clean_env RECON_HOST=codex-app bash "$CTL" detect-host)" "codex" "explicit Codex normalization"
 assert_eq "$(clean_env CLAUDECODE=1 bash "$CTL" detect-host)" "claude-code" "Claude environment detection"
 assert_eq "$(clean_env CODEX_THREAD_ID=test bash "$CTL" detect-host)" "codex" "Codex environment detection"
+assert_eq "$(clean_env CODEX_SANDBOX=seatbelt bash "$CTL" detect-host)" "codex" "Codex sandbox marker detection"
 assert_eq "$(clean_env bash "$CTL" detect-host)" "unknown" "unknown host fallback"
+# A nested session carries both families; guessing there granted Claude's
+# stable-URL publishing to Codex. Ambiguity must fail closed, and an explicit
+# RECON_HOST must still win over it.
+assert_eq "$(clean_env CLAUDECODE=1 CODEX_THREAD_ID=test bash "$CTL" detect-host)" "unknown" "ambiguous host fails closed"
+assert_eq "$(clean_env CLAUDECODE=1 CODEX_SANDBOX=seatbelt RECON_HOST=codex bash "$CTL" detect-host)" "codex" "explicit host overrides ambiguity"
+assert_contains "$(clean_env CLAUDECODE=1 CODEX_THREAD_ID=test RECON_ROOT="$FIXTURE/amb" bash "$CTL" preflight base)" \
+  "check.host: WARN" "ambiguous host reported by preflight"
+AMB_CAPS="$(clean_env CLAUDECODE=1 CODEX_THREAD_ID=test bash "$CTL" capabilities)"
+assert_contains "$AMB_CAPS" "publish_stable_url: unavailable" "ambiguous host never gains stable publishing"
 assert_eq "$(clean_env RECON_SURFACE=Team-Local bash "$CTL" detect-surface)" "team-local" "explicit surface normalization"
 assert_eq "$(clean_env CODEX_THREAD_ID=test CODEX_INTERNAL_ORIGINATOR_OVERRIDE='Codex Desktop' bash "$CTL" detect-surface)" "codex-app" "Codex app surface detection"
 
 assert_eq "$(clean_env RECON_HOST=claude bash "$CTL" invocation recon.triage ATT-1234)" "/recon:recon-triage ATT-1234" "Claude invocation"
-assert_eq "$(clean_env RECON_HOST=codex bash "$CTL" invocation recon.triage ATT-1234)" '$recon:recon-triage ATT-1234' "Codex invocation"
+assert_eq "$(clean_env RECON_HOST=codex bash "$CTL" invocation recon.triage ATT-1234)" '$recon-triage ATT-1234' "Codex invocation"
 assert_eq "$(clean_env bash "$CTL" invocation recon.triage ATT-1234)" "Run Recon Triage for ATT-1234" "neutral invocation"
 
 CAPS="$(clean_env RECON_HOST=codex bash "$CTL" capabilities)"
 assert_contains "$CAPS" "render_local: available" "Codex local render capability"
 assert_contains "$CAPS" "publish_stable_url: unavailable" "Codex stable publishing boundary"
+# hosts.md rule 4 keys off this literal, so the rail must print it.
+assert_contains "$(clean_env RECON_HOST=claude bash "$CTL" capabilities)" \
+  "publish_stable_url: available" "Claude stable publishing capability"
+
+# Codex declares its own network policy; preflight must not probe past it.
+assert_contains "$(clean_env RECON_HOST=codex CODEX_SANDBOX_NETWORK_DISABLED=1 bash "$CTL" capabilities)" \
+  "network: unavailable" "declared network policy honored"
+printf 'JIRA_HOST=example.atlassian.net\nJIRA_EMAIL=t@example.com\nJIRA_API_TOKEN=t\n' >"$FIXTURE/jira.env"
+if clean_env RECON_HOST=codex CODEX_SANDBOX_NETWORK_DISABLED=1 RECON_ROOT="$FIXTURE/net" \
+  RECON_JIRA_ENV="$FIXTURE/jira.env" bash "$CTL" preflight triage >"$FIXTURE/net.out" 2>&1; then
+  fail "triage preflight passed with the network declared disabled"
+fi
+assert_contains "$(cat "$FIXTURE/net.out")" "CODEX_SANDBOX_NETWORK_DISABLED=1" "network short-circuit reason"
 
 PREFLIGHT="$(clean_env RECON_ROOT="$FIXTURE/workspaces" RECON_HOST=codex bash "$CTL" preflight base)"
 assert_contains "$PREFLIGHT" "check.workspace: PASS" "base workspace preflight"

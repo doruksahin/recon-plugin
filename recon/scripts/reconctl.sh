@@ -23,17 +23,44 @@ normalize_host() {
   esac
 }
 
+# Marker families. CLAUDECODE is inherited by every child process, and Codex
+# exports its own markers into each command it runs, so a nested session (Codex
+# launched from a Claude Code shell, or the reverse) carries BOTH families and
+# presence alone cannot say which host is actually driving. Guessing there once
+# printed a Claude slash command on Codex and, worse, granted Claude's stable-URL
+# publishing to a host that cannot republish. Ambiguity therefore resolves to
+# `unknown` — no optimistic capabilities — and RECON_HOST is the way to decide.
+claude_markers() {
+  [ -n "${CLAUDECODE:-}" ] || [ -n "${CLAUDE_CODE_ENTRYPOINT:-}" ]
+}
+
+codex_markers() {
+  [ -n "${CODEX_THREAD_ID:-}" ] || [ -n "${CODEX_SANDBOX:-}" ] || \
+  [ -n "${CODEX_CI:-}" ] || [ -n "${CODEX_PERMISSION_PROFILE:-}" ] || \
+  [ -n "${CODEX_INTERNAL_ORIGINATOR_OVERRIDE:-}" ]
+}
+
+host_ambiguous() {
+  [ -z "${RECON_HOST:-}" ] && claude_markers && codex_markers
+}
+
 detect_host() {
   if [ -n "${RECON_HOST:-}" ]; then
     normalize_host "$RECON_HOST"
-  elif [ -n "${CLAUDECODE:-}" ] || [ -n "${CLAUDE_CODE_ENTRYPOINT:-}" ]; then
+  elif host_ambiguous; then
+    printf 'unknown\n'
+  elif claude_markers; then
     printf 'claude-code\n'
-  elif [ -n "${CODEX_THREAD_ID:-}" ] || [ -n "${CODEX_CI:-}" ] || \
-       [ -n "${CODEX_SHELL:-}" ] || [ -n "${CODEX_INTERNAL_ORIGINATOR_OVERRIDE:-}" ]; then
+  elif codex_markers; then
     printf 'codex\n'
   else
     printf 'unknown\n'
   fi
+}
+
+# Codex states its own network policy; do not spend a probe to rediscover it.
+network_disabled() {
+  [ "${CODEX_SANDBOX_NETWORK_DISABLED:-0}" = "1" ]
 }
 
 detect_surface() {
@@ -107,7 +134,10 @@ invocation() {
   host="$(detect_host)"
   case "$host" in
     claude-code) printf '/recon:%s' "$skill" ;;
-    codex) printf '$recon:%s' "$skill" ;;
+    # Codex mentions skills by bare name, never plugin-namespaced (see the
+    # generated agents/openai.yaml default prompts, and OpenAI's own plugins:
+    # $visualize, $excel-live-control).
+    codex) printf '$%s' "$skill" ;;
     *)
       title="$(action_title "$action")"
       printf 'Run %s' "$title"
@@ -116,6 +146,14 @@ invocation() {
   esac
   [ -z "$ticket" ] || printf ' %s' "$ticket"
   printf '\n'
+}
+
+network_capability() {
+  if network_disabled; then
+    printf 'network: unavailable — CODEX_SANDBOX_NETWORK_DISABLED=1\n'
+  else
+    printf 'network: local environment; verify with preflight\n'
+  fi
 }
 
 capabilities() {
@@ -130,26 +168,26 @@ capabilities() {
 ask_user: AskUserQuestion
 invoke_skill: Skill tool or /recon:<skill>
 browser: preview_start + read_page + computer
-network: local environment; verify with preflight
 render_local: available
 display_file: SendUserFile
-publish_once: Artifact tool
-publish_stable_url: Artifact tool with existing URL
+publish_once: available — Artifact tool
+publish_stable_url: available — Artifact tool with the saved URL
 local_shell: available
 EOF
+      network_capability
       ;;
     codex)
       cat <<'EOF'
 ask_user: request_user_input when available; otherwise ask and stop
-invoke_skill: native skill invocation or $recon:<skill>
+invoke_skill: native skill invocation or $<skill>
 browser: in-app browser/computer-use when available
-network: local environment; verify with preflight
 render_local: available
 display_file: Markdown with an absolute local path
 publish_once: unavailable; render-only
 publish_stable_url: unavailable; never write state/artifact-url
 local_shell: available
 EOF
+      network_capability
       ;;
     *)
       cat <<'EOF'
@@ -197,6 +235,12 @@ preflight() {
   printf 'surface: %s\n' "$(detect_surface)"
   printf 'root: %s\n' "$root"
 
+  # Not a failure: the pipeline still runs, but presentation and publishing
+  # degrade to the `unknown` contract until RECON_HOST resolves the ambiguity.
+  if host_ambiguous; then
+    emit_check host WARN "Claude Code and Codex markers both present — set RECON_HOST to decide"
+  fi
+
   for cmd in bash python3 git; do
     if command -v "$cmd" >/dev/null 2>&1; then
       emit_check "command.$cmd" PASS "$(command -v "$cmd")"
@@ -240,7 +284,10 @@ preflight() {
       set -u
       if [ -n "${JIRA_HOST:-}" ] && [ -n "${JIRA_EMAIL:-}" ] && [ -n "${JIRA_API_TOKEN:-}" ]; then
         emit_check jira_config PASS "required values present"
-        if command -v curl >/dev/null 2>&1; then
+        if network_disabled; then
+          emit_check jira_reachability FAIL "CODEX_SANDBOX_NETWORK_DISABLED=1 — Jira is unreachable from this sandbox"
+          failures=$((failures + 1))
+        elif command -v curl >/dev/null 2>&1; then
           host="${JIRA_HOST#https://}"; host="${host%/}"
           tmp="${TMPDIR:-/tmp}/recon-preflight-jira.$$"
           code="$(curl -sS -o "$tmp" -w '%{http_code}' --max-time "${RECON_PREFLIGHT_TIMEOUT:-8}" \

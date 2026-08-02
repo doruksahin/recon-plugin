@@ -94,7 +94,7 @@ codex plugin add recon@recon-plugin
 
 Restart or start a new task after installation so the host discovers the new
 skills. Invoke Recon Triage through the native skill UI (for example,
-`$recon:recon-triage ATT-1234` in Codex). Runtime detection, preflight,
+`$recon-triage ATT-1234` in Codex). Runtime detection, preflight,
 capability levels, and invocation rendering are defined in
 [recon/docs/hosts.md](recon/docs/hosts.md).
 

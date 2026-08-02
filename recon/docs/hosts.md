@@ -20,6 +20,12 @@ highest precedence. Without them, `reconctl.sh` recognizes Claude Code and
 Codex environment signals; an unrecognized environment resolves to `unknown`
 and receives no optimistic capabilities.
 
+A nested session carries both marker families — Codex exports its markers into
+every command it runs, and `CLAUDECODE` is inherited by every child process —
+so presence alone cannot say which host is driving. Both present resolves to
+`unknown`, `preflight` emits `check.host: WARN`, and `RECON_HOST` is the only
+way to decide. Never infer the host from anything else.
+
 Shell calls are isolated on some hosts. For later calls, either pass
 `RECON_ROOT`, `RECON_HOST`, and `RECON_SURFACE` in that call or substitute the
 resolved absolute root in the command. Rails that need identity call
@@ -33,14 +39,14 @@ absolute `RECON_ROOT` to use another local or shared directory.
 | Capability | Claude Code | Local Codex |
 | --- | --- | --- |
 | Ask or approve | `AskUserQuestion` | `request_user_input` when available; otherwise ask and stop |
-| Invoke a Recon skill | `Skill` tool or `/recon:<skill>` | Native skill invocation or `$recon:<skill>` |
+| Invoke a Recon skill | `Skill` tool or `/recon:<skill>` | Native skill invocation or `$<skill>` |
 | Render local HTML | available | available |
 | Display a local file | `SendUserFile` | Markdown with an absolute local path |
 | Publish once | native Artifact tool | unavailable; render-only |
 | Update one stable URL | native Artifact tool with the saved URL | unavailable; never write `state/artifact-url` |
 | Browser/repro | preview/browser tools | in-app browser or computer-use when available |
 | Local shell/filesystem | available | available |
-| Network/Jira | local environment; `preflight triage` decides | local environment; `preflight triage` decides |
+| Network/Jira | local environment; `preflight triage` decides | `CODEX_SANDBOX_NETWORK_DISABLED=1` means unreachable; otherwise `preflight triage` decides |
 
 The table is explanatory. `reconctl.sh capabilities` is the executable source
 for host mechanics.
@@ -63,9 +69,10 @@ Render a human-facing skill invocation only at the point of display:
 bash "$CTL" invocation recon.triage ATT-1234
 ```
 
-This prints the Claude slash command, the namespaced Codex skill mention, or a
-neutral label for an unknown host. It is the only command renderer shared
-skills and scripts may use.
+This prints the Claude slash command, the bare-name Codex skill mention
+(`$recon-triage` — Codex never namespaces a skill by its plugin), or a neutral
+label for an unknown host. It is the only command renderer shared skills and
+scripts may use.
 
 ## Rules
 
