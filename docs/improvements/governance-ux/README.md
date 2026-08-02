@@ -2,9 +2,9 @@
 
 > One-time question and reports phrased as outcomes; ladder demoted to internals
 
-- **Status:** in-progress — implemented 2 Aug 2026 (recon-discovery step 4 question
+- **Status:** shipped (v0.10.0) — implemented 2 Aug 2026 (recon-discovery step 4 question
   rewritten, `Handoff style:` report line + source-token mapping table, README
-  story restructured); pending commit/release
+  story restructured)
 - **Priority:** P2
 - **Theme:** operational robustness
 - **Origin:** 2 Aug 2026 — explaining the governance selection to the developer

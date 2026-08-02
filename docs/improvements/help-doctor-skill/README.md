@@ -2,10 +2,9 @@
 
 > Orientation + setup doctor; every printed fact derived live, none restated
 
-- **Status:** in-progress — implemented 2 Aug 2026 (`recon/scripts/doctor.sh`,
+- **Status:** shipped (v0.10.0) — implemented 2 Aug 2026 (`recon/scripts/doctor.sh`,
   `recon/skills/recon-help/`, stage legend added to pipeline.md, coherence pass 3
-  extended: every skill must appear in README.md and plugin.json); pending
-  commit/release
+  extended: every skill must appear in README.md and plugin.json)
 - **Priority:** P2
 - **Theme:** operational robustness
 - **Origin:** 2 Aug 2026 — preparing to share the plugin with colleagues: the
