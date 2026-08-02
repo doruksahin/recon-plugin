@@ -1,3 +1,9 @@
+## v0.11.0 (2026-08-02)
+
+### Features
+
+- **tools**: root CLAUDE.md editor guidance, with its skill list enforced
+
 ## v0.10.0 (2026-08-02)
 
 ### Features
