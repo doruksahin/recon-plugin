@@ -217,6 +217,14 @@ timeline) by `render-state-canvas.sh`. Republished to the ticket's stable
 artifact URL only when the local host supports stable publishing; otherwise it
 remains a local LIVING view, unlike the frozen dossier.
 
+### `state/publish-gate.yaml`
+The publish gate's exchange record, appended by `record-publish-gate.sh`: the
+question exactly as the rail asks it, the options, the user's exact words, and
+whether that answer was `published` or `declined`. It exists so an absent
+`artifact-url` stops meaning three things at once — never asked, asked and
+declined, or a host that cannot publish at all. Render-only hosts never create
+it. Like `artifact-url`, it belongs to the current run.
+
 ### `state/artifact-url`
 Exactly one line: the ticket's stable canvas artifact URL, written after the
 first gated publish by a host with `publish_stable_url`. Render-only hosts

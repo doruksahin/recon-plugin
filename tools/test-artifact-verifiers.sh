@@ -1797,4 +1797,55 @@ assert rows[1] == {"date": rows[1]["date"], "value": "none", "source": "manual"}
 PY
 PASS_COUNT=$((PASS_COUNT + 1))
 
+# Canvas publish gate (ADR 0003): the question is the rail's, both outcomes are
+# recorded, and a declined answer leaves a workspace that still lints clean and
+# still has no artifact-url.
+RECORD_PUBLISH_GATE="$ROOT/recon/scripts/record-publish-gate.sh"
+LINT="$ROOT/recon/scripts/lint-workspace.sh"
+
+new_workspace publish-gate
+expect_pass "publish question renders" env RECON_ROOT="$CASE_ROOT" \
+  bash "$RECORD_PUBLISH_GATE" "$TICKET" question
+env RECON_ROOT="$CASE_ROOT" bash "$RECORD_PUBLISH_GATE" "$TICKET" question \
+  >"$FIXTURE/pub-q1.txt"
+env RECON_ROOT="$CASE_ROOT" bash "$RECORD_PUBLISH_GATE" "$TICKET" question \
+  >"$FIXTURE/pub-q2.txt"
+cmp -s "$FIXTURE/pub-q1.txt" "$FIXTURE/pub-q2.txt" \
+  || fail "publish question is not byte-deterministic"
+grep -Fq "Publish a private state canvas for $TICKET?" "$FIXTURE/pub-q1.txt" \
+  || fail "publish question lost its asked sentence"
+[ ! -e "$CASE_WS/state/publish-gate.yaml" ] \
+  || fail "rendering the publish question wrote a record"
+PASS_COUNT=$((PASS_COUNT + 1))
+
+expect_exit_code "publish answer with an unknown outcome" \
+  "invalid outcome: 'maybe'" 2 \
+  env RECON_ROOT="$CASE_ROOT" bash "$RECORD_PUBLISH_GATE" "$TICKET" answer maybe "sure"
+expect_exit_code "publish answer without the user's words" \
+  "answer needs the user's exact words" 2 \
+  env RECON_ROOT="$CASE_ROOT" bash "$RECORD_PUBLISH_GATE" "$TICKET" answer declined " "
+[ ! -e "$CASE_WS/state/publish-gate.yaml" ] \
+  || fail "a rejected publish answer still wrote a record"
+PASS_COUNT=$((PASS_COUNT + 1))
+
+expect_pass "publish declined is recorded" env RECON_ROOT="$CASE_ROOT" \
+  bash "$RECORD_PUBLISH_GATE" "$TICKET" answer declined "not now — I'll share it after standup"
+grep -Fq '      outcome: declined' "$CASE_WS/state/publish-gate.yaml" \
+  || fail "declined publish answer was not recorded"
+grep -Fq "      answer_verbatim: \"not now — I'll share it after standup\"" \
+  "$CASE_WS/state/publish-gate.yaml" \
+  || fail "declined publish answer lost the user's exact words"
+[ ! -e "$CASE_WS/state/artifact-url" ] \
+  || fail "a declined publish created a stable URL"
+expect_pass "declined publish record lints clean" env RECON_ROOT="$CASE_ROOT" \
+  bash "$LINT" "$TICKET"
+
+expect_pass "asking again after a decline appends" env RECON_ROOT="$CASE_ROOT" \
+  bash "$RECORD_PUBLISH_GATE" "$TICKET" answer published "ok publish it now"
+[ "$(grep -c '^      outcome: ' "$CASE_WS/state/publish-gate.yaml")" -eq 2 ] \
+  || fail "the second publish answer replaced the first instead of appending"
+[ "$(sed -n 's/^      outcome: *//p' "$CASE_WS/state/publish-gate.yaml" | tail -1)" = published ] \
+  || fail "the last recorded outcome is not the most recent answer"
+PASS_COUNT=$((PASS_COUNT + 1))
+
 echo "artifact verifiers: PASS — $PASS_COUNT isolated cases"

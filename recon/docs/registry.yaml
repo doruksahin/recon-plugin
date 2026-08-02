@@ -143,6 +143,11 @@
   producer: render-state-canvas.sh (fills the recon-state template)
   consumers: recon-state publish step, humans
 
+- pattern: "state/publish-gate.yaml"
+  token: "publish-gate.yaml"
+  producer: record-publish-gate.sh (the publish question and its answer; capable hosts only)
+  consumers: recon-state (has this ticket been asked?), humans
+
 - pattern: "state/artifact-url"
   token: "artifact-url"
   producer: recon-state (first gated publish; publish_stable_url required)
