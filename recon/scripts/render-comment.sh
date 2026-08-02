@@ -1,8 +1,10 @@
 #!/bin/bash
 # render-comment.sh <TICKET-ID> — invariant 13 as a rail, now including the
 # rendering itself: triage/jira/comment.txt is EMITTED from triage.yaml +
-# meta.yaml by triage-tools.py — the model never writes the comment, so
-# transcription drift between the yaml and the posted bytes is impossible.
+# meta.yaml (and, for approved READY delivery, discovery/gate.yaml +
+# route/routing.yaml) by triage-tools.py — the model never writes the comment,
+# so transcription drift between the verified artifacts and posted bytes is
+# impossible.
 # Header date comes from meta.yaml `started`, the marker version from
 # `plugin_version`, mentions from each blocker's resolved `owner_account_id`.
 #

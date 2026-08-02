@@ -8,7 +8,7 @@ directory without a role line below fails `tools/check-coherence.sh`.
 | Directory | Stage | Role |
 | --- | --- | --- |
 | `recon-triage/` | 0–1 | Blocker triage: fresh workspace, ticket fetch, six checks with typed evidence, derived disposition (`verify-triage.sh`), verified UI-blocker repro evidence, and the BLOCKED/NEEDS_INFO posting path (render → shape → package → gate → attach-then-comment). |
-| `recon-discovery/` | 2 | Code discovery for READY tickets: stable-ID Gherkin contract, governance routing, verified repro before the route-required brief, pre/post-gate package verification, approval handoff. |
+| `recon-discovery/` | 2 | Code discovery for READY tickets: stable-ID Gherkin contract, governance routing, verified repro before the route-required brief, pre/post-gate package verification, package approval, then dossier/bundle delivery behind a distinct Jira gate and approval handoff. |
 | `recon-repro/` | R | On-demand live repro inside a recorded proofshot session (`record-repro.sh`): fixed metadata, numbered human-rerunnable steps transcribed from the action log + screenshots into `repro/`, session bundle in `repro/session/`, then structural/provenance verification (incl. log cross-checks) and visual readback. Never fabricated — a failed repro is a verified finding. |
 | `recon-report/` | D | Verifies generated evidence, then fills its dossier template from current-run artifacts. Always renders locally; publishes only when `publish_once` is available. |
 | `recon-decree/` | RT | Governance adapter for decree: same contract as `route-generic.sh` (writes `route/routing.yaml` incl. verbatim `handoff:`). ALL decree vocabulary is quarantined here — a `governance: none` run never loads it. |

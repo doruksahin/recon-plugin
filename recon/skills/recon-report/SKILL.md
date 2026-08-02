@@ -1,6 +1,6 @@
 ---
 name: recon-report
-description: Render a Recon workspace as a self-contained HTML dossier. Use when a run finishes, triage needs its render-only posting path, or someone asks for a report, dossier, or shareable summary.
+description: Render a Recon workspace as a self-contained HTML dossier. Use when a run finishes, a Jira delivery path needs render-only output, or someone asks for a report, dossier, or shareable summary.
 ---
 
 # Recon Report
@@ -31,7 +31,7 @@ dossier path as render-only. Later rails still detect current runtime identity.
 3. **NEVER read `runs/`.** The dossier documents the current run only. Prior runs are invisible (pipeline invariant 3).
 4. **Pin code links mechanically.** GitHub links use the commit from `route/routing.yaml` `evidence.repo_commit`. If that field is absent, write file paths as plain `code` (or `.pathcopy` buttons) with the footer noting `unpinned` — NEVER guess a SHA or link to a branch.
 5. **Self-contained page.** Screenshots are embedded as `data:` URIs (external hosts are blocked by the artifact CSP). Recompress each PNG to JPEG before embedding: `sips -s format jpeg -s formatOptions 72 --resampleWidth 1600 <in>.png --out <tmp>.jpg` (fall back to the raw PNG only when `sips` is unavailable and the file is < 300 KB). Keep the final page under ~3 MB.
-6. **Private when publishing is available.** On-demand with `publish_once`: publish, print the URL, stop. Sharing the link is the user's action — never post the URL to Jira or anywhere else. Without that capability, or in explicit render-only mode, publishing is SKIPPED entirely — there is no URL; the local file is the result. On the triage posting path, the Jira attachment (uploaded by recon-triage behind its gate) is the delivery.
+6. **Private when publishing is available.** On-demand with `publish_once`: publish, print the URL, stop. Sharing the link is the user's action — never post the URL to Jira or anywhere else. Without that capability, or in explicit render-only mode, publishing is SKIPPED entirely — there is no URL; the local file is the result. On a BLOCKED/NEEDS_INFO or approved READY delivery path, the Jira attachment (uploaded behind that path's delivery gate) is the delivery.
 7. **BLOCKED runs get dossiers too.** Chips show the real disposition; discovery/repro/gate sections read `not run` with the reason; the handoff block shows the re-entry instruction. Do not skip the report because the pipeline stopped early. On BLOCKED/NEEDS_INFO runs the Blockers & question packs section is the dossier's lead content, rendered from the structured `blockers[]` in `triage.yaml` — the layer of detail the short Jira comment points readers to.
 8. **Verify generated evidence before rendering it.** When `repro/repro.md`
    exists, require `verify-repro.sh` to print `verify: clean`. When a routed
@@ -63,7 +63,7 @@ dossier path as render-only. Later rails still detect current runtime identity.
 ## Modes
 
 - **On-demand** (default — the user asked for a report/dossier/shareable summary): run workflow steps 1–6. Publish only when `publish_once` is available; otherwise the run ends with the rendered local file.
-- **Render-only** (auto-invoked by `recon:recon-triage` on its BLOCKED/NEEDS_INFO posting path): run workflow steps 1–5 — verify workspace, read artifacts, prepare exhibits, fill the template, write + lint — then STOP. SKIP step 6: no publishing, no Jira, nothing else. The Jira attachment is the delivery — recon-triage uploads `report/dossier.html` behind its own gate. Report `Rendered (render-only): <path> (<size>)` plus the Lint line instead of the Published line.
+- **Render-only** (auto-invoked by `recon:recon-triage` on its BLOCKED/NEEDS_INFO posting path or by `recon:recon-discovery` after an approved READY package): run workflow steps 1–5 — verify workspace, read artifacts, prepare exhibits, fill the template, write + lint — then STOP. SKIP step 6: no publishing, no Jira, nothing else. The caller uploads `report/dossier.html` behind its own delivery gate. Report `Rendered (render-only): <path> (<size>)` plus the Lint line instead of the Published line.
 
 ## Workflow
 
@@ -86,7 +86,7 @@ Published: <artifact URL> (private — sharing is your call)
 Coverage: <stages included> · <n> exhibits · commit <sha|unpinned>
 ```
 
-Without `publish_once`, or in explicit render-only mode (including the recon-triage posting path), print — no Published line, nothing was published:
+Without `publish_once`, or in explicit render-only mode (including either Jira delivery path), print — no Published line, nothing was published:
 
 ```
 Rendered (render-only): $RECON_ROOT/<TICKET>/report/dossier.html (<size>)
@@ -99,4 +99,4 @@ Lint: <lint-workspace.sh verdict line, verbatim>
 ## Reference
 
 - Whole-chain spec (stages, invariants, artifact registry, trigger table): `../../docs/pipeline.md` relative to this skill's base directory. On conflict, this SKILL.md wins.
-- Two ways in: on-demand (the user asks — always render, publish only with `publish_once`), AND auto-invoked in render-only mode by `recon:recon-triage` on its BLOCKED/NEEDS_INFO posting path — there the delivery is the Jira attachment triage uploads, never artifact publishing.
+- Two ways in: on-demand (the user asks — always render, publish only with `publish_once`), AND auto-invoked in render-only mode by `recon:recon-triage` on its BLOCKED/NEEDS_INFO delivery path or `recon:recon-discovery` after an approved READY package — there the delivery is the Jira attachment the caller uploads, never artifact publishing.

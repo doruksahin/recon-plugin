@@ -67,13 +67,15 @@ disposition is derived from the checks, and every quote is verified verbatim
 against `ticket.json`, by `verify-triage.sh`. Discovery's precondition: it will
 not start unless this says `READY`.
 
-### `triage/jira/` — present only if the posting path ran (BLOCKED/NEEDS_INFO)
+### `triage/jira/` — present only if a Jira delivery path ran
 - **`comment.txt`** — the exact comment body for Jira, RENDERED from
   `triage.yaml` + `meta.yaml` by `render-comment.sh` (never hand-written) and
-  saved *before* the human approved posting. The body is the mechanical n+4
-  progressive-disclosure shape — header, one line per blocker, attachment-links
-  line, reply line, marker line — so full detail never lives here; it lives in
-  the dossier's question packs. Ends with the `~recon-triage v<version>~` marker.
+  saved *before* the human approved posting. BLOCKED/NEEDS_INFO use the mechanical
+  n+4 progressive-disclosure shape — header, one line per blocker, attachment-links
+  line, reply line, marker line — so full detail lives in the dossier's question
+  packs. An approved READY delivery additionally consumes `discovery/gate.yaml`
+  and `route/routing.yaml` and uses a fixed six-line Discovery index. Both end
+  with the `~recon-triage v<version>~` marker.
 - **`bundle-manifest.txt`** — written by `package-artifacts.sh`: one line per
   bundled file (size + relative path). The zip it describes
   (`recon-artifacts-<TICKET>.zip`) is staged in a temp dir — never inside this
@@ -89,11 +91,11 @@ not start unless this says `READY`.
   `outcome` (`posted`, `edited`, or `declined`). The Edit loop is visible here,
   and a run where a human said "don't post" says so — it no longer looks like
   a session that died before reaching the gate.
-- **`post-result.json`** — the Jira API response after an approved POST/edit.
-  Proof of what actually landed on the ticket — audit evidence for THIS run.
+- **`post-result.json`** — the Jira API response after an approved POST/edit on
+  either delivery path. Proof of what actually landed on the ticket — audit evidence for THIS run.
   Edit-vs-create detection always comes from the live ticket's fetched comments,
   never from this file.
-- **`attach-result.json`** — written by `attach-artifacts.sh` on the posting
+- **`attach-result.json`** — written by `attach-artifacts.sh` on either delivery
   path: the IDs of the stale recon attachments it deleted plus the upload
   responses for the new ones. Cleared at the start of each attach run, so if it
   is absent after a run, the attach never completed.
@@ -189,13 +191,14 @@ cross-checks exhibits against the logged screenshot actions.
 
 ---
 
-## `report/` — the dossier (on demand, or auto on the posting path)
+## `report/` — the dossier (on demand, or auto on a Jira delivery path)
 
 ### `report/dossier.html`
 A self-contained HTML rendering of this run (fixed template, screenshots
 embedded). Produced in one of two modes: **on demand** (the user asked for a
-report) it is published as a private artifact; on the **posting path**
-(BLOCKED/NEEDS_INFO) it is rendered render-only and attached to the Jira ticket
+report) it is published as a private artifact; on a **Jira delivery path**
+(BLOCKED/NEEDS_INFO, or an approved READY Discovery package) it is rendered
+render-only and attached to the Jira ticket
 on an approved post as `recon-dossier-<TICKET>.html` alongside
 `recon-artifacts-<TICKET>.zip` — no artifact publishing. In both modes it is a
 **view, never a source**: every claim in it traces back to the files above;

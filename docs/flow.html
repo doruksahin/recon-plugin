@@ -250,7 +250,7 @@
       <dt>who</dt><dd><span class="w-rail">rail</span> (new in v0.8.0)</dd>
       <dt>in</dt><dd><code>triage.yaml</code> + <code>ticket.json</code></dd>
       <dt>out</dt><dd><strong>READY</strong> | <strong>BLOCKED</strong> | <strong>NEEDS_INFO</strong> — derived from the checks; <code>verify: clean</code> or failures</dd>
-      <dt>rule</dt><dd>disposition is DERIVED (invariant 15) — mismatch ⇒ fix the checks, never the verdict <span class="sep">·</span> every <code>kind: quote</code> must appear verbatim in the ticket's human content <span class="sep">·</span> READY → auto-chain to discovery <span class="sep">·</span> BLOCKED/NEEDS_INFO → posting path, needs ≥1 structured blocker</dd>
+      <dt>rule</dt><dd>disposition is DERIVED (invariant 15) — mismatch ⇒ fix the checks, never the verdict <span class="sep">·</span> every <code>kind: quote</code> must appear verbatim in the ticket's human content <span class="sep">·</span> READY → auto-chain to discovery and, after package approval, its own delivery path <span class="sep">·</span> BLOCKED/NEEDS_INFO → posting path, needs ≥1 structured blocker</dd>
     </dl>
   </div>
 
@@ -277,18 +277,18 @@
       <dt>who</dt><dd><span class="w-rail">rail</span> (fixed template, no new facts)</dd>
       <dt>in</dt><dd>current-run artifacts</dd>
       <dt>out</dt><dd><code>report/dossier.html</code> — Blockers &amp; question packs section leads</dd>
-      <dt>rule</dt><dd>NO publishing on this path — the ticket attachment is the delivery</dd>
+      <dt>rule</dt><dd>NO publishing on this path — the ticket attachment is the delivery; the same render-only dossier rail is used after approved READY Discovery</dd>
     </dl>
   </div>
 
   <div class="step rail">
-    <div class="step-h"><span class="step-no">P3</span><h3>Render the comment — n+4 lines</h3>
+    <div class="step-h"><span class="step-no">P3</span><h3>Render the delivery comment</h3>
       <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-comment.sh">render-comment.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-comment-shape.sh">verify-comment-shape.sh</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span> renders (new in v0.8.0) — the asks were <span class="w-judge">judgment</span> upstream, in <code>triage.yaml</code></dd>
-      <dt>in</dt><dd><code>triage.yaml</code> + <code>meta.yaml</code> only</dd>
+      <dt>in</dt><dd>BLOCKED/NEEDS_INFO: <code>triage.yaml</code> + <code>meta.yaml</code>; READY: also approved <code>gate.yaml</code> + <code>routing.yaml</code></dd>
       <dt>out</dt><dd><code>triage/jira/comment.txt</code> — the exact posted bytes</dd>
-      <dt>rule</dt><dd>the model NEVER writes <code>comment.txt</code> — edits go to <code>triage.yaml</code>, then re-render <span class="sep">·</span> exactly n+4 non-empty lines, independently checked until <code>shape: clean</code></dd>
+      <dt>rule</dt><dd>the model NEVER writes <code>comment.txt</code> — edits go to source artifacts, then re-render <span class="sep">·</span> BLOCKED/NEEDS_INFO are exactly n+4 non-empty lines; approved READY is a fixed six-line discovery index, independently checked until <code>shape: clean</code></dd>
     </dl>
     <div class="comment-mock" role="img" aria-label="Example of the posted Jira comment">
       <div class="cm">h2. Recon triage: BLOCKED — 3 blocker(s) (1 Aug)</div>
@@ -459,13 +459,24 @@
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span></dd>
       <dt>in</dt><dd>pre-gate package + <code>gate-questions.md</code> + <code>gate.yaml</code></dd>
-      <dt>out</dt><dd><code>verify: clean</code> before rejection stop, dossier, or handoff</dd>
+      <dt>out</dt><dd><code>verify: clean</code> before rejection stop, dossier, delivery, or handoff</dd>
       <dt>rule</dt><dd>parseable approval record + exact OPEN resolution parity + verbatim same-ID approved-outcome join <span class="sep">·</span> rendered questions cover every OPEN + PACKAGE, each with a non-empty verbatim answer whose resolution matches</dd>
     </dl>
   </div>
 
+  <div class="step human">
+    <div class="step-h"><span class="step-no">D10</span><h3>READY delivery gate</h3>
+      <span class="src">you</span></div>
+    <dl class="fields">
+      <dt>who</dt><dd><span class="w-rail">rail</span> renders and stages <span class="sep">·</span> <span class="w-human">human</span> approves delivery</dd>
+      <dt>in</dt><dd>approved package → render-only dossier + fixed READY comment + ZIP manifest + rendered posting-gate bytes</dd>
+      <dt>out</dt><dd><strong>Post</strong> / <strong>Edit first</strong> / <strong>Don't post</strong></dd>
+      <dt>rule</dt><dd>this is distinct from package approval <span class="sep">·</span> present the rail-rendered posting-gate bytes verbatim and record the exchange <span class="sep">·</span> attach first, then create/edit the marker comment</dd>
+    </dl>
+  </div>
+
   <div class="step rail">
-    <div class="step-h"><span class="step-no">D10</span><h3>Handoff</h3></div>
+    <div class="step-h"><span class="step-no">D11</span><h3>Handoff</h3></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span></dd>
       <dt>in</dt><dd><code>routing.yaml</code> <code>handoff:</code> block</dd>
@@ -492,14 +503,14 @@
           <tr><td class="mono">history.ndjson</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/log-event.sh">log-event.sh</a> (closed vocabulary + current host/surface; survives step 0)</td><td>state canvas timeline, humans — output, <strong>never evidence</strong></td></tr>
           <tr><td class="mono">triage/{ticket.json, aux-*.json}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">triage</a></td><td>the six checks; aux-user-*.json backs the @mentions</td></tr>
           <tr><td class="mono">triage/triage.yaml</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">triage</a>, verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-triage.sh">verify-triage.sh</a></td><td>discovery precondition; disposition derived + quotes verified from it; comment AND dossier both render from it</td></tr>
-          <tr><td class="mono">triage/jira/{comment.txt, bundle-manifest.txt}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-comment.sh">render-comment.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/package-artifacts.sh">package-artifacts.sh</a></td><td>the gate (exact bytes + what ships), audit</td></tr>
+          <tr><td class="mono">triage/jira/{comment.txt, bundle-manifest.txt}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-comment.sh">render-comment.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/package-artifacts.sh">package-artifacts.sh</a></td><td>the BLOCKED/NEEDS_INFO or approved READY delivery gate (exact bytes + what ships), audit</td></tr>
           <tr><td class="mono">triage/jira/{post-gate-questions.txt, post-gate.yaml}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-post-gate.sh">render-post-gate.sh</a> · triage, verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-post-gate.sh">verify-post-gate.sh</a></td><td>the posting gate (exact asked bytes + one verbatim exchange per presentation), state derivation, audit</td></tr>
-          <tr><td class="mono">triage/jira/{attach-result.json, post-result.json}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/attach-artifacts.sh">attach-artifacts.sh</a> · comment rail (after "post")</td><td>audit — attach-result absent ⇒ attach never completed</td></tr>
+          <tr><td class="mono">triage/jira/{attach-result.json, post-result.json}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/attach-artifacts.sh">attach-artifacts.sh</a> · comment rail (after "post")</td><td>delivery audit — attach-result absent ⇒ attachment replacement never completed</td></tr>
           <tr><td class="mono">discovery/{discovery.md, gate-questions.md, gate.yaml, spec-draft.md}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-discovery/SKILL.md">discovery</a> (gate-questions.md by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-gate.sh">render-gate.sh</a>), verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-discovery.sh">verify-discovery.sh</a></td><td>gate (exact asked bytes + verbatim exchanges), dossier decision cards, the implementing session; spec-draft absent for brief_kind none</td></tr>
           <tr><td class="mono">route/{routing.yaml, aux-intent-check.txt}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/route-generic.sh">route-generic.sh</a> | <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-decree/SKILL.md">recon-decree</a></td><td>discovery (route, brief_kind, verbatim handoff), dossier</td></tr>
           <tr><td class="mono">repro/{repro.md, exhibits/*.png}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-repro/SKILL.md">repro</a>, verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-repro.sh">verify-repro.sh</a></td><td>blocker detail packs, gate questions, Manual verification, PR "before" evidence</td></tr>
           <tr><td class="mono">repro/session/*</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/record-repro.sh">record-repro.sh</a> (proofshot bundle, finalized at stop)</td><td>verify-repro.sh log cross-check, delivery bundle (video), audit</td></tr>
-          <tr><td class="mono">report/dossier.html</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a></td><td>attached to the ticket on the posting path; published private on demand</td></tr>
+          <tr><td class="mono">report/dossier.html</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a></td><td>attached to the ticket on a BLOCKED/NEEDS_INFO or approved READY delivery path; published private on demand</td></tr>
           <tr><td class="mono">state/{state.yaml, canvas.html, publish-gate.yaml, artifact-url}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/derive-state.sh">derive-state.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-state-canvas.sh">render-state-canvas.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/record-publish-gate.sh">record-publish-gate.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-state/SKILL.md">recon-state</a></td><td>living state: canonical next action + local canvas; the publish answer on the record; stable URL only on capable hosts, after a published answer</td></tr>
         </tbody>
       </table>
@@ -514,7 +525,7 @@
     v0.7.0 design: <a href="https://github.com/doruksahin/recon-plugin/blob/master/docs/plans/2026-07-31-recon-triage-comment-and-delivery-design.md">design doc</a> ·
     <a href="https://github.com/doruksahin/recon-plugin/blob/master/docs/plans/2026-07-31-recon-triage-comment-and-delivery.md">implementation plan</a> ·
     <a href="https://github.com/doruksahin/recon-plugin/blob/master/docs/plans/2026-07-31-spike-notes.md">spike evidence</a><br>
-    improvement backlog: <a href="https://github.com/doruksahin/recon-plugin/blob/master/docs/improvements/README.md">docs/improvements</a> ·
+    improvement proposals: <a href="https://github.com/doruksahin/recon-plugin/blob/master/docs/improvement-proposals/README.md">docs/improvement-proposals</a> ·
     links checked with <a href="https://github.com/lycheeverse/lychee">lychee</a>
   </footer>
 

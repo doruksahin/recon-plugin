@@ -351,6 +351,40 @@ def cmd_verify(ws):
     return 0
 
 
+def ready_delivery_facts(ws, errors):
+    """Read the small fixed subset of an approved Discovery package needed for
+    the READY delivery comment. The full package remains in the dossier/bundle;
+    the comment is deliberately a short, deterministic index."""
+    gate_path = ws / "discovery" / "gate.yaml"
+    route_path = ws / "route" / "routing.yaml"
+    facts = {"approved": "", "decisions": 0, "route": "", "rule": ""}
+
+    if not gate_path.is_file():
+        errors.append(f"render: READY delivery needs discovery/gate.yaml: {gate_path}")
+    else:
+        for raw in gate_path.read_text(encoding="utf-8").splitlines():
+            if raw.startswith("  approved:"):
+                facts["approved"] = unquote(raw.partition(":")[2])
+            elif re.match(r"^    OPEN-[1-9][0-9]*:\s*\S", raw):
+                facts["decisions"] += 1
+        if facts["approved"] != "true":
+            errors.append("render: READY delivery requires an approved discovery/gate.yaml")
+
+    if not route_path.is_file():
+        errors.append(f"render: READY delivery needs route/routing.yaml: {route_path}")
+    else:
+        for raw in route_path.read_text(encoding="utf-8").splitlines():
+            if raw.startswith("  route:"):
+                facts["route"] = unquote(raw.partition(":")[2])
+            elif raw.startswith("  matched_rule:"):
+                facts["rule"] = unquote(raw.partition(":")[2])
+        if not facts["route"]:
+            errors.append("render: READY delivery route/routing.yaml has no route")
+        if not facts["rule"]:
+            errors.append("render: READY delivery route/routing.yaml has no matched_rule")
+    return facts
+
+
 def cmd_render(ws, ticket):
     yaml_path = ws / "triage" / "triage.yaml"
     meta_path = ws / "meta.yaml"
@@ -372,11 +406,6 @@ def cmd_render(ws, ticket):
 
     disposition = s.get("disposition", "")
     blockers = doc["blockers"]
-    if disposition not in ("BLOCKED", "NEEDS_INFO"):
-        errors.append(f"render: disposition is '{disposition}' — the posting path "
-                      f"renders only BLOCKED/NEEDS_INFO comments")
-    if not blockers:
-        errors.append("render: no blockers to render (posting path demands n ≥ 1)")
     version = meta.get("plugin_version", "")
     if not version:
         errors.append("render: meta.yaml has no plugin_version")
@@ -385,7 +414,17 @@ def cmd_render(ws, ticket):
         errors.append(f"render: meta.yaml started '{meta.get('started', '')}' is not ISO-8601")
 
     lines = []
-    if not errors:
+    if disposition in ("BLOCKED", "NEEDS_INFO"):
+        if not blockers:
+            errors.append("render: no blockers to render (posting path demands n ≥ 1)")
+    elif disposition == "READY":
+        ready = ready_delivery_facts(ws, errors)
+        if blockers:
+            errors.append("render: READY delivery requires no blockers")
+    else:
+        errors.append(f"render: disposition is '{disposition}'")
+
+    if not errors and disposition in ("BLOCKED", "NEEDS_INFO"):
         date = f"{int(m.group(3))} {MONTHS[int(m.group(2)) - 1]}"
         lines.append(f"h2. Recon triage: {disposition} — {len(blockers)} blocker(s) ({date})")
         for i, b in enumerate(blockers, 1):
@@ -405,6 +444,17 @@ def cmd_render(ws, ticket):
         lines.append("Reply here — answers on this ticket un-block the pipeline.")
         lines.append(f"~recon-triage v{version}~")
 
+    if not errors and disposition == "READY":
+        date = f"{int(m.group(3))} {MONTHS[int(m.group(2)) - 1]}"
+        decisions = ready["decisions"]
+        lines.append(f"h2. Recon discovery: READY — {ready['route']} ({date})")
+        lines.append(f"*Outcome:* {s.get('title', '')}")
+        lines.append(f"*Approval:* Discovery package approved; {decisions} open decision(s) recorded.")
+        lines.append(f"*Route:* {ready['route']} (rule {ready['rule']}).")
+        lines.append(f"Full dossier, approved brief, and evidence: "
+                     f"[^recon-dossier-{ticket}.html] · [^recon-artifacts-{ticket}.zip]")
+        lines.append(f"~recon-triage v{version}~")
+
     if errors:
         for e in errors:
             print(f"RENDER: {e}")
@@ -414,7 +464,7 @@ def cmd_render(ws, ticket):
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"rendered: {out} — {sum(1 for l in lines if l)} non-empty lines, "
-          f"{len(blockers)} blocker(s)")
+          f"{len(blockers)} blocker(s), disposition {disposition}")
     return 0
 
 

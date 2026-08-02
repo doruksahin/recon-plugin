@@ -60,13 +60,13 @@
 
 - pattern: "triage/jira/post-result.json"
   token: "post-result.json"
-  producer: triage posting path (after an approved post)
+  producer: triage blocker delivery or discovery READY delivery (after an approved post)
   consumers: audit
 
 - pattern: "triage/jira/attach-result.json"
   token: "attach-result.json"
   producer: attach-artifacts.sh
-  consumers: audit — absent means attach never completed
+  consumers: audit — absent means the approved delivery did not complete attachment replacement
 
 - pattern: "triage/jira/bundle-manifest.txt"
   token: "bundle-manifest.txt"
@@ -80,7 +80,7 @@
 
 - pattern: "triage/jira/post-gate.yaml"
   token: "post-gate.yaml"
-  producer: triage (the posting gate is triage's act; exchanges recorded verbatim)
+  producer: the BLOCKED/NEEDS_INFO triage or approved READY discovery delivery path (exchanges recorded verbatim)
   consumers: verify-post-gate.sh, derive-state.sh, audit
 
 - pattern: "discovery/discovery.md"
@@ -131,7 +131,7 @@
 - pattern: "report/dossier.html"
   token: "dossier.html"
   producer: recon-report
-  consumers: humans; attached to the ticket on the posting path
+  consumers: humans; attached to the ticket on the BLOCKED/NEEDS_INFO or approved READY delivery path
 
 - pattern: "state/state.yaml"
   token: "state.yaml"
