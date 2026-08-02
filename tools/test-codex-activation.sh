@@ -4,6 +4,17 @@
 # user's Codex config or network.
 set -euo pipefail
 
+# Hermetic git: every git command below must act on this script's own throwaway
+# fixtures. Inherited git environment variables override -C and cwd discovery,
+# so a caller that exports them — git itself when running a pre-commit hook, a
+# release tool, a debugging shell — silently redirects the fixture's commits and
+# status checks at the REAL repository. That once wrote fixture files onto
+# master and overwrote the committer identity. Discovery from cwd is the only
+# repository identity this script may use.
+unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE GIT_OBJECT_DIRECTORY \
+  GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_COMMON_DIR GIT_NAMESPACE \
+  GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL
+
 ROOT="$(git rev-parse --show-toplevel)"
 ACTIVATOR="$ROOT/recon/scripts/activate-codex-plugin.sh"
 BASE_TMP="${TMPDIR:-/tmp}"

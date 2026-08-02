@@ -3,6 +3,14 @@
 # No network, Jira credentials, repository writes, or user interaction.
 set -euo pipefail
 
+# Hermetic git (same reason as tools/test-codex-activation.sh): inherited git
+# environment variables override -C and cwd discovery, so a caller that exports
+# them — git running a pre-commit hook, a release tool, a debugging shell —
+# would redirect this script's fixture repositories at the REAL repository.
+unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE GIT_OBJECT_DIRECTORY \
+  GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_COMMON_DIR GIT_NAMESPACE \
+  GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL
+
 ROOT="$(git rev-parse --show-toplevel)"
 REPRO_VERIFY="$ROOT/recon/scripts/verify-repro.sh"
 DISCOVERY_VERIFY="$ROOT/recon/scripts/verify-discovery.sh"
