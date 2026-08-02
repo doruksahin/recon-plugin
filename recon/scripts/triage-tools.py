@@ -5,6 +5,7 @@
 #
 #   python3 triage-tools.py verify <workspace-dir>
 #   python3 triage-tools.py render <workspace-dir> <TICKET>
+#   python3 triage-tools.py verify-post-gate <workspace-dir>
 #
 # verify — three mechanical passes over triage/triage.yaml:
 #   1. schema: required keys, enum values, blocker structure
@@ -15,6 +16,12 @@
 #      triage/ticket.json — human content only, marker comments are output
 # render — emits triage/jira/comment.txt (invariant 13's n+4 shape) from
 #   triage.yaml + meta.yaml only. The model never writes the comment.
+# verify-post-gate — invariant 18 for the posting gate: the rendered question
+#   carried comment.txt verbatim, triage/jira/post-gate.yaml holds one
+#   well-formed exchange per presentation (non-empty verbatim answer, known
+#   outcome, terminal answer last), and the terminal outcome agrees with what
+#   is on disk (posted needs post-result.json; declined forbids the delivery
+#   artifacts). It is OUTPUT verification, never evidence for any verdict.
 #
 # The YAML dialect is the fixed schema in recon-triage SKILL.md step 3 —
 # exact two-space indent steps, double-quoted or bare scalars, block lists.
@@ -40,6 +47,16 @@ SCALAR_ENUMS = {
 REQUIRED_SCALARS = ["recon", "ticket", "title", "task_class", "disposition",
                     "outcome_decidable", "evidence_ok", "product_decision_open",
                     "design_dependency", "backend_dependency"]
+
+# Posting-gate exchange record (invariant 18): the question is presented from
+# the rail-rendered post-gate-questions.txt and every answer is stored in the
+# user's own words next to the outcome it was mapped to.
+POST_GATE_QUESTIONS_NAME = "post-gate-questions.txt"
+POST_GATE_COMMENT_HEADING = "## COMMENT"
+POST_GATE_ATTACHMENT_HEADING = "## ATTACHMENTS"
+POST_GATE_EXCHANGE_KEYS = {"presented", "answer_verbatim", "outcome"}
+POST_GATE_OUTCOMES = {"posted", "edited", "declined"}
+POST_GATE_TERMINAL = {"posted", "declined"}
 
 
 def unquote(v):
@@ -401,10 +418,208 @@ def cmd_render(ws, ticket):
     return 0
 
 
+def strip_blank_edges(lines):
+    out = list(lines)
+    while out and not out[0].strip():
+        out.pop(0)
+    while out and not out[-1].strip():
+        out.pop()
+    return out
+
+
+def comment_section(question_lines, errors):
+    """The COMMENT block of post-gate-questions.txt, blank edges removed."""
+    start = end = None
+    for index, line in enumerate(question_lines):
+        if line.startswith(POST_GATE_COMMENT_HEADING):
+            if start is not None:
+                errors.append("post-gate-questions.txt has more than one "
+                              "COMMENT section")
+                return []
+            start = index + 1
+        elif line.startswith(POST_GATE_ATTACHMENT_HEADING) and start is not None:
+            end = index
+            break
+    if start is None:
+        errors.append("post-gate-questions.txt has no "
+                      f"'{POST_GATE_COMMENT_HEADING}' section — re-render it "
+                      "with render-post-gate.sh")
+        return []
+    if end is None:
+        errors.append("post-gate-questions.txt has no "
+                      f"'{POST_GATE_ATTACHMENT_HEADING}' section after the "
+                      "comment — re-render it with render-post-gate.sh")
+        return []
+    return strip_blank_edges(question_lines[start:end])
+
+
+def parse_post_gate(path, errors):
+    """The posting-gate exchange record — same hand-rolled dialect as above."""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    roots = [i for i, line in enumerate(lines)
+             if line.strip() == "post_gate:" and not line.startswith(" ")]
+    if len(roots) != 1:
+        errors.append("post-gate.yaml must contain exactly one top-level "
+                      "post_gate: mapping")
+        return {"date": "", "exchanges": None}
+
+    fields = {}
+    exchanges = None
+    exchange = None
+    in_exchanges = False
+    index = roots[0] + 1
+    while index < len(lines):
+        raw = lines[index]
+        if raw and not raw.startswith(" ") and not raw.lstrip().startswith("#"):
+            break
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            index += 1
+            continue
+        field = re.match(r"^  ([a-z_]+):\s*(.*)$", raw)
+        if field:
+            key, value = field.group(1), field.group(2).strip()
+            if key in fields:
+                errors.append(f"post-gate.yaml:{index + 1}: duplicate field '{key}'")
+            fields[key] = unquote(value)
+            in_exchanges = key == "exchanges"
+            if key == "exchanges":
+                exchanges = []
+                exchange = None
+                if value:
+                    errors.append(f"post-gate.yaml:{index + 1}: exchanges must "
+                                  "be a block list")
+            index += 1
+            continue
+        if in_exchanges:
+            entry_start = re.match(r"^    - ([a-z_]+):\s*(.*)$", raw)
+            if entry_start:
+                key = entry_start.group(1)
+                if key != "presented":
+                    errors.append(f"post-gate.yaml:{index + 1}: exchange entries "
+                                  "must start with 'presented'")
+                exchange = {key: unquote(entry_start.group(2).strip())}
+                exchanges.append(exchange)
+                index += 1
+                continue
+            entry_field = re.match(r"^      ([a-z_]+):\s*(.*)$", raw)
+            if entry_field and exchange is not None:
+                key = entry_field.group(1)
+                if key not in POST_GATE_EXCHANGE_KEYS:
+                    errors.append(f"post-gate.yaml:{index + 1}: unknown exchange "
+                                  f"field '{key}'")
+                elif key in exchange:
+                    errors.append(f"post-gate.yaml:{index + 1}: duplicate "
+                                  f"exchange field '{key}'")
+                else:
+                    exchange[key] = unquote(entry_field.group(2).strip())
+                index += 1
+                continue
+        errors.append(f"post-gate.yaml:{index + 1}: invalid indentation or field")
+        index += 1
+
+    raw_date = fields.get("date", "")
+    if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", raw_date):
+        errors.append("post_gate.date must be YYYY-MM-DD "
+                      f"(got '{raw_date or 'missing'}')")
+    return {"date": raw_date, "exchanges": exchanges}
+
+
+def validate_post_gate_exchanges(exchanges, errors):
+    """Ordered answers: any number of `edited`, then exactly one terminal."""
+    if exchanges is None:
+        errors.append("post_gate.exchanges is required (one entry per time the "
+                      "gate was presented)")
+        return ""
+    if not exchanges:
+        errors.append("post_gate.exchanges is empty — a presented gate has at "
+                      "least one answer")
+        return ""
+    last = len(exchanges) - 1
+    for position, exchange in enumerate(exchanges):
+        where = f"exchange {position + 1}"
+        presented = exchange.get("presented", "")
+        if presented != POST_GATE_QUESTIONS_NAME:
+            errors.append(f"{where}: presented must be "
+                          f"'{POST_GATE_QUESTIONS_NAME}' (got '{presented}')")
+        if not exchange.get("answer_verbatim", "").strip():
+            errors.append(f"{where}: answer_verbatim must be non-empty "
+                          "(the user's exact words)")
+        outcome = exchange.get("outcome", "").strip()
+        if outcome not in POST_GATE_OUTCOMES:
+            errors.append(f"{where}: outcome '{outcome or 'missing'}' not in "
+                          f"{sorted(POST_GATE_OUTCOMES)}")
+            continue
+        terminal = outcome in POST_GATE_TERMINAL
+        if terminal and position != last:
+            errors.append(f"{where}: '{outcome}' ends the gate — no exchange "
+                          "may follow it")
+        if not terminal and position == last:
+            errors.append(f"{where}: the last exchange must be "
+                          f"{' or '.join(sorted(POST_GATE_TERMINAL))} — an "
+                          "'edited' answer means the gate was re-presented")
+    final = exchanges[-1].get("outcome", "").strip()
+    return final if final in POST_GATE_TERMINAL else ""
+
+
+def cmd_verify_post_gate(ws):
+    jira = ws / "triage" / "jira"
+    comment_path = jira / "comment.txt"
+    questions_path = jira / POST_GATE_QUESTIONS_NAME
+    gate_path = jira / "post-gate.yaml"
+    if not comment_path.is_file():
+        print(f"no comment draft: {comment_path}", file=sys.stderr)
+        return 2
+    if not gate_path.is_file():
+        print(f"no posting-gate record: {gate_path}", file=sys.stderr)
+        return 2
+
+    errors = []
+    if not questions_path.is_file():
+        errors.append("gate answered without rendered "
+                      f"triage/jira/{POST_GATE_QUESTIONS_NAME} (run "
+                      "render-post-gate.sh before presenting the gate)")
+    else:
+        presented_comment = comment_section(
+            questions_path.read_text(encoding="utf-8").splitlines(), errors
+        )
+        drafted_comment = strip_blank_edges(
+            comment_path.read_text(encoding="utf-8").splitlines()
+        )
+        if presented_comment and presented_comment != drafted_comment:
+            errors.append("the rendered question does not carry comment.txt "
+                          "verbatim — re-render the gate question after every "
+                          "comment change")
+
+    record = parse_post_gate(gate_path, errors)
+    outcome = validate_post_gate_exchanges(record["exchanges"], errors)
+
+    posted = (jira / "post-result.json").is_file()
+    attached = (jira / "attach-result.json").is_file()
+    if outcome == "posted" and not posted:
+        errors.append("outcome 'posted' but triage/jira/post-result.json is "
+                      "absent — the delivery never landed")
+    if outcome == "declined":
+        if posted:
+            errors.append("outcome 'declined' but triage/jira/post-result.json "
+                          "exists — a declined gate posts nothing")
+        if attached:
+            errors.append("outcome 'declined' but triage/jira/attach-result.json "
+                          "exists — a declined gate uploads nothing")
+
+    if errors:
+        for e in errors:
+            print(f"POST-GATE: {e}")
+        return 1
+    count = len(record["exchanges"] or [])
+    print(f"post-gate: clean — {count} exchange(s), outcome {outcome}")
+    return 0
+
+
 def main():
     if len(sys.argv) < 3:
         print("usage: triage-tools.py verify <workspace-dir> | "
-              "render <workspace-dir> <TICKET>", file=sys.stderr)
+              "render <workspace-dir> <TICKET> | "
+              "verify-post-gate <workspace-dir>", file=sys.stderr)
         return 2
     mode, ws = sys.argv[1], Path(sys.argv[2])
     if not ws.is_dir():
@@ -412,6 +627,8 @@ def main():
         return 2
     if mode == "verify":
         return cmd_verify(ws)
+    if mode == "verify-post-gate":
+        return cmd_verify_post_gate(ws)
     if mode == "render":
         if len(sys.argv) < 4:
             print("render needs <TICKET>", file=sys.stderr)

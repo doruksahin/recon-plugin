@@ -39,9 +39,11 @@ nodes = {k.split(".", 1)[1]: v for k, v in state.items() if k.startswith("node."
 facts = {k.split(".", 1)[1]: v for k, v in state.items() if k.startswith("fact.")}
 
 CLS = {"done": "done", "current": "now", "queued": "queued",
-       "not-taken": "ghost queued", "absent": "ghost queued"}
+       "not-taken": "ghost queued", "absent": "ghost queued",
+       "declined": "done"}
 STS_BASE = {"done": "done", "current": "in progress", "queued": "queued",
-            "not-taken": "not taken", "absent": "on-demand"}
+            "not-taken": "not taken", "absent": "on-demand",
+            "declined": "declined"}
 STS_OVERRIDE = {  # per-node wording, data-driven suffixes
     ("triage", "done"): "done · <em>%s</em>" % html.escape(facts.get("disposition", "")),
     ("repro", "done"): "done · %s exhibits" % html.escape(facts.get("exhibits", "0")),
@@ -50,6 +52,7 @@ STS_OVERRIDE = {  # per-node wording, data-driven suffixes
     ("approval_gate", "current"): "waiting on you",
     ("blocked_path", "current"): "waiting on you",
     ("blocked_path", "done"): "done · awaiting replies",
+    ("blocked_path", "declined"): "drafted · you declined posting",
     ("implement", "queued"): "queued · beyond recon",
     ("implement", "current"): "your move · beyond recon",
     ("dossier", "done"): "rendered",
@@ -58,6 +61,7 @@ STS_OVERRIDE = {  # per-node wording, data-driven suffixes
 CHIP_LABEL = {  # stop -> (anchor node, chip text)
     "triage-in-progress": ("triage", "six checks running"),
     "comment-gate": ("blocked_path", "approve comment + attachments"),
+    "post-declined": ("blocked_path", "raise the blockers yourself"),
     "awaiting-replies": ("blocked_path", "waiting for ticket replies"),
     "discovery-in-progress": (None, "discovery running"),  # anchor = current node
     "approval-gate": ("approval_gate", "answer the gate"),
@@ -101,6 +105,7 @@ EVENT_LABEL = {
                                                         "" if r.get("blockers") == "1" else "s"),
     "routed": lambda r: "routed → %s (rule %s)" % (r.get("route", "?"), r.get("rule", "?")),
     "comment_posted": lambda r: "Jira comment %s" % r.get("action", "posted"),
+    "post_declined": lambda r: "posting declined at the gate",
     "attachments_replaced": lambda r: "%s attachment(s) replaced" % r.get("count", "?"),
     "gate_answered": lambda r: "gate answered — approved: %s" % r.get("approved", "?"),
     "handoff_printed": lambda r: "handoff printed",

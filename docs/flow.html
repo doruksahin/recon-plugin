@@ -313,25 +313,47 @@
     </dl>
   </div>
 
+  <div class="step rail">
+    <div class="step-h"><span class="step-no">P5</span><h3>Render the gate question</h3>
+      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-post-gate.sh">render-post-gate.sh</a></span></div>
+    <dl class="fields">
+      <dt>who</dt><dd><span class="w-rail">rail</span></dd>
+      <dt>in</dt><dd><code>comment.txt</code> + <code>bundle-manifest.txt</code> + the staged zip</dd>
+      <dt>out</dt><dd><code>triage/jira/post-gate-questions.txt</code> — the comment bytes, both attachment names with real sizes, the bundle count, and the three options</dd>
+      <dt>rule</dt><dd>the gate presents these bytes word-for-word, never a paraphrase <span class="sep">·</span> never hand-edited — edit <code>triage.yaml</code> and re-render the chain <span class="sep">·</span> byte-deterministic for identical inputs</dd>
+    </dl>
+  </div>
+
   <div class="step human">
-    <div class="step-h"><span class="step-no">P5</span><h3>GATE — one answer for everything</h3>
+    <div class="step-h"><span class="step-no">P6</span><h3>GATE — one answer for everything</h3>
       <span class="src">you</span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-human">human</span></dd>
-      <dt>in</dt><dd>exact comment bytes + attachment manifest (2 filenames, sizes, bundle count)</dd>
-      <dt>out</dt><dd><strong>Post</strong> / <strong>Edit first</strong> / <strong>Don't post</strong></dd>
-      <dt>rule</dt><dd>one "post" = comment AND both attachments <span class="sep">·</span> any edit lands in <code>triage.yaml</code> → verify → re-render → re-package → re-show gate <span class="sep">·</span> nothing touches Jira before this</dd>
+      <dt>in</dt><dd>the rendered question, quoted verbatim (comment bytes + 2 filenames, sizes, bundle count)</dd>
+      <dt>out</dt><dd><strong>Post</strong> / <strong>Edit first</strong> / <strong>Don't post</strong>, recorded in <code>triage/jira/post-gate.yaml</code> — one entry per presentation, your exact words next to the mapped <code>outcome</code></dd>
+      <dt>rule</dt><dd>one "post" = comment AND both attachments <span class="sep">·</span> any edit lands in <code>triage.yaml</code> → verify → re-render → re-package → re-render the question → re-show gate, appending an <code>edited</code> entry <span class="sep">·</span> nothing touches Jira before this <span class="sep">·</span> "don't post" is a recorded outcome, not an absence</dd>
     </dl>
   </div>
 
   <div class="step rail">
-    <div class="step-h"><span class="step-no">P6</span><h3>Attach first, then comment</h3>
+    <div class="step-h"><span class="step-no">P7</span><h3>Attach first, then comment</h3>
       <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/attach-artifacts.sh">attach-artifacts.sh</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span></dd>
       <dt>in</dt><dd><code>recon-dossier-&lt;TICKET&gt;.html</code> + zip</dd>
       <dt>out</dt><dd><code>triage/jira/attach-result.json</code> <span class="sep">·</span> <code>post-result.json</code></dd>
       <dt>rule</dt><dd>delete only <code>recon-*-&lt;TICKET&gt;.*</code>, then upload — replace, never accumulate <span class="sep">·</span> attach BEFORE comment (duplicate names bind links to the OLDER file) <span class="sep">·</span> edit the marker comment, never append a second</dd>
+    </dl>
+  </div>
+
+  <div class="step rail">
+    <div class="step-h"><span class="step-no">P8</span><h3>Verify the recorded answer</h3>
+      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-post-gate.sh">verify-post-gate.sh</a></span></div>
+    <dl class="fields">
+      <dt>who</dt><dd><span class="w-rail">rail</span></dd>
+      <dt>in</dt><dd><code>post-gate-questions.txt</code> + <code>post-gate.yaml</code> + what is on disk</dd>
+      <dt>out</dt><dd><code>post-gate: clean</code> before the run reports</dd>
+      <dt>rule</dt><dd>the rendered question carried the posted comment bytes verbatim <span class="sep">·</span> every answer non-empty, the terminal entry last <span class="sep">·</span> <code>posted</code> needs a <code>post-result.json</code>, <code>declined</code> forbids one</dd>
     </dl>
   </div>
 
@@ -471,6 +493,7 @@
           <tr><td class="mono">triage/{ticket.json, aux-*.json}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">triage</a></td><td>the six checks; aux-user-*.json backs the @mentions</td></tr>
           <tr><td class="mono">triage/triage.yaml</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">triage</a>, verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-triage.sh">verify-triage.sh</a></td><td>discovery precondition; disposition derived + quotes verified from it; comment AND dossier both render from it</td></tr>
           <tr><td class="mono">triage/jira/{comment.txt, bundle-manifest.txt}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-comment.sh">render-comment.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/package-artifacts.sh">package-artifacts.sh</a></td><td>the gate (exact bytes + what ships), audit</td></tr>
+          <tr><td class="mono">triage/jira/{post-gate-questions.txt, post-gate.yaml}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-post-gate.sh">render-post-gate.sh</a> · triage, verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-post-gate.sh">verify-post-gate.sh</a></td><td>the posting gate (exact asked bytes + one verbatim exchange per presentation), state derivation, audit</td></tr>
           <tr><td class="mono">triage/jira/{attach-result.json, post-result.json}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/attach-artifacts.sh">attach-artifacts.sh</a> · comment rail (after "post")</td><td>audit — attach-result absent ⇒ attach never completed</td></tr>
           <tr><td class="mono">discovery/{discovery.md, gate-questions.md, gate.yaml, spec-draft.md}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-discovery/SKILL.md">discovery</a> (gate-questions.md by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-gate.sh">render-gate.sh</a>), verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-discovery.sh">verify-discovery.sh</a></td><td>gate (exact asked bytes + verbatim exchanges), dossier decision cards, the implementing session; spec-draft absent for brief_kind none</td></tr>
           <tr><td class="mono">route/{routing.yaml, aux-intent-check.txt}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/route-generic.sh">route-generic.sh</a> | <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-decree/SKILL.md">recon-decree</a></td><td>discovery (route, brief_kind, verbatim handoff), dossier</td></tr>

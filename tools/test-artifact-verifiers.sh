@@ -17,6 +17,8 @@ DISCOVERY_VERIFY="$ROOT/recon/scripts/verify-discovery.sh"
 ROUTE_GENERIC="$ROOT/recon/scripts/route-generic.sh"
 DERIVE_STATE="$ROOT/recon/scripts/derive-state.sh"
 RENDER_GATE="$ROOT/recon/scripts/render-gate.sh"
+RENDER_POST_GATE="$ROOT/recon/scripts/render-post-gate.sh"
+VERIFY_POST_GATE="$ROOT/recon/scripts/verify-post-gate.sh"
 BASE_TMP="${TMPDIR:-/tmp}"
 BASE_TMP="${BASE_TMP%/}"
 FIXTURE="$(mktemp -d "$BASE_TMP/recon-artifact-verifiers.XXXXXX")"
@@ -475,6 +477,89 @@ write_gate() {
       ;;
     *) fail "unknown gate fixture shape: $shape" ;;
   esac
+}
+
+# The posting path as verify-post-gate.sh sees it: a rendered comment draft, a
+# bundle manifest, a dossier, and a staged zip outside the workspace.
+write_posting_path() {
+  local ws="$1"
+  mkdir -p "$ws/triage/jira" "$ws/report"
+  printf '%s\n' \
+    "h2. Recon triage: BLOCKED — 1 blocker(s) (2 Aug)" \
+    '' \
+    "*1. Updated design* — [~accountid:712020:fixture]: deliver the updated design?" \
+    '' \
+    "Full detail, options, and evidence: [^recon-dossier-$TICKET.html] · [^recon-artifacts-$TICKET.zip]" \
+    'Reply here — answers on this ticket un-block the pipeline.' \
+    '~recon-triage vtest~' \
+    >"$ws/triage/jira/comment.txt"
+  printf '<html><body>fixture dossier</body></html>\n' >"$ws/report/dossier.html"
+  printf '%s\n' \
+    '128 triage/triage.yaml' \
+    '256 report/dossier.html' \
+    >"$ws/triage/jira/bundle-manifest.txt"
+  printf 'PK fixture zip\n' >"$CASE_ROOT/recon-artifacts-$TICKET.zip"
+}
+
+write_post_gate() {
+  local ws="$1" shape="$2"
+  case "$shape" in
+    posted)
+      printf '%s\n' \
+        'post_gate:' \
+        "  date: $TODAY" \
+        '  exchanges:' \
+        '    - presented: post-gate-questions.txt' \
+        '      answer_verbatim: "yes, post it"' \
+        '      outcome: posted' \
+        >"$ws/triage/jira/post-gate.yaml"
+      printf '{"id": "10001"}\n' >"$ws/triage/jira/post-result.json"
+      printf '{"deleted": [], "uploaded": ["recon-dossier"]}\n' \
+        >"$ws/triage/jira/attach-result.json"
+      ;;
+    edited-then-posted)
+      printf '%s\n' \
+        'post_gate:' \
+        "  date: $TODAY" \
+        '  exchanges:' \
+        '    - presented: post-gate-questions.txt' \
+        '      answer_verbatim: "hold on — ask Osman, not Product"' \
+        '      outcome: edited' \
+        '    - presented: post-gate-questions.txt' \
+        '      answer_verbatim: "good now, send it"' \
+        '      outcome: posted' \
+        >"$ws/triage/jira/post-gate.yaml"
+      printf '{"id": "10001"}\n' >"$ws/triage/jira/post-result.json"
+      ;;
+    declined)
+      printf '%s\n' \
+        'post_gate:' \
+        "  date: $TODAY" \
+        '  exchanges:' \
+        '    - presented: post-gate-questions.txt' \
+        "      answer_verbatim: \"don't post — I'll raise these in standup\"" \
+        '      outcome: declined' \
+        >"$ws/triage/jira/post-gate.yaml"
+      ;;
+    edited-last)
+      printf '%s\n' \
+        'post_gate:' \
+        "  date: $TODAY" \
+        '  exchanges:' \
+        '    - presented: post-gate-questions.txt' \
+        '      answer_verbatim: "fix the second ask first"' \
+        '      outcome: edited' \
+        >"$ws/triage/jira/post-gate.yaml"
+      ;;
+    *) fail "unknown post-gate fixture shape: $shape" ;;
+  esac
+}
+
+render_post_gate_fixture() {
+  local case_root="$1"
+  env RECON_ROOT="$case_root" bash "$RENDER_POST_GATE" "$TICKET" \
+    "$case_root/recon-artifacts-$TICKET.zip" >/dev/null \
+    || fail "render-post-gate.sh failed while preparing a fixture"
 }
 
 expect_pass() {
@@ -1507,5 +1592,147 @@ mv "$CASE_WS/discovery/gate.tmp" "$CASE_WS/discovery/gate.yaml"
 expect_violation "gate PACKAGE exchange contradicts approved" \
   "exchange PACKAGE: resolution must be 'approved' to match gate.approved" \
   env RECON_ROOT="$CASE_ROOT" bash "$DISCOVERY_VERIFY" "$TICKET" post-gate
+
+# Railed posting gate (ADR 0003): the renderer carries the comment bytes and is
+# deterministic; the record holds one verbatim exchange per presentation, ends
+# on a terminal outcome, and must agree with the delivery artifacts on disk.
+new_workspace post-gate-render
+write_posting_path "$CASE_WS"
+expect_pass "post-gate render" env RECON_ROOT="$CASE_ROOT" \
+  bash "$RENDER_POST_GATE" "$TICKET" "$CASE_ROOT/recon-artifacts-$TICKET.zip"
+grep -Fq '## COMMENT' "$CASE_WS/triage/jira/post-gate-questions.txt" \
+  || fail "rendered posting gate missing the COMMENT block"
+grep -Fq "recon-artifacts-$TICKET.zip" "$CASE_WS/triage/jira/post-gate-questions.txt" \
+  || fail "rendered posting gate missing the zip attachment line"
+grep -Fq "Don't post" "$CASE_WS/triage/jira/post-gate-questions.txt" \
+  || fail "rendered posting gate missing the decline option"
+cp "$CASE_WS/triage/jira/post-gate-questions.txt" "$CASE_ROOT/first-render.txt"
+expect_pass "post-gate re-render" env RECON_ROOT="$CASE_ROOT" \
+  bash "$RENDER_POST_GATE" "$TICKET" "$CASE_ROOT/recon-artifacts-$TICKET.zip"
+cmp -s "$CASE_ROOT/first-render.txt" "$CASE_WS/triage/jira/post-gate-questions.txt" \
+  || fail "posting-gate render is not byte-deterministic for identical inputs"
+PASS_COUNT=$((PASS_COUNT + 1))
+
+new_workspace post-gate-render-no-zip
+write_posting_path "$CASE_WS"
+rm -f "$CASE_ROOT/recon-artifacts-$TICKET.zip"
+expect_exit_code "post-gate render without the staged zip" "no delivery zip" 2 \
+  env RECON_ROOT="$CASE_ROOT" \
+  bash "$RENDER_POST_GATE" "$TICKET" "$CASE_ROOT/recon-artifacts-$TICKET.zip"
+
+new_workspace post-gate-posted
+write_posting_path "$CASE_WS"
+render_post_gate_fixture "$CASE_ROOT"
+write_post_gate "$CASE_WS" posted
+expect_pass "posting gate posted" env RECON_ROOT="$CASE_ROOT" \
+  bash "$VERIFY_POST_GATE" "$TICKET"
+
+new_workspace post-gate-edit-loop
+write_posting_path "$CASE_WS"
+render_post_gate_fixture "$CASE_ROOT"
+write_post_gate "$CASE_WS" edited-then-posted
+expect_pass "posting gate edit loop then post" env RECON_ROOT="$CASE_ROOT" \
+  bash "$VERIFY_POST_GATE" "$TICKET"
+
+new_workspace post-gate-declined
+write_posting_path "$CASE_WS"
+render_post_gate_fixture "$CASE_ROOT"
+write_post_gate "$CASE_WS" declined
+expect_pass "posting gate declined" env RECON_ROOT="$CASE_ROOT" \
+  bash "$VERIFY_POST_GATE" "$TICKET"
+
+new_workspace post-gate-questions-missing
+write_posting_path "$CASE_WS"
+write_post_gate "$CASE_WS" declined
+expect_violation "posting gate answered without rendered questions" \
+  "gate answered without rendered triage/jira/post-gate-questions.txt" \
+  env RECON_ROOT="$CASE_ROOT" bash "$VERIFY_POST_GATE" "$TICKET"
+
+new_workspace post-gate-comment-drift
+write_posting_path "$CASE_WS"
+render_post_gate_fixture "$CASE_ROOT"
+sed 's/deliver the updated design?/deliver something else entirely?/' \
+  "$CASE_WS/triage/jira/comment.txt" >"$CASE_WS/triage/jira/comment.tmp"
+mv "$CASE_WS/triage/jira/comment.tmp" "$CASE_WS/triage/jira/comment.txt"
+write_post_gate "$CASE_WS" declined
+expect_violation "posting gate question predates a comment change" \
+  "does not carry comment.txt verbatim" \
+  env RECON_ROOT="$CASE_ROOT" bash "$VERIFY_POST_GATE" "$TICKET"
+
+new_workspace post-gate-empty-answer
+write_posting_path "$CASE_WS"
+render_post_gate_fixture "$CASE_ROOT"
+write_post_gate "$CASE_WS" declined
+sed 's/^      answer_verbatim: .*/      answer_verbatim: ""/' \
+  "$CASE_WS/triage/jira/post-gate.yaml" >"$CASE_WS/triage/jira/post-gate.tmp"
+mv "$CASE_WS/triage/jira/post-gate.tmp" "$CASE_WS/triage/jira/post-gate.yaml"
+expect_violation "posting gate exchange with empty verbatim answer" \
+  "exchange 1: answer_verbatim must be non-empty" \
+  env RECON_ROOT="$CASE_ROOT" bash "$VERIFY_POST_GATE" "$TICKET"
+
+new_workspace post-gate-unknown-outcome
+write_posting_path "$CASE_WS"
+render_post_gate_fixture "$CASE_ROOT"
+write_post_gate "$CASE_WS" declined
+sed 's/^      outcome: declined$/      outcome: maybe/' \
+  "$CASE_WS/triage/jira/post-gate.yaml" >"$CASE_WS/triage/jira/post-gate.tmp"
+mv "$CASE_WS/triage/jira/post-gate.tmp" "$CASE_WS/triage/jira/post-gate.yaml"
+expect_violation "posting gate unknown outcome" \
+  "outcome 'maybe' not in" \
+  env RECON_ROOT="$CASE_ROOT" bash "$VERIFY_POST_GATE" "$TICKET"
+
+new_workspace post-gate-nonterminal-last
+write_posting_path "$CASE_WS"
+render_post_gate_fixture "$CASE_ROOT"
+write_post_gate "$CASE_WS" edited-last
+expect_violation "posting gate ends on an edit" \
+  "the last exchange must be declined or posted" \
+  env RECON_ROOT="$CASE_ROOT" bash "$VERIFY_POST_GATE" "$TICKET"
+
+new_workspace post-gate-posted-without-delivery
+write_posting_path "$CASE_WS"
+render_post_gate_fixture "$CASE_ROOT"
+write_post_gate "$CASE_WS" posted
+rm "$CASE_WS/triage/jira/post-result.json"
+expect_violation "posting gate approved but nothing landed" \
+  "outcome 'posted' but triage/jira/post-result.json is absent" \
+  env RECON_ROOT="$CASE_ROOT" bash "$VERIFY_POST_GATE" "$TICKET"
+
+new_workspace post-gate-declined-but-posted
+write_posting_path "$CASE_WS"
+render_post_gate_fixture "$CASE_ROOT"
+write_post_gate "$CASE_WS" declined
+printf '{"id": "10001"}\n' >"$CASE_WS/triage/jira/post-result.json"
+expect_violation "posting gate declined yet a comment landed" \
+  "outcome 'declined' but triage/jira/post-result.json exists" \
+  env RECON_ROOT="$CASE_ROOT" bash "$VERIFY_POST_GATE" "$TICKET"
+
+# A declined delivery is a distinct derived state, not "the gate is waiting",
+# and it contradicts a post-result.json from the same run.
+new_workspace post-gate-declined-state
+write_posting_path "$CASE_WS"
+mkdir -p "$CASE_WS/triage"
+printf 'disposition: BLOCKED\n' >"$CASE_WS/triage/triage.yaml"
+render_post_gate_fixture "$CASE_ROOT"
+write_post_gate "$CASE_WS" declined
+expect_pass "declined delivery state" env RECON_ROOT="$CASE_ROOT" \
+  bash "$DERIVE_STATE" "$TICKET"
+grep -Fq 'stop: post-declined' "$CASE_WS/state/state.yaml" \
+  || fail "declined delivery did not reach the post-declined stop"
+grep -Fq 'node.blocked_path: declined' "$CASE_WS/state/state.yaml" \
+  || fail "declined delivery left the posting path waiting on the human"
+expect_pass "declined delivery canvas" env RECON_ROOT="$CASE_ROOT" \
+  bash "$ROOT/recon/scripts/render-state-canvas.sh" "$TICKET"
+
+new_workspace post-gate-declined-contradiction
+write_posting_path "$CASE_WS"
+mkdir -p "$CASE_WS/triage"
+printf 'disposition: BLOCKED\n' >"$CASE_WS/triage/triage.yaml"
+render_post_gate_fixture "$CASE_ROOT"
+write_post_gate "$CASE_WS" declined
+printf '{"id": "10001"}\n' >"$CASE_WS/triage/jira/post-result.json"
+expect_violation "declined record beside a posted comment" \
+  "contradiction: triage/jira/post-gate.yaml records a declined gate" \
+  env RECON_ROOT="$CASE_ROOT" bash "$DERIVE_STATE" "$TICKET"
 
 echo "artifact verifiers: PASS — $PASS_COUNT isolated cases"

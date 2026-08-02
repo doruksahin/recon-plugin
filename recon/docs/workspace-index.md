@@ -79,6 +79,16 @@ not start unless this says `READY`.
   (`recon-artifacts-<TICKET>.zip`) is staged in a temp dir — never inside this
   workspace — and attached to the Jira ticket on an approved post; its contents
   ARE this workspace, so the manifest is the exact record of what was delivered.
+- **`post-gate-questions.txt`** — the posting gate exactly as presented, rendered
+  by `render-post-gate.sh` from `comment.txt` + `bundle-manifest.txt` + the
+  staged zip: the comment bytes that will be posted, the attachment names with
+  their real sizes, the bundle file count, and the three options. Never written
+  by hand — to change it, edit `triage.yaml` and re-render the chain.
+- **`post-gate.yaml`** — the posting-gate exchange record: one entry per time
+  the gate was presented, each holding the user's exact answer and its mapped
+  `outcome` (`posted`, `edited`, or `declined`). The Edit loop is visible here,
+  and a run where a human said "don't post" says so — it no longer looks like
+  a session that died before reaching the gate.
 - **`post-result.json`** — the Jira API response after an approved POST/edit.
   Proof of what actually landed on the ticket — audit evidence for THIS run.
   Edit-vs-create detection always comes from the live ticket's fetched comments,

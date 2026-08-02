@@ -73,6 +73,16 @@
   producer: package-artifacts.sh
   consumers: gate display, audit
 
+- pattern: "triage/jira/post-gate-questions.txt"
+  token: "post-gate-questions.txt"
+  producer: render-post-gate.sh (from comment.txt + bundle-manifest.txt + the staged zip)
+  consumers: the posting gate (exact asked bytes), verify-post-gate.sh, humans
+
+- pattern: "triage/jira/post-gate.yaml"
+  token: "post-gate.yaml"
+  producer: triage (the posting gate is triage's act; exchanges recorded verbatim)
+  consumers: verify-post-gate.sh, derive-state.sh, audit
+
 - pattern: "discovery/discovery.md"
   token: "discovery.md"
   producer: discovery

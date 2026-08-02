@@ -19,7 +19,7 @@ rule. Later rails still detect their current host and surface independently.
 
 - **Input:** ticket ID or URL (`ATT-1234` / `https://<host>/browse/ATT-1234`)
 - **Reads:** Jira API (GET only), local git branches + `gh pr list` (read-only), ticket links via WebFetch
-- **Writes:** ONLY inside `$RECON_ROOT/<TICKET>/triage/` — `ticket.json`, `triage.yaml`, auxiliary GET results as `aux-<slug>.json` (e.g. `aux-children.json`, `aux-confluence.json`); on the posting path, under `triage/jira/`: `comment.txt` (exact posted body), `bundle-manifest.txt` (delivery-bundle manifest, written by `package-artifacts.sh`), `post-result.json` (API response), `attach-result.json` (attachment uploads, written by `attach-artifacts.sh`). The delivery zip (`recon-artifacts-<TICKET>.zip`) is staged in a temp dir by `package-artifacts.sh`, never inside the workspace. Root `meta.yaml` + `index.md` belong to the step-0 script; prior-run artifacts are archived into `runs/<timestamp>/` (step 0). Anything else fails `lint-workspace.sh`.
+- **Writes:** ONLY inside `$RECON_ROOT/<TICKET>/triage/` — `ticket.json`, `triage.yaml`, auxiliary GET results as `aux-<slug>.json` (e.g. `aux-children.json`, `aux-confluence.json`); on the posting path, under `triage/jira/`: `comment.txt` (exact posted body), `bundle-manifest.txt` (delivery-bundle manifest, written by `package-artifacts.sh`), `post-gate-questions.txt` (the gate as presented, written by `render-post-gate.sh`), `post-gate.yaml` (the gate exchange record), `post-result.json` (API response), `attach-result.json` (attachment uploads, written by `attach-artifacts.sh`). The delivery zip (`recon-artifacts-<TICKET>.zip`) is staged in a temp dir by `package-artifacts.sh`, never inside the workspace. Root `meta.yaml` + `index.md` belong to the step-0 script; prior-run artifacts are archived into `runs/<timestamp>/` (step 0). Anything else fails `lint-workspace.sh`.
 - **External side effects:** NONE by default. At most: one Jira comment (create, or edit of a prior recon comment) PLUS replacement of recon-owned attachments (the `recon-*-<TICKET>.*` namespace) — both drafted/staged first, sent ONLY after the single explicit approval in this session.
 - **May invoke:** `recon:recon-discovery` (on READY), `recon:recon-repro` (UI-related blocker questions), `recon:recon-report` (render-only, BLOCKED/NEEDS_INFO posting path)
 
@@ -36,6 +36,7 @@ rule. Later rails still detect their current host and surface independently.
 7. **Human-facing questions MUST be concrete.** Every question must be answerable without reading code. The concreteness pack — numbered repro steps from a stated start state (e.g. the project's mock-mode dev command, which page), concrete entity names from the running system ("Collection3", not "a collection"), the before and after state, and options phrased as user-observable outcomes ("the tab appears and becomes selected"), never code outcomes ("activeTab is set") — goes in the dossier question packs (`blockers[].detail` in `triage.yaml`); the comment's `ask` line stays ONE rule-7-clean sentence ending in "?". Internal identifiers (service/method/prop names) are BANNED from all human-facing text, `ask` and `detail` alike. If a question concerns observable UI behavior, invoke the `recon:recon-repro` skill to attach visual evidence BEFORE presenting the draft.
 8. **Fresh workspace, every run — and step 0 runs exactly ONCE per run.** Step 0 archives all prior artifacts into `runs/<timestamp>/` BEFORE anything else — no exceptions, no "resume". NEVER re-invoke it mid-run: it would archive this run's own in-progress artifacts (the script guards this and prints `SKIPPED`; treat that as "continue, workspace is already initialized" — never set `RECON_STEP0_FORCE` mid-run). You MUST NEVER open, list, or cite anything under `runs/` — the only inputs to triage are the live Jira API, git, `gh`, and resources fetched this run. Prior recon artifacts are the output of an older run (possibly an older skill version), never evidence.
 9. **Recon's own Jira comments are output, not evidence.** Every comment recon posts ends with the marker line `~recon-triage v<plugin_version>~` (version from `meta.yaml`). When reading ticket comments, any comment whose body contains `recon-triage` is pipeline output: it MUST NOT count toward `outcome_decidable`, `product_decision_open`, or any other check. Marker comments are used for exactly two things: (a) edit-vs-create — if one exists, edit the most recent instead of adding another; (b) answered-blocker detection — a human comment posted after a marker comment counts as a reply to its questions.
+10. **The posting gate presents rail-rendered bytes and records the exchange verbatim.** `render-post-gate.sh` emits `triage/jira/post-gate-questions.txt` from the comment draft, the bundle manifest, and the staged zip; you present those bytes word-for-word — NEVER a paraphrase, NEVER your own summary of the attachments — and append one `post-gate.yaml` exchange for every presentation, holding the user's exact answer next to its mapped outcome. `post-gate-questions.txt` is never hand-edited: to change the question, edit `triage.yaml` and re-render the chain. A "Don't post" answer is recorded and logged, so a declined delivery never looks like a session that died before the gate.
 
 ---
 
@@ -179,8 +180,33 @@ bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> verdict disposition=
    ```
 
    Writes `triage/jira/bundle-manifest.txt` and stages `recon-artifacts-<TICKET>.zip` in a temp dir (never inside the workspace). Quote its `MANIFEST:` and `ZIP:` lines in your progress note.
-6. **Gate (single approval).** Use the host-native user interaction from `hosts.md` to show the comment draft AND the attachment manifest: the two filenames (`recon-dossier-<TICKET>.html`, `recon-artifacts-<TICKET>.zip`), their sizes, and the bundle file count from the `MANIFEST:` line. Options: `Post to Jira now (comment + 2 attachments)` / `Edit first` / `Don't post`. One "post" answer authorizes the comment AND both attachments. NEVER post or attach without it (rule 2). On `Edit first`: edits happen in `triage.yaml` (asks, owners, blockers) — NEVER directly in `comment.txt` — then re-run the chain: `verify-triage.sh` → posting-path steps 3–5 (dossier render, comment render, shape check, package) — the zip bundles `comment.txt`, so the gate-displayed bundle must match the posted bytes — then re-show this gate: the posted bytes are always rendered from the verified yaml and freshly approved.
-7. **On "post": attachments FIRST, then the comment.** Duplicate filenames bind `[^…]` links to the OLDER attachment, so replacement MUST precede the comment. The uploaded filename is the file's basename, so stage a renamed dossier copy in the temp dir (never inside the workspace):
+6. **Render the gate question** — NEVER compose it by hand (rule 10). The rail emits `triage/jira/post-gate-questions.txt` from `comment.txt` + `bundle-manifest.txt` + the rendered dossier + the staged zip: the exact comment bytes, both attachment names with their real sizes, the bundle file count, and the three options.
+
+   ```bash
+   bash "<skill base dir>/../../scripts/render-post-gate.sh" <TICKET> "<ZIP path from step 5's ZIP: line>"
+   ```
+
+7. **Gate (single approval).** Use the host-native user interaction from `hosts.md` to present the rendered bytes **word-for-word** — the comment block and the attachment block exactly as the rail wrote them, with its three options: `Post to Jira now (comment + 2 attachments)` / `Edit first` / `Don't post`. One "post" answer authorizes the comment AND both attachments. NEVER post or attach without it (rule 2).
+
+   Record the answer in `triage/jira/post-gate.yaml` **every time the gate is presented** — append one entry per presentation, exact two-space indent steps (the rails parse them):
+
+   ```yaml
+   post_gate:
+     date: YYYY-MM-DD
+     exchanges:
+       - presented: post-gate-questions.txt
+         answer_verbatim: "<the user's answer, their exact words, unedited>"
+         outcome: posted | edited | declined
+   ```
+
+   `edited` entries are the Edit loop and never end the list; exactly one terminal `posted` or `declined` entry is last. On `Edit first`: append the `edited` entry, then apply the edits in `triage.yaml` (asks, owners, blockers) — NEVER directly in `comment.txt` — and re-run the chain: `verify-triage.sh` → posting-path steps 3–6 (dossier render, comment render, shape check, package, gate render) — the zip bundles `comment.txt`, so the gate-displayed bundle must match the posted bytes — then re-present: the posted bytes are always rendered from the verified yaml and freshly approved. On `Don't post`: append the `declined` entry, log it, verify, and STOP — a declined delivery is a recorded outcome, not an absence:
+
+   ```bash
+   bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> post_declined
+   bash "<skill base dir>/../../scripts/verify-post-gate.sh" <TICKET>
+   ```
+
+8. **On "post": attachments FIRST, then the comment.** Duplicate filenames bind `[^…]` links to the OLDER attachment, so replacement MUST precede the comment. The uploaded filename is the file's basename, so stage a renamed dossier copy in the temp dir (never inside the workspace):
 
    ```bash
    cp "$RECON_ROOT/<TICKET>/report/dossier.html" "${TMPDIR:-/tmp}/recon-dossier-<TICKET>.html"
@@ -194,7 +220,13 @@ bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> verdict disposition=
    bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> comment_posted comment=<id> action=<created|edited>
    ```
 
-   Then STOP.
+   Then prove the recorded answer against what actually landed — the rail checks that the rendered question carried the posted comment bytes, that every answer is verbatim, and that the terminal outcome matches the delivery artifacts on disk:
+
+   ```bash
+   bash "<skill base dir>/../../scripts/verify-post-gate.sh" <TICKET>
+   ```
+
+   Fix and re-run until it prints `post-gate: clean`. Then STOP.
 
 ---
 
@@ -213,12 +245,13 @@ bash "<skill base dir>/../../scripts/lint-workspace.sh" <TICKET>
 ```
 Step 0: <the script's `archived:` output line, verbatim>
 Wrote: $RECON_ROOT/<TICKET>/triage/{ticket.json, triage.yaml} (+ jira/{comment.txt,
-       bundle-manifest.txt} on the posting path; + jira/{attach-result.json,
-       post-result.json} only after a "post" answer)
+       bundle-manifest.txt, post-gate-questions.txt, post-gate.yaml} on the posting
+       path; + jira/{attach-result.json, post-result.json} only after a "post" answer)
 Lint: <lint-workspace.sh verdict line, verbatim — fix any violation before reporting>
 Verify: <verify-triage.sh verdict line, verbatim>
 Repro verify: <verify-repro.sh verdict line, verbatim — UI-blocker posting path only; omit otherwise>
 Shape: <verify-comment-shape.sh verdict line, verbatim — posting path only; omit on READY>
+Post-gate: <verify-post-gate.sh verdict line, verbatim — posting path only; omit on READY>
 Disposition: <READY|BLOCKED|NEEDS_INFO> (<n> blockers, <n> conflicts)
 Next: <one of:
   READY    → recon:recon-discovery invoked (running now)
@@ -226,8 +259,9 @@ Next: <one of:
              arrive, run the `reconctl.sh invocation recon.triage <TICKET>` output
              again — the stale-blocker check
              re-evaluates answered questions automatically.
-  BLOCKED / NEEDS_INFO → comment NOT posted (your choice); raise the questions
-             yourself, then run the same rendered Triage invocation again.>
+  BLOCKED / NEEDS_INFO → comment NOT posted (your choice, recorded in
+             jira/post-gate.yaml); raise the questions yourself, then run the same
+             rendered Triage invocation again.>
 ```
 
 ---

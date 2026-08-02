@@ -13,7 +13,7 @@
 # RECON_ROOT overrides the workspace root (fixture tests).
 set -euo pipefail
 
-VOCAB="run_started verdict routed comment_posted attachments_replaced gate_answered handoff_printed dossier_published canvas_published"
+VOCAB="run_started verdict routed comment_posted post_declined attachments_replaced gate_answered handoff_printed dossier_published canvas_published"
 
 if [ "${1:-}" = "--vocab" ]; then
   echo "$VOCAB"

@@ -27,6 +27,7 @@ ROUT="$DIR/route/routing.yaml"
 BRIEF="$DIR/discovery/spec-draft.md"
 GATE="$DIR/discovery/gate.yaml"
 POST="$DIR/triage/jira/post-result.json"
+PGATE="$DIR/triage/jira/post-gate.yaml"
 REPRO="$DIR/repro/repro.md"
 DOSS="$DIR/report/dossier.html"
 
@@ -94,7 +95,17 @@ else
     BLOCKED|NEEDS_INFO)
       n_contract=not-taken; n_routing=not-taken; n_brief=not-taken
       n_gate=not-taken; n_handoff=not-taken; n_implement=not-taken
-      if [ ! -f "$POST" ]; then
+      # The posting gate's own record (invariant 18): its terminal outcome is
+      # the last `outcome:` line the model appended to post-gate.yaml.
+      PGATE_OUTCOME="$({ sed -n 's/^      outcome: *//p' "$PGATE" 2>/dev/null || true; } | tail -1)"
+      if [ -f "$POST" ] && [ "$PGATE_OUTCOME" = "declined" ]; then
+        echo "contradiction: triage/jira/post-gate.yaml records a declined gate but post-result.json exists" >&2; exit 1
+      fi
+      if [ "$PGATE_OUTCOME" = "declined" ]; then
+        stop=post-declined; n_blocked=declined
+        next_action=recon.triage
+        next="you declined posting — raise the blockers yourself, then run Recon Triage for $TICKET again"
+      elif [ ! -f "$POST" ]; then
         stop=comment-gate; n_blocked=current
         next_action=human.approval
         next="approve the Jira comment + attachments gate in the triage session (nothing posts without it)"
