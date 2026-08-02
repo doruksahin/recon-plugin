@@ -355,6 +355,9 @@
     <h2>Exhibits</h2>
     <!-- «SLOT: repro env» — the "Start state:" line of repro.md, verbatim facts.
          If repro did not run: one line "Not run — <no UI trigger fired | reason>". -->
+    <!-- «SLOT: repro session pointer» — ONLY when repro/session/ exists, one line:
+         "Recorded session: viewer.html + session.webm — in the attached recon-artifacts-<TICKET>.zip"
+         (posting path) or "… — at repro/session/ in the workspace" (otherwise). Absent bundle: omit the line. -->
     <details class="fold" id="exhibits">
       <summary><span class="fold-label">Screenshots</span> <!-- «SLOT: exhibits summary» e.g. "Five exhibits from the live mock session." --></summary>
       <div class="fold-body">

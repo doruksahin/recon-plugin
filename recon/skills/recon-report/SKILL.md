@@ -56,6 +56,7 @@ dossier path as render-only. Later rails still detect current runtime identity.
 | Cross-checks table | `triage.yaml` `status_drift`, `stale_blocker_note` |
 | Discovery body + excerpts | `discovery/discovery.md`, `route/routing.yaml` (incl. `rules_not_matched` if quoted) |
 | Repro env + exhibits | `repro/repro.md` frontmatter `start_state` + numbered steps as captions; `repro/exhibits/<n>-<slug>.png` in step order |
+| Repro session pointer | `repro/session/` presence — one line naming `viewer.html` + `session.webm` and where they travel (the attached `recon-artifacts-<TICKET>.zip` on the posting path; the workspace path otherwise); no bundle → omit the line |
 | Decision cards | `discovery/gate.yaml` |
 | Handoff block | `route/routing.yaml` `handoff:` — VERBATIM (it is data, never recomposed), or the BLOCKED re-entry line |
 
