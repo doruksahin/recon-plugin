@@ -2,9 +2,8 @@
 
 > Compute the verdict from the six checks by script; lint fails on mismatch
 
-- **Status:** in-progress — implemented 1 Aug 2026 (`recon/scripts/verify-triage.sh`
-  + `triage-tools.py`, SKILL.md step 3 rewritten, pipeline.md invariant 15);
-  pending commit/release
+- **Status:** shipped (v0.9.0) — implemented 1 Aug 2026 (`recon/scripts/verify-triage.sh`
+  + `triage-tools.py`, SKILL.md step 3 rewritten, pipeline.md invariant 15)
 - **Priority:** P1
 - **Theme:** determinism rail
 - **Origin:** ATT-5107 triage run, 1 Aug 2026 — the model wrote both the checks and

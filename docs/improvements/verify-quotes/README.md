@@ -2,9 +2,9 @@
 
 > Type evidence lines; substring-check every quote against ticket.json
 
-- **Status:** in-progress — implemented 1 Aug 2026 (typed evidence schema + verbatim
+- **Status:** shipped (v0.9.0) — implemented 1 Aug 2026 (typed evidence schema + verbatim
   quote pass in `recon/scripts/verify-triage.sh`; marker-comment sources rejected;
-  curly-quote/whitespace normalization); pending commit/release
+  curly-quote/whitespace normalization)
 - **Priority:** P1
 - **Theme:** determinism rail
 - **Origin:** ATT-5107 triage run, 1 Aug 2026 — blocker evidence quoted Osman's

@@ -2,10 +2,10 @@
 
 > One owner file per shared fact; check-coherence.sh fails commits whose mirrors drift
 
-- **Status:** in-progress — implemented 1 Aug 2026 (`recon/docs/registry.yaml`
+- **Status:** shipped (v0.9.0) — implemented 1 Aug 2026 (`recon/docs/registry.yaml`
   single-source registry, `tools/check-coherence.sh` in the pre-commit chain,
   role CLAUDE.mds in five directories, ownership table as Change protocol
-  item 8); pending commit/release
+  item 8)
 - **Priority:** P1
 - **Theme:** determinism rail
 - **Origin:** 1 Aug 2026 — one flow change (verify/render rails) required editing

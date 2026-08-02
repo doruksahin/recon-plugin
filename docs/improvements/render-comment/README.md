@@ -2,10 +2,10 @@
 
 > Generate comment.txt from triage.yaml by script — the model never writes it
 
-- **Status:** in-progress — implemented 1 Aug 2026 (`recon/scripts/render-comment.sh`
+- **Status:** shipped (v0.9.0) — implemented 1 Aug 2026 (`recon/scripts/render-comment.sh`
   + `triage-tools.py`, `owner_account_id` in the schema, posting-path steps 1/4/6
   rewritten; verified byte-identical against the comment actually posted to
-  ATT-5107); pending commit/release. The `judgment.yaml` dossier variant remains open.
+  ATT-5107). The `judgment.yaml` dossier variant remains open.
 - **Priority:** P2
 - **Theme:** determinism rail
 - **Origin:** ATT-5107 triage run, 1 Aug 2026 — the comment passed

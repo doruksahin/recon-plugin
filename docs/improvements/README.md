@@ -14,10 +14,10 @@ model writes is asks, detail packs, headline, lede — everything else is derive
 
 | Idea | Status | Prio | One-liner |
 | --- | --- | --- | --- |
-| [derive-disposition](derive-disposition/README.md) | in-progress | P1 | Compute the verdict from the six checks by script; lint fails on mismatch |
+| [derive-disposition](derive-disposition/README.md) | shipped (v0.9.0) | P1 | Compute the verdict from the six checks by script; lint fails on mismatch |
 | [validate-triage-yaml](validate-triage-yaml/README.md) | proposed | P1 | Schema + regex lint for triage.yaml: rule-7 identifier bans, length caps, ask shape |
-| [verify-quotes](verify-quotes/README.md) | in-progress | P1 | Type evidence lines; substring-check every quote against ticket.json |
-| [render-comment](render-comment/README.md) | in-progress | P2 | Generate comment.txt from triage.yaml by script — the model never writes it |
+| [verify-quotes](verify-quotes/README.md) | shipped (v0.9.0) | P1 | Type evidence lines; substring-check every quote against ticket.json |
+| [render-comment](render-comment/README.md) | shipped (v0.9.0) | P2 | Generate comment.txt from triage.yaml by script — the model never writes it |
 | [slop-lint](slop-lint/README.md) | proposed | P3 | Banned-phrase denylist + structural caps on the remaining free-text slots |
 | [golden-fixtures](golden-fixtures/README.md) | proposed | P3 | Canned ticket.json fixtures + golden-output diffs; regression-test the pipeline |
 
@@ -27,7 +27,7 @@ Failure modes observed live that the skills don't handle or handle ambiguously.
 
 | Idea | Status | Prio | One-liner |
 | --- | --- | --- | --- |
-| [doc-coherence-rail](doc-coherence-rail/README.md) | in-progress | P1 | One owner per shared fact; check-coherence.sh fails commits whose mirrors drift |
+| [doc-coherence-rail](doc-coherence-rail/README.md) | shipped (v0.9.0) | P1 | One owner per shared fact; check-coherence.sh fails commits whose mirrors drift |
 | [credential-preflight](credential-preflight/README.md) | proposed | P1 | GET /myself before the ticket fetch; expired tokens fail loudly with a fix |
 | [owner-resolution-order](owner-resolution-order/README.md) | proposed | P2 | Resolve accountIds from ticket data first; user search only as fallback |
 | [answered-blocker-rule](answered-blocker-rule/README.md) | proposed | P2 | A reply closes a blocker only if it supplies the asked value; delegation ≠ answer |
