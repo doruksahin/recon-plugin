@@ -1,3 +1,9 @@
+## v0.14.1 (2026-08-02)
+
+### Bug Fixes
+
+- **portability**: correct Codex host detection, invocation syntax, and network policy
+
 ## v0.14.0 (2026-08-02)
 
 ### Features
