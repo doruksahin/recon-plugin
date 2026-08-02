@@ -15,7 +15,7 @@ model writes is asks, detail packs, headline, lede — everything else is derive
 | Idea | Status | Prio | One-liner |
 | --- | --- | --- | --- |
 | [derive-disposition](derive-disposition/README.md) | shipped (v0.9.0) | P1 | Compute the verdict from the six checks by script; lint fails on mismatch |
-| [ticket-ledger](ticket-ledger/README.md) | in-progress | P2 | Append-only *history.ndjson* survives step 0; a rail logs each transition; nothing may read it as evidence |
+| [ticket-ledger](ticket-ledger/README.md) | shipped (v0.13.0) | P2 | Append-only *history.ndjson* survives step 0; a rail logs each transition; nothing may read it as evidence |
 | [validate-triage-yaml](validate-triage-yaml/README.md) | proposed | P1 | Schema + regex lint for triage.yaml: rule-7 identifier bans, length caps, ask shape |
 | [verify-quotes](verify-quotes/README.md) | shipped (v0.9.0) | P1 | Type evidence lines; substring-check every quote against ticket.json |
 | [render-comment](render-comment/README.md) | shipped (v0.9.0) | P2 | Generate comment.txt from triage.yaml by script — the model never writes it |
@@ -38,4 +38,4 @@ Failure modes observed live that the skills don't handle or handle ambiguously.
 | [evidence-ok-tristate](evidence-ok-tristate/README.md) | proposed | P2 | Split evidence_ok into true / auth-walled / broken; stop the permanent false flag |
 | [step0-run-identity](step0-run-identity/README.md) | proposed | P3 | Key the fresh-workspace guard on a run token, not elapsed time |
 | [jira-api-v3-search](jira-api-v3-search/README.md) | proposed | P3 | Migrate search references to /rest/api/3/search/jql; v2 search is removed |
-| [state-canvas-skill](state-canvas-skill/README.md) | in-progress | P2 | New skill renders a node-canvas artifact per ticket; state derived from file presence, one stable URL |
+| [state-canvas-skill](state-canvas-skill/README.md) | shipped (v0.13.0) | P2 | New skill renders a node-canvas artifact per ticket; state derived from file presence, one stable URL |

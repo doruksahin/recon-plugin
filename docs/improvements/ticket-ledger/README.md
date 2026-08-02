@@ -2,7 +2,8 @@
 
 > Append-only *history.ndjson* survives step 0; a rail logs each transition; nothing may read it as evidence
 
-- **Status:** in-progress (plan: [../../plans/2026-08-02-state-canvas-ledger.md](../../plans/2026-08-02-state-canvas-ledger.md))
+- **Status:** shipped (v0.13.0)
+- **Shipped:** commit `ce3fa2e` per [../../plans/2026-08-02-state-canvas-ledger.md](../../plans/2026-08-02-state-canvas-ledger.md)
 - **Priority:** P2
 - **Theme:** determinism rail
 - **Origin:** 2 Aug 2026 — building the ATT-5047 state canvas by hand. The workspace showed *where* the run stood (gate pending) but not *when or how* it got there; ATT-5107's earlier BLOCKED story was invisible because `runs/` is unreadable (invariant 3). The ticket's history had to be reconstructed from Jira comments and file mtimes.
