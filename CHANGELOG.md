@@ -1,3 +1,10 @@
+## v0.9.0 (2026-08-02)
+
+### Features
+
+- **tools**: coherence rail — one owner per fact, mirrors checked pre-commit
+- **triage**: derived disposition, verbatim quotes, rendered comment
+
 ## v0.8.0 (2026-08-01)
 
 ### Features
