@@ -1,3 +1,9 @@
+## v0.14.0 (2026-08-02)
+
+### Features
+
+- **portability**: support native local Codex execution
+
 ## v0.13.0 (2026-08-02)
 
 ### Features
