@@ -1,3 +1,28 @@
+## v0.17.0 (2026-08-02)
+
+### BREAKING CHANGE
+
+- recon-state must present the publish question from
+`record-publish-gate.sh <TICKET> question` and record every answer through
+`record-publish-gate.sh <TICKET> answer <published|declined> "<verbatim>"`,
+which writes the new registered artifact state/publish-gate.yaml.
+- recon-discovery must obtain the one-time handoff-style answer
+through `set-governance.sh question` + `set-governance.sh answer <value> <tool>
+"<verbatim>"`. `answer` refuses — and persists nothing — without the
+developer's exact words.
+- the BLOCKED/NEEDS_INFO posting path must render
+triage/jira/post-gate-questions.txt before presenting the gate and record every
+answer in triage/jira/post-gate.yaml (exchanges list, each entry with
+presented/answer_verbatim/outcome, outcome in posted|edited|declined, exactly
+one terminal entry last) — verify-post-gate.sh rejects a run without them, and
+log-event.sh's closed vocabulary gains post_declined.
+
+### Features
+
+- **gate**: record the state-canvas publish exchange
+- **gate**: record the handoff-style exchange beside the config
+- **gate**: record the posting-gate exchange from railed questions
+
 ## v0.16.0 (2026-08-02)
 
 ### BREAKING CHANGE
