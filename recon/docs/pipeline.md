@@ -18,6 +18,8 @@ Design formula (all changes must preserve it): **judgment stays in the model but
 | R | Live repro | recon-repro | invoked by stage 1 or 2 per trigger table | `repro.md` + screenshots, or an honest failure finding |
 | D | Dossier | recon-report | on demand after any STOP (current run exists), or auto-invoked render-only by stage 1's `BLOCKED`/`NEEDS_INFO` posting path | on-demand: `report/dossier.html` + one private artifact URL · render-only: `report/dossier.html` only (no artifact URL) |
 
+**Legend:** numbered stages run in sequence; lettered stages fire on trigger-table conditions, not in order — **R** repro (invocable from stage 1 or 2), **RT** routing (inside stage 2, two possible producers), **D** dossier (after any STOP, or auto on the posting path).
+
 **STOP is a real state.** The pipeline never implements, branches, or edits repo code. After stage 2 approval, implementation belongs to a NEW session entered via the printed handoff (`/decree:ddd`). After a BLOCKED stop, re-entry is a fresh `recon-triage <TICKET>` run once answers arrive.
 
 ## Invariants (MUST hold in every run)

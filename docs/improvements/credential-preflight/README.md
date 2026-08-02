@@ -54,9 +54,16 @@ loses the missing-env-file prose, which moves into the script's own error.
 
 ## Implementation sketch
 
-- New *recon/scripts/jira-preflight.sh*: source env → strip host prefix →
-  `GET /myself` → 200: print identity; 401/403: print the remediation block; missing
-  env file: print the create-it instructions currently in SKILL.md's Reference.
+Partial overlap shipped 2 Aug: `recon/scripts/doctor.sh`
+([help-doctor-skill](../help-doctor-skill/README.md)) performs exactly this
+check on demand — env present, `GET /myself`, remediation text per failure
+mode. What remains open here is wiring the same check into triage step 1 so a
+RUN fails loudly, not just a doctor invocation.
+
+- New *recon/scripts/jira-preflight.sh* (or extract doctor's Jira block):
+  source env → strip host prefix → `GET /myself` → 200: print identity;
+  401/403: print the remediation block; missing env file: print the create-it
+  instructions currently in SKILL.md's Reference.
 - Best shipped as part of a shared *jira-get.sh* helper (see
   [golden-fixtures](../golden-fixtures/README.md) — same seam serves fixtures).
 - Call it in `recon-triage` step 1 and `recon-repro`/`recon-report` wherever they

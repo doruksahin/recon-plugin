@@ -12,6 +12,7 @@ directory without a role line below fails `tools/check-coherence.sh`.
 | `recon-repro/` | R | On-demand live repro: numbered human-re-runnable steps + annotated screenshots into `repro/`. Never fabricated — a failed repro is a reported finding. |
 | `recon-report/` | D | The dossier: fills its `template.html` from current-run artifacts (a view, NO new facts). Render-only on the posting path; publishes a private artifact on demand. |
 | `recon-decree/` | RT | Governance adapter for decree: same contract as `route-generic.sh` (writes `route/routing.yaml` incl. verbatim `handoff:`). ALL decree vocabulary is quarantined here — a `governance: none` run never loads it. |
+| `recon-help/` | utility | Orientation + setup doctor (not a pipeline stage). Presents `doctor.sh` output verbatim — version, skill list, and setup checks are all derived live by the rail, so the help surface cannot drift. Writes nothing. |
 
 New governance adapters follow the `recon-<governance>` convention with the
 same contract as `recon-decree/` (pipeline.md Change protocol, item 6).

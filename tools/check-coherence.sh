@@ -73,6 +73,14 @@ for dir in recon/scripts recon/docs recon/skills tools docs; do
     grep -qF "$name" "$roledoc" || say_fail "$dir/$name has no role entry in $roledoc"
   done < <(find "$dir" -mindepth 1 -maxdepth 1 ! -name '.*' | sort)
 done
+# Skills are also user-facing: each one must appear in the README (its table of
+# commands) and in plugin.json's skills array — a new skill nobody can discover
+# is drift too.
+while IFS= read -r entry; do
+  name="$(basename "$entry")"
+  grep -qF "$name" README.md || say_fail "recon/skills/$name is not mentioned in README.md"
+  grep -qF "./skills/$name" recon/.claude-plugin/plugin.json || say_fail "recon/skills/$name is not registered in plugin.json skills[]"
+done < <(find recon/skills -mindepth 1 -maxdepth 1 -type d | sort)
 
 # ------------------------------------------------------- 4. invariant citations
 echo "[4/4] invariant citations → pipeline.md"

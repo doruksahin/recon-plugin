@@ -1,7 +1,7 @@
 {
   "name": "recon",
   "version": "0.9.0",
-  "description": "Deterministic Jira task recon pipeline: blocker triage \u2192 code discovery \u2192 decree routing, with live visual evidence. Runs before planning; ends at a human approval gate.",
+  "description": "Deterministic Jira task recon pipeline: blocker triage → code discovery → decree routing, with live visual evidence. Runs before planning; ends at a human approval gate.",
   "keywords": [
     "jira",
     "recon",
@@ -18,6 +18,7 @@
     "./skills/recon-discovery",
     "./skills/recon-repro",
     "./skills/recon-report",
-    "./skills/recon-decree"
+    "./skills/recon-decree",
+    "./skills/recon-help"
   ]
 }

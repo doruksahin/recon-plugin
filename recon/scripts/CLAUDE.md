@@ -20,6 +20,7 @@ alias those). Adding a file here without a role line below fails
 | `detect-governance.sh` | Resolves the governance ladder: env var → `~/.config/recon/config` → repo probe. Detection alone never opts a developer in (`undecided` → one persisted question). |
 | `set-governance.sh` | Persists the user's governance answer to `~/.config/recon/config` so the question is asked once. |
 | `route-generic.sh` | The `governance: none` routing producer: writes `route/routing.yaml` with route, matched rule, rule trace, and the verbatim `handoff:` block. |
+| `doctor.sh` | The recon-help engine: prints version (from its own plugin.json), the skill list (from each sibling SKILL.md's frontmatter description), and live setup checks (Jira env + GET /myself, handoff style via detect-governance.sh). Read-only; every printed fact is derived at run time so help cannot drift. |
 
 New-script checklist: role line here · registry entry in `../docs/registry.yaml`
 if it writes a new workspace artifact · rails/trigger tables in
