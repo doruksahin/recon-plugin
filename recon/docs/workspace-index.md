@@ -96,20 +96,25 @@ not start unless this says `READY`.
 The behavior contract: Gherkin scenarios for the required behavior, the
 must-not-change regression behaviors, and any OPEN scenarios (edge cases the
 code allows but no one has decided) with A/B/C options phrased as user-observable
-outcomes. Implementers verify their work against these scenarios.
+outcomes. Headings carry stable `REQ-N`, `REG-N`, and `OPEN-N` IDs; those IDs
+join the contract to brief checkboxes and gate resolutions. Implementers verify
+their work against these scenarios. An evidenced `No scenarios:` declaration is
+valid when no behavior contract is possible.
 
 ### `discovery/gate.yaml`
 The human approval record: whether the package was approved, when, every
-OPEN-scenario decision the gate resolved, and — on a reject — the reason. The
-gate is discovery's act, so its record lives here, separate from routing.
+`OPEN-N` decision the gate resolved (exact key parity, including rejected
+packages), and — on a reject — the reason. The gate is discovery's act, so its
+record lives here, separate from routing.
 
 ### `discovery/spec-draft.md`
 The implementer's brief — self-sufficient by contract: acceptance criteria derived
-1:1 from the Gherkin, a ≤10-line technical design naming the contract to reuse,
+1:1 from the Gherkin with the same stable IDs, a ≤10-line technical design naming the contract to reuse,
 integration guardrails (conflicting PRs), and a **Manual verification** section
 with the start state and numbered steps to reach the affected surface (copied from
 `repro/repro.md`; states why, if repro could not run). An implementing session
-should need nothing else.
+should need nothing else. This file is intentionally absent when routing says
+`brief_kind: none`; that is a verified route outcome, not an incomplete stage.
 
 ---
 
@@ -120,7 +125,8 @@ should need nothing else.
 Which route the routing stage chose, the matched rule, why every other rule did
 *not* match, how governance was resolved (`governance` + `governance_source` —
 the developer's standing choice always outranks detection), `brief_kind` (what
-kind of brief discovery must draft), `repo_commit` (the git HEAD that pins every
+kind of brief discovery must draft), `repo_commit` (the full SHA-1/SHA-256 git
+HEAD object ID that pins every
 line-number claim), and `handoff:` — the exact next commands, which every
 consumer quotes verbatim and never rewrites. Produced by a plain script when no
 governance system is in play, or by the team's governance adapter skill when one
@@ -136,17 +142,21 @@ makes them auditable in full.
 ## `repro/` — stage R: live reproduction (present when a repro trigger fired)
 
 ### `repro/repro.md`
-The reproduction record: a stated, reachable start state (dev command + page +
-preconditions), numbered steps a human can re-run in ~60 seconds, each step's
-observable result, and the concrete form of any question the repro was meant to
-make answerable. A failed reproduction is documented honestly here — that is a
-finding, not a gap.
+The reproduction record: fixed frontmatter names the ticket, whether reproduction
+succeeded, its reachable start state, and any failure reason. On success,
+contiguous numbered steps are human-rerunnable in ~60 seconds and each references
+the same-numbered exhibit. On failure, the reason is explicit and no success
+steps or exhibits are invented. `verify-repro.sh` accepts only regular,
+non-symlinked in-workspace paths and validates structure, PNG chunk/order/CRC/
+zlib/IEND integrity, and coarse current-run provenance before any caller consumes
+it; the skill separately judges whether each image visibly proves its claim.
 
 ### `repro/exhibits/<n>-<slug>.png`
 One screenshot per state, numbered in step order (`1-baseline.png`,
 `2-dropdown-open.png`, …). Captured live this run — never reused from history.
 They serve three consumers: the gate's questions, the spec draft's Manual
-verification, and the eventual PR's "before" evidence.
+verification, and the eventual PR's "before" evidence. Missing, orphaned,
+corrupt, stale, or misnumbered images fail package verification.
 
 ---
 

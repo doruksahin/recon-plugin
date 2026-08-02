@@ -53,15 +53,57 @@ assert_contains "$CAPS" "publish_stable_url: unavailable" "Codex stable publishi
 assert_contains "$(clean_env RECON_HOST=claude bash "$CTL" capabilities)" \
   "publish_stable_url: available" "Claude stable publishing capability"
 
+# One start invocation owns the full pre-mutation snapshot. Runtime identity is
+# emitted once, capability keys are namespaced, and the read-only base profile
+# must not create the configured workspace root.
+START_ROOT="$FIXTURE/start-pass"
+START_PASS="$(clean_env RECON_ROOT="$START_ROOT" RECON_HOST=codex RECON_SURFACE=codex-cli \
+  bash "$CTL" start base)"
+START_PREFIX="$(printf '%s\n' "$START_PASS" | sed -n '1,4p')"
+assert_eq "$START_PREFIX" "root: $START_ROOT
+host: codex
+surface: codex-cli
+capability.ask_user: request_user_input when available; otherwise ask and stop" "atomic start output order"
+assert_contains "$START_PASS" "capability.publish_stable_url: unavailable" "atomic start capability snapshot"
+assert_contains "$START_PASS" "profile: base" "atomic start preflight profile"
+assert_contains "$START_PASS" "preflight: PASS" "atomic start pass verdict"
+assert_eq "$(printf '%s\n' "$START_PASS" | grep -c '^host: ')" "1" "atomic start emits host once"
+[ ! -e "$START_ROOT" ] || fail "atomic start mutated the workspace root"
+
+# Nested host markers fail closed inside the same snapshot: unknown identity,
+# conservative capabilities, an explicit warning, and a passing base preflight.
+AMB_START_ROOT="$FIXTURE/start-ambiguous"
+AMB_START="$(clean_env CLAUDECODE=1 CODEX_THREAD_ID=test RECON_ROOT="$AMB_START_ROOT" \
+  bash "$CTL" start base)"
+assert_contains "$AMB_START" "host: unknown" "ambiguous atomic start host"
+assert_contains "$AMB_START" "surface: unknown" "ambiguous atomic start surface"
+assert_contains "$AMB_START" "capability.publish_stable_url: unavailable" "ambiguous atomic start capabilities"
+assert_contains "$AMB_START" "check.host: WARN" "ambiguous atomic start warning"
+assert_contains "$AMB_START" "preflight: PASS" "ambiguous atomic start preflight"
+[ ! -e "$AMB_START_ROOT" ] || fail "ambiguous atomic start mutated the workspace root"
+
+if clean_env RECON_ROOT="$FIXTURE/start-missing-profile" bash "$CTL" start \
+  >"$FIXTURE/start-missing-profile.out" 2>&1; then
+  fail "atomic start passed without a preflight profile"
+fi
+assert_contains "$(cat "$FIXTURE/start-missing-profile.out")" \
+  "unknown preflight profile" "atomic start requires an explicit profile"
+assert_contains "$(clean_env bash "$CTL" help)" "start <base|triage>" "atomic start help"
+
 # Codex declares its own network policy; preflight must not probe past it.
 assert_contains "$(clean_env RECON_HOST=codex CODEX_SANDBOX_NETWORK_DISABLED=1 bash "$CTL" capabilities)" \
   "network: unavailable" "declared network policy honored"
 printf 'JIRA_HOST=example.atlassian.net\nJIRA_EMAIL=t@example.com\nJIRA_API_TOKEN=t\n' >"$FIXTURE/jira.env"
 if clean_env RECON_HOST=codex CODEX_SANDBOX_NETWORK_DISABLED=1 RECON_ROOT="$FIXTURE/net" \
-  RECON_JIRA_ENV="$FIXTURE/jira.env" bash "$CTL" preflight triage >"$FIXTURE/net.out" 2>&1; then
-  fail "triage preflight passed with the network declared disabled"
+  RECON_JIRA_ENV="$FIXTURE/jira.env" bash "$CTL" start triage >"$FIXTURE/net.out" 2>&1; then
+  fail "atomic triage start passed with the network declared disabled"
 fi
-assert_contains "$(cat "$FIXTURE/net.out")" "CODEX_SANDBOX_NETWORK_DISABLED=1" "network short-circuit reason"
+START_FAIL="$(cat "$FIXTURE/net.out")"
+assert_contains "$START_FAIL" "root: $FIXTURE/net" "atomic start failure retains root snapshot"
+assert_contains "$START_FAIL" "host: codex" "atomic start failure retains host snapshot"
+assert_contains "$START_FAIL" "capability.network: unavailable" "atomic start failure retains capability snapshot"
+assert_contains "$START_FAIL" "CODEX_SANDBOX_NETWORK_DISABLED=1" "network short-circuit reason"
+assert_contains "$START_FAIL" "preflight: FAIL" "atomic start fail verdict"
 
 PREFLIGHT="$(clean_env RECON_ROOT="$FIXTURE/workspaces" RECON_HOST=codex bash "$CTL" preflight base)"
 assert_contains "$PREFLIGHT" "check.workspace: PASS" "base workspace preflight"
@@ -82,6 +124,10 @@ clean_env RECON_ROOT="$RUN_ROOT" RECON_HOST=claude RECON_SURFACE=claude-code \
   bash "$ROOT/recon/scripts/log-event.sh" TEST-1 verdict disposition=READY blockers=0 >"$FIXTURE/event.out"
 tail -1 "$RUN_ROOT/TEST-1/history.ndjson" | grep -Fq '"host":"claude-code"' || fail "event missing current host"
 tail -1 "$RUN_ROOT/TEST-1/history.ndjson" | grep -Fq '"surface":"claude-code"' || fail "event missing current surface"
+grep -Fq "started_host: codex" "$META" || fail "later event changed the starting host snapshot"
+if tail -1 "$RUN_ROOT/TEST-1/history.ndjson" | grep -Fq '"host":"codex"'; then
+  fail "later event reused the starting host instead of current provenance"
+fi
 
 clean_env RECON_ROOT="$RUN_ROOT" RECON_HOST=codex \
   bash "$ROOT/recon/scripts/derive-state.sh" TEST-1 >"$FIXTURE/state.out"

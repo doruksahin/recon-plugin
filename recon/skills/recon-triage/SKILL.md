@@ -1,6 +1,6 @@
 ---
 name: recon-triage
-description: Stage 0 blocker triage for a Jira ticket before any planning. Use when given a Jira ticket URL/ID to assess, when a task enters TODO, or when asked whether a task is blocked, ready, or actionable.
+description: Decide whether a Jira ticket is READY, BLOCKED, or NEEDS_INFO before planning. Use when given a Jira URL or ID, when a task enters TODO, or when asked whether work is actionable.
 ---
 
 # Recon Triage
@@ -9,11 +9,11 @@ Read-only blocker triage: decides READY / BLOCKED / NEEDS_INFO for a Jira ticket
 
 ## Host setup
 
-Before the first path or tool action, read `../../docs/hosts.md`. Resolve the
-absolute workspace root, host, and surface with `reconctl.sh`; inspect
-`capabilities`, then run `reconctl.sh preflight triage`. Retain the printed
-values for the run. A failed preflight is a hard STOP before step 0; report its
-failed checks verbatim. Do not change any gate or evidence rule.
+Before the first path or tool action, read `../../docs/hosts.md`, then run
+`reconctl.sh start triage` once. Retain its root, host, surface, capabilities,
+and preflight snapshot for the run. A failed preflight is a hard STOP before
+step 0; report its failed checks verbatim. Do not change any gate or evidence
+rule. Later rails still detect their current host and surface independently.
 
 ## Contract
 
@@ -145,7 +145,7 @@ bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> verdict disposition=
 #### Posting path (BLOCKED / NEEDS_INFO)
 
 1. **Structure the blockers and resolve their owners.** Every `triage.yaml` blocker follows the schema above: `title` (≤5 words), `owner`, `owner_account_id`, a one-sentence `ask` ending in "?", and a `detail` question pack — list entries at exactly the schema's two-space indentation (`  - title:`; the rails parse that pattern). Rule 7 applies to `ask` AND `detail`: internal identifiers are BANNED from both. Resolve each `owner` to its `owner_account_id` now: `GET "https://$HOST/rest/api/2/user/search?query=<name>"` (same creds/HOST as workflow step 1), save each response as `triage/aux-user-<slug>.json`, and write the `accountId` into the blocker — NEVER guess an accountId or fall back to a display name; if several accounts match one name, prefer the accountId already active on the ticket (reporter, assignee, or a comment author in `ticket.json`). Re-run `verify-triage.sh` until `verify: clean`.
-2. **Repro first.** Any blocker concerning observable UI behavior → invoke the `recon:recon-repro` skill and capture its evidence BEFORE drafting (rule 7).
+2. **Repro first.** Any blocker concerning observable UI behavior → invoke the `recon:recon-repro` skill and capture its evidence BEFORE drafting (rule 7). Before copying an exhibit reference into `triage.yaml`, run `verify-repro.sh <TICKET>` again at this consumer boundary and require `verify: clean`.
 3. **Render the dossier.** Invoke the `recon:recon-report` skill in render-only mode → writes `report/dossier.html`. NO artifact publishing on this path — the Jira attachment is the delivery.
 4. **Render the comment** — NEVER write it by hand. The rail emits `triage/jira/comment.txt` from `triage.yaml` + `meta.yaml` only (header date from `started`, marker version from `plugin_version`, mentions from each blocker's `owner_account_id`):
 
@@ -217,6 +217,7 @@ Wrote: $RECON_ROOT/<TICKET>/triage/{ticket.json, triage.yaml} (+ jira/{comment.t
        post-result.json} only after a "post" answer)
 Lint: <lint-workspace.sh verdict line, verbatim — fix any violation before reporting>
 Verify: <verify-triage.sh verdict line, verbatim>
+Repro verify: <verify-repro.sh verdict line, verbatim — UI-blocker posting path only; omit otherwise>
 Shape: <verify-comment-shape.sh verdict line, verbatim — posting path only; omit on READY>
 Disposition: <READY|BLOCKED|NEEDS_INFO> (<n> blockers, <n> conflicts)
 Next: <one of:

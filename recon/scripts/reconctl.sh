@@ -64,13 +64,13 @@ network_disabled() {
 }
 
 detect_surface() {
-  local host origin
+  local host="${1:-}" origin
   if [ -n "${RECON_SURFACE:-}" ]; then
     normalize_label "$RECON_SURFACE"
     printf '\n'
     return
   fi
-  host="$(detect_host)"
+  [ -n "$host" ] || host="$(detect_host)"
   case "$host" in
     claude-code) printf 'claude-code\n' ;;
     codex)
@@ -148,12 +148,56 @@ invocation() {
   printf '\n'
 }
 
+emit_capability() {
+  printf '%s%s: %s\n' "${1:-}" "$2" "$3"
+}
+
 network_capability() {
+  local prefix="${1:-}"
   if network_disabled; then
-    printf 'network: unavailable — CODEX_SANDBOX_NETWORK_DISABLED=1\n'
+    emit_capability "$prefix" network "unavailable — CODEX_SANDBOX_NETWORK_DISABLED=1"
   else
-    printf 'network: local environment; verify with preflight\n'
+    emit_capability "$prefix" network "local environment; verify with preflight"
   fi
+}
+
+capability_values() {
+  local host="$1" prefix="${2:-}"
+  case "$host" in
+    claude-code)
+      emit_capability "$prefix" ask_user "AskUserQuestion"
+      emit_capability "$prefix" invoke_skill "Skill tool or /recon:<skill>"
+      emit_capability "$prefix" browser "preview_start + read_page + computer"
+      emit_capability "$prefix" render_local "available"
+      emit_capability "$prefix" display_file "SendUserFile"
+      emit_capability "$prefix" publish_once "available — Artifact tool"
+      emit_capability "$prefix" publish_stable_url "available — Artifact tool with the saved URL"
+      emit_capability "$prefix" local_shell "available"
+      network_capability "$prefix"
+      ;;
+    codex)
+      emit_capability "$prefix" ask_user "request_user_input when available; otherwise ask and stop"
+      emit_capability "$prefix" invoke_skill 'native skill invocation or $<skill>'
+      emit_capability "$prefix" browser "in-app browser/computer-use when available"
+      emit_capability "$prefix" render_local "available"
+      emit_capability "$prefix" display_file "Markdown with an absolute local path"
+      emit_capability "$prefix" publish_once "unavailable; render-only"
+      emit_capability "$prefix" publish_stable_url "unavailable; never write state/artifact-url"
+      emit_capability "$prefix" local_shell "available"
+      network_capability "$prefix"
+      ;;
+    *)
+      emit_capability "$prefix" ask_user "ask in conversation and stop"
+      emit_capability "$prefix" invoke_skill "use a host-native skill picker"
+      emit_capability "$prefix" browser "unavailable until explicitly verified"
+      emit_capability "$prefix" network "unavailable until explicitly verified"
+      emit_capability "$prefix" render_local "unavailable until explicitly verified"
+      emit_capability "$prefix" display_file "unavailable until explicitly verified"
+      emit_capability "$prefix" publish_once "unavailable"
+      emit_capability "$prefix" publish_stable_url "unavailable; never write state/artifact-url"
+      emit_capability "$prefix" local_shell "unavailable until explicitly verified"
+      ;;
+  esac
 }
 
 capabilities() {
@@ -162,47 +206,7 @@ capabilities() {
   host="$(normalize_host "$host")"
   printf 'host: %s\n' "$host"
   printf 'surface: %s\n' "$(detect_surface)"
-  case "$host" in
-    claude-code)
-      cat <<'EOF'
-ask_user: AskUserQuestion
-invoke_skill: Skill tool or /recon:<skill>
-browser: preview_start + read_page + computer
-render_local: available
-display_file: SendUserFile
-publish_once: available — Artifact tool
-publish_stable_url: available — Artifact tool with the saved URL
-local_shell: available
-EOF
-      network_capability
-      ;;
-    codex)
-      cat <<'EOF'
-ask_user: request_user_input when available; otherwise ask and stop
-invoke_skill: native skill invocation or $<skill>
-browser: in-app browser/computer-use when available
-render_local: available
-display_file: Markdown with an absolute local path
-publish_once: unavailable; render-only
-publish_stable_url: unavailable; never write state/artifact-url
-local_shell: available
-EOF
-      network_capability
-      ;;
-    *)
-      cat <<'EOF'
-ask_user: ask in conversation and stop
-invoke_skill: use a host-native skill picker
-browser: unavailable until explicitly verified
-network: unavailable until explicitly verified
-render_local: unavailable until explicitly verified
-display_file: unavailable until explicitly verified
-publish_once: unavailable
-publish_stable_url: unavailable; never write state/artifact-url
-local_shell: unavailable until explicitly verified
-EOF
-      ;;
-  esac
+  capability_values "$host"
 }
 
 emit_check() {
@@ -222,18 +226,23 @@ existing_parent() {
   printf '%s\n' "$candidate"
 }
 
-preflight() {
-  local profile="${1:-base}" root parent failures=0 cmd env_file host code tmp
-  case "$profile" in
+validate_preflight_profile() {
+  case "${1:-}" in
     base|triage) ;;
-    *) echo "unknown preflight profile: $profile (expected base|triage)" >&2; exit 2 ;;
+    *) echo "unknown preflight profile: ${1:-} (expected base|triage)" >&2; exit 2 ;;
   esac
+}
 
-  root="$(recon_root)"
+preflight_snapshot() {
+  local profile="$1" root="$2" host="$3" surface="$4" include_runtime="$5"
+  local parent failures=0 cmd env_file code tmp
+
   printf 'profile: %s\n' "$profile"
-  printf 'host: %s\n' "$(detect_host)"
-  printf 'surface: %s\n' "$(detect_surface)"
-  printf 'root: %s\n' "$root"
+  if [ "$include_runtime" = "1" ]; then
+    printf 'host: %s\n' "$host"
+    printf 'surface: %s\n' "$surface"
+    printf 'root: %s\n' "$root"
+  fi
 
   # Not a failure: the pipeline still runs, but presentation and publishing
   # degrade to the `unknown` contract until RECON_HOST resolves the ambiguity.
@@ -321,6 +330,29 @@ preflight() {
   fi
 }
 
+preflight() {
+  local profile="${1:-base}" root host surface
+  validate_preflight_profile "$profile"
+  root="$(recon_root)"
+  host="$(detect_host)"
+  surface="$(detect_surface)"
+  preflight_snapshot "$profile" "$root" "$host" "$surface" 1
+}
+
+start() {
+  local profile="${1:-}" root host surface
+  validate_preflight_profile "$profile"
+  root="$(recon_root)"
+  host="$(detect_host)"
+  surface="$(detect_surface "$host")"
+
+  printf 'root: %s\n' "$root"
+  printf 'host: %s\n' "$host"
+  printf 'surface: %s\n' "$surface"
+  capability_values "$host" "capability."
+  preflight_snapshot "$profile" "$root" "$host" "$surface" 0
+}
+
 case "$command_name" in
   root) recon_root ;;
   ticket-dir)
@@ -333,6 +365,7 @@ case "$command_name" in
   invocation) invocation "${2:-}" "${3:-}" ;;
   capabilities) capabilities "${2:-}" ;;
   preflight) preflight "${2:-base}" ;;
+  start) start "${2:-}" ;;
   help|--help|-h)
     cat <<'EOF'
 usage: reconctl.sh <command>
@@ -345,6 +378,7 @@ commands:
   invocation <ACTION> [TICKET]      render one host-native Recon invocation
   capabilities [HOST]               print the local host capability contract
   preflight [base|triage]           verify required local execution preconditions
+  start <base|triage>               print one runtime/capability/preflight snapshot
 
 environment:
   RECON_ROOT                         absolute workspace root override
@@ -354,7 +388,7 @@ environment:
   RECON_PREFLIGHT_TIMEOUT            Jira reachability timeout in seconds
 
 The default root remains ~/.claude/recon for backward compatibility.
-Supported executable hosts in v0.14.0 are Claude Code and local Codex.
+Supported executable hosts in v0.15.0 are Claude Code and local Codex.
 EOF
     ;;
   *) echo "unknown command: $command_name" >&2; exit 2 ;;

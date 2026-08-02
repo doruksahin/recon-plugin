@@ -1,6 +1,6 @@
 ---
 name: recon-decree
-description: Decree governance adapter for the recon pipeline — routes a discovered ticket into decree (no-doc / amend-spec / new-spec / prd-chain) via the policy table. Invoked by recon-discovery when governance resolves to decree; not a user entry point.
+description: Route a discovered ticket through Decree policy and emit the governed implementation handoff. Invoked by recon-discovery when governance resolves to decree; not a user entry point.
 ---
 
 # Recon Decree (governance adapter)
@@ -9,11 +9,11 @@ The decree adapter of the recon pipeline's routing stage. Consumes discovery's b
 
 ## Host setup
 
-Before the first path or tool action, read `../../docs/hosts.md`. Resolve the
-absolute workspace root, host, and surface with `reconctl.sh`; inspect
-`capabilities`, then run `reconctl.sh preflight base`. Retain the printed values
-for the run. A failed preflight is a hard STOP. Do not change the routing
-policy.
+Before the first path or tool action, read `../../docs/hosts.md`, then run
+`reconctl.sh start base` once. Retain its root, host, surface, capabilities, and
+preflight snapshot for the run. A failed preflight is a hard STOP. Do not change
+the routing policy. Later rails still detect their current host and surface
+independently.
 
 ## Contract
 
@@ -130,7 +130,9 @@ First log the routing to the ticket ledger (invariant 16 — route-generic.sh lo
 bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> routed route=<route> rule=<n>
 ```
 
-Print (control returns to recon-discovery, which continues with the brief, repro triggers, and the gate):
+Print (control returns to recon-discovery, which runs any repro trigger and its
+verifier before drafting the routed brief, then verifies the package around the
+gate):
 
 ```
 Wrote: $RECON_ROOT/<TICKET>/route/{routing.yaml, aux-intent-check.txt}

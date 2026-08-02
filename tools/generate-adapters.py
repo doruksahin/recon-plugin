@@ -13,6 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 CLAUDE_MANIFEST = ROOT / "recon/.claude-plugin/plugin.json"
 CODEX_MANIFEST = ROOT / "recon/.codex-plugin/plugin.json"
 CODEX_MARKETPLACE = ROOT / ".agents/plugins/marketplace.json"
+MAX_DESCRIPTION_CHARS = 200
+INTERNAL_SKILL_TRIGGERS = {"recon-decree": "Invoked by"}
+USER_FACING_TRIGGER = "Use when"
 
 INTERFACE = {
     "recon-triage": (
@@ -37,8 +40,8 @@ INTERFACE = {
     ),
     "recon-decree": (
         "Recon Decree",
-        "Route discovery through Decree governance",
-        "Use $recon-decree to route this discovery through the Decree policy table.",
+        "Internal Decree continuation for Discovery",
+        "Continue the active Recon Discovery run through Decree governance using its existing artifacts.",
     ),
     "recon-help": (
         "Recon Help",
@@ -76,6 +79,41 @@ def yaml_quote(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+def validate_descriptions(skills: list[tuple[str, Path, dict[str, str]]]) -> None:
+    seen: dict[str, str] = {}
+    errors: list[str] = []
+    for name, skill_dir, metadata in skills:
+        description = metadata.get("description", "").strip()
+        source = f"{skill_dir}/SKILL.md"
+        if not description:
+            errors.append(f"{source}: description must not be empty")
+            continue
+
+        previous = seen.get(description)
+        if previous:
+            errors.append(
+                f"{source}: description duplicates {previous}/SKILL.md"
+            )
+        else:
+            seen[description] = str(skill_dir)
+
+        length = len(description)
+        if length > MAX_DESCRIPTION_CHARS:
+            errors.append(
+                f"{source}: description is {length} Unicode characters; "
+                f"maximum is {MAX_DESCRIPTION_CHARS}"
+            )
+
+        trigger = INTERNAL_SKILL_TRIGGERS.get(name, USER_FACING_TRIGGER)
+        if trigger not in description:
+            errors.append(
+                f"{source}: description must include the trigger cue {trigger!r}"
+            )
+
+    if errors:
+        raise ValueError("invalid skill descriptions:\n- " + "\n- ".join(errors))
+
+
 def expected_outputs() -> dict[Path, str]:
     manifest = json.loads(CLAUDE_MANIFEST.read_text())
     skills: list[tuple[str, Path, dict[str, str]]] = []
@@ -89,9 +127,9 @@ def expected_outputs() -> dict[Path, str]:
             )
         if name not in INTERFACE:
             raise ValueError(f"{name}: missing generated interface metadata")
-        if not metadata.get("description"):
-            raise ValueError(f"{skill_dir}/SKILL.md: missing description")
         skills.append((name, skill_dir, metadata))
+
+    validate_descriptions(skills)
 
     codex = {
         "name": manifest["name"],

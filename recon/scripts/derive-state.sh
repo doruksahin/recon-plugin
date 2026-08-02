@@ -46,10 +46,11 @@ else
   case "$DISP" in
     READY)
       n_blocked=not-taken
+      BRIEF_KIND="$({ sed -n 's/^  brief_kind: *//p' "$ROUT" 2>/dev/null || true; } | head -1)"
       if [ -f "$ROUT" ] && [ ! -f "$DISC" ]; then
         echo "contradiction: route/routing.yaml exists but discovery/discovery.md does not" >&2; exit 1
       fi
-      if [ -f "$GATE" ] && [ ! -f "$BRIEF" ]; then
+      if [ -f "$GATE" ] && [ ! -f "$BRIEF" ] && [ "$BRIEF_KIND" != "none" ]; then
         echo "contradiction: discovery/gate.yaml exists but discovery/spec-draft.md does not" >&2; exit 1
       fi
       if [ ! -f "$DISC" ]; then
@@ -60,17 +61,19 @@ else
         stop=discovery-in-progress; n_contract=done; n_routing=current
         next_action=recon.discovery
         next="discovery is mid-run — the routing stage has not produced route/routing.yaml yet"
-      elif [ ! -f "$BRIEF" ]; then
+      elif [ ! -f "$BRIEF" ] && [ "$BRIEF_KIND" != "none" ]; then
         stop=discovery-in-progress; n_contract=done; n_routing=done; n_brief=current
         next_action=recon.discovery
         next="discovery is mid-run — the implementer brief (spec-draft.md) is being drafted"
       elif [ ! -f "$GATE" ]; then
-        stop=approval-gate; n_contract=done; n_routing=done; n_brief=done; n_gate=current
+        stop=approval-gate; n_contract=done; n_routing=done; n_gate=current
+        if [ "$BRIEF_KIND" = "none" ]; then n_brief=not-taken; else n_brief=done; fi
         next_action=human.approval
         next="answer the approval gate — resolve any OPEN scenario and Approve/Edit/Reject; the answer writes discovery/gate.yaml (re-present with Recon Discovery for $TICKET)"
       else
         APPROVED="$(sed -n 's/^ *approved: *//p' "$GATE" | head -1)"
-        n_contract=done; n_routing=done; n_brief=done; n_gate=done
+        n_contract=done; n_routing=done; n_gate=done
+        if [ "$BRIEF_KIND" = "none" ]; then n_brief=not-taken; else n_brief=done; fi
         case "$APPROVED" in
           true)
             stop=handed-off; n_handoff=done; n_implement=current

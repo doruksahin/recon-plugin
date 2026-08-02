@@ -1,6 +1,6 @@
 ---
 name: recon-help
-description: Orientation and setup check for the recon pipeline. Use when someone asks what recon is, how to use it, which command to run, whether their setup works (Jira credentials, handoff style), or for recon help, doctor, or onboarding a colleague.
+description: Explain Recon and verify its local setup from live doctor output. Use when asked how Recon works, which command to run, whether setup is healthy, or when onboarding a colleague.
 ---
 
 # Recon Help

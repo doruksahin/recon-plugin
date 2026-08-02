@@ -7,10 +7,10 @@ directory without a role line below fails `tools/check-coherence.sh`.
 
 | Directory | Stage | Role |
 | --- | --- | --- |
-| `recon-triage/` | 0–1 | Blocker triage: fresh workspace, ticket fetch, six checks with typed evidence, derived disposition (`verify-triage.sh`), and the BLOCKED/NEEDS_INFO posting path (render → shape → package → gate → attach-then-comment). |
-| `recon-discovery/` | 2 | Code discovery for READY tickets: behavior contract (Gherkin), governance routing dispatch, implementer brief (`spec-draft.md`), approval gate. |
-| `recon-repro/` | R | On-demand live repro: numbered human-re-runnable steps + annotated screenshots into `repro/`. Never fabricated — a failed repro is a reported finding. |
-| `recon-report/` | D | Fills its dossier template from current-run artifacts. Always renders locally; publishes only when `publish_once` is available. |
+| `recon-triage/` | 0–1 | Blocker triage: fresh workspace, ticket fetch, six checks with typed evidence, derived disposition (`verify-triage.sh`), verified UI-blocker repro evidence, and the BLOCKED/NEEDS_INFO posting path (render → shape → package → gate → attach-then-comment). |
+| `recon-discovery/` | 2 | Code discovery for READY tickets: stable-ID Gherkin contract, governance routing, verified repro before the route-required brief, pre/post-gate package verification, approval handoff. |
+| `recon-repro/` | R | On-demand live repro: fixed metadata, numbered human-rerunnable steps + screenshots into `repro/`, then structural/provenance verification and visual readback. Never fabricated — a failed repro is a verified finding. |
+| `recon-report/` | D | Verifies generated evidence, then fills its dossier template from current-run artifacts. Always renders locally; publishes only when `publish_once` is available. |
 | `recon-decree/` | RT | Governance adapter for decree: same contract as `route-generic.sh` (writes `route/routing.yaml` incl. verbatim `handoff:`). ALL decree vocabulary is quarantined here — a `governance: none` run never loads it. |
 | `recon-state/` | S | Mechanical living state canvas. Always renders locally; creates/updates `state/artifact-url` only when `publish_stable_url` is available. Timeline is ledger view-only (invariant 16). |
 | `recon-help/` | utility | Orientation + setup doctor (not a pipeline stage). Presents `doctor.sh` output verbatim — version, skill list, and setup checks are all derived live by the rail, so the help surface cannot drift. Writes nothing. |

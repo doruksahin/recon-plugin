@@ -1,6 +1,6 @@
 ---
 name: recon-state
-description: Render a ticket's living state canvas from mechanical workspace state and, when the local host supports stable publishing, republish it to one per-ticket URL; otherwise return the rendered file. Use when asked where a ticket stands, for a recon status/state page, or at a Recon STOP or gate.
+description: Render a ticket's current Recon stage, stop, next action, and history as a living state canvas. Use when asked where a ticket stands, for a state/status page, or at a Recon STOP or gate.
 ---
 
 # Recon State
@@ -9,12 +9,12 @@ One glanceable node canvas per ticket: every pipeline stage as a card, the curre
 
 ## Host setup
 
-Before the first path or tool action, read `../../docs/hosts.md`. Resolve the
-absolute workspace root, host, and surface with `reconctl.sh`; inspect
-`capabilities`, then run `reconctl.sh preflight base`. Retain the printed values
-for the run. A failed preflight is a hard STOP. Use `publish_stable_url` only
-when declared available; otherwise keep the canvas render-only and never write
-`state/artifact-url`.
+Before the first path or tool action, read `../../docs/hosts.md`, then run
+`reconctl.sh start base` once. Retain its root, host, surface, capabilities, and
+preflight snapshot for the run. A failed preflight is a hard STOP. Use
+`publish_stable_url` only when declared available; otherwise keep the canvas
+render-only and never write `state/artifact-url`. Later rails still detect their
+current host and surface independently.
 
 ## Contract
 

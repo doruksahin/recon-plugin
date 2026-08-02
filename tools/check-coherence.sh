@@ -12,9 +12,9 @@
 #      chip while plugin.json said 0.8.0 (2026-08-01).
 #   2. GENERATED ADAPTERS — native Codex manifest + skill UI metadata must
 #      exactly match the canonical Claude manifest and SKILL.md frontmatter.
-#   3. LOCAL HOST CONTRACT — isolated detection, invocation, capability,
-#      preflight, provenance, and durable-state tests pass; shared scripts and
-#      skills contain no slash commands outside the single renderer.
+#   3. LOCAL CONTRACTS — isolated host/runtime, artifact-verifier, and Codex
+#      activation tests pass; shared scripts and skills contain no slash
+#      commands outside the single renderer.
 #   4. REGISTRY MIRRORS — every `token` in recon/docs/registry.yaml (the
 #      single-source artifact registry that lint-workspace.sh executes) must
 #      appear in each doc that mirrors the registry: pipeline.md's table,
@@ -66,10 +66,16 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 python3 tools/generate-adapters.py --check || say_fail "generated native adapters drifted"
 
-# ---------------------------------------------------- 3. local host contract
-echo "[3/6] local host contract → rails + durable content"
+# --------------------------------------------------------- 3. local contracts
+echo "[3/6] local contracts → runtime + artifacts + activation"
 if ! bash tools/test-host-contract.sh; then
   say_fail "tools/test-host-contract.sh failed"
+fi
+if ! bash tools/test-artifact-verifiers.sh; then
+  say_fail "tools/test-artifact-verifiers.sh failed"
+fi
+if ! bash tools/test-codex-activation.sh; then
+  say_fail "tools/test-codex-activation.sh failed"
 fi
 HOST_LEAKS="$(rg -n '/recon:|/decree:' recon/scripts recon/skills --glob '!reconctl.sh' 2>/dev/null || true)"
 if [ -n "$HOST_LEAKS" ]; then
@@ -130,7 +136,7 @@ else
 fi
 
 if [ "$fail" -eq 0 ]; then
-  echo "coherence: clean — version v$VERSION stamped, adapters generated, local host contract passed, registry mirrored, roles covered, citations valid"
+  echo "coherence: clean — version v$VERSION stamped, adapters generated, local contracts passed, registry mirrored, roles covered, citations valid"
   exit 0
 else
   echo "coherence: DRIFT — fix the facts above, or commit with --no-verify"

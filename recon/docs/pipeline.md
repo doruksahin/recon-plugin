@@ -14,10 +14,11 @@ preflight, capability levels, and human-facing invocation rendering.
 `RECON_ROOT` is the absolute workspace root; its backward-compatible default
 is `~/.claude/recon`. `RECON_HOST` and `RECON_SURFACE` are explicit overrides;
 otherwise the rail detects Claude Code or local Codex and fails closed as
-`unknown`. Skills read `recon/docs/hosts.md`, inspect capabilities, and pass
-`preflight base|triage` before mutation. Host mechanics may change; gates,
-schemas, evidence, and routing semantics may not. Hosted runtimes are outside
-the executable `0.14.0` contract.
+`unknown`. Skills read `recon/docs/hosts.md` and run `reconctl.sh start
+base|triage` for one pure-output runtime, capability, and preflight snapshot
+before mutation. Later rails re-detect current identity for provenance. Host
+mechanics may change; gates, schemas, evidence, and routing semantics may not.
+Hosted runtimes are outside the executable `0.15.0` contract.
 
 ## State machine
 
@@ -25,9 +26,9 @@ the executable `0.14.0` contract.
 |---|---|---|---|---|
 | 0 | Fresh workspace | recon-triage step 0 | always (script-guarded: once per run) | workspace = `meta.yaml` (+ `runs/`) only |
 | 1 | Blocker triage | recon-triage | ticket ID/URL | verdict verified by `verify-triage.sh` → `READY` → stage 2 (auto-chain, unless user said "triage only") · `BLOCKED`/`NEEDS_INFO` → repro (if UI blockers) → dossier (render-only, auto) → render + shape rails → package → comment+attachments gate → attach then comment → **STOP** |
-| 2 | Code discovery | recon-discovery | `triage/triage.yaml` with `disposition: READY` | contract → routing stage → brief → gate → **STOP** (handoff quoted verbatim from `route/routing.yaml`, never executed) |
+| 2 | Code discovery | recon-discovery | `triage/triage.yaml` with `disposition: READY` | ID-bearing contract → routing → required repro + verification → brief → pre-gate verification → gate → post-gate verification → **STOP** (handoff quoted verbatim from `route/routing.yaml`, never executed) |
 | RT | Routing | `scripts/route-generic.sh` (governance `none`) **or** the adapter skill `recon-<governance>` (e.g. recon-decree) | invoked by stage 2 after the contract; governance resolved by `scripts/detect-governance.sh` | `route/routing.yaml` (route, rule trace, `brief_kind`, `handoff:` as data) |
-| R | Live repro | recon-repro | invoked by stage 1 or 2 per trigger table | `repro.md` + screenshots, or an honest failure finding |
+| R | Live repro | recon-repro | invoked by stage 1 or 2 per trigger table | `repro.md` + screenshots, or an honest failure finding; both must pass `verify-repro.sh` |
 | D | Dossier | recon-report | on demand after any STOP (current run exists), or auto-invoked render-only by stage 1's `BLOCKED`/`NEEDS_INFO` posting path | always `report/dossier.html`; private artifact URL only when `publish_once` is available |
 | S | State canvas | recon-state | on demand, and local refresh at a STOP/gate | always `state/state.yaml` + `state/canvas.html`; `state/artifact-url` only when `publish_stable_url` is available |
 
@@ -43,16 +44,17 @@ the executable `0.14.0` contract.
 4. **Marker comments are output, not evidence.** Jira comments containing `recon-triage` are pipeline-authored: excluded from every check; used only for edit-vs-create and human-reply detection. Every comment the pipeline posts ends with `~recon-triage v<plugin_version>~`.
 5. **Every claim carries evidence** — `file:line`, command output, HTTP status, or exact quote. In `triage.yaml`, evidence entries are TYPED (`kind: quote | http | git | file | note`), and every `kind: quote` must appear verbatim in the human content of `ticket.json` — checked by `recon/scripts/verify-triage.sh`. A checklist answer without evidence is not done.
 6. **No mutating Jira call (comment create/edit, attachment delete/upload) without explicit human approval in-session.** Drafts are saved to `comment.txt` and attachments staged before the gate; one "post" answer authorizes the comment AND the attachments; at most one marker comment per ticket, edited on re-runs.
-7. **Routing is a stage with exactly two producers** — `route-generic.sh` (rail) or the governance adapter skill — writing `route/routing.yaml` with `matched_rule` + `rules_not_matched` + evidence. Never by feel; discovery consumes it and quotes `handoff:` VERBATIM (the handoff is data, authored once).
+7. **Routing is a stage with exactly two producers** — `route-generic.sh` (rail) or the governance adapter skill — writing `route/routing.yaml` with non-empty `matched_rule`, `governance`, `governance_source`, `rules_not_matched`, a full lowercase 40- or 64-character Git object ID in `evidence.repo_commit`, and a block-scalar `handoff:`. The Discovery verifier rejects missing, placeholder, malformed, duplicate, or unknown envelope fields without second-guessing the producer's semantic rule choice. Never route by feel; discovery consumes the record and quotes `handoff:` VERBATIM (the handoff is data, authored once).
 8. **Human-facing questions are concrete**: numbered steps from a stated start state, real entity names, options as user-observable outcomes. Internal identifiers are banned from question text.
-9. **Repro is never fabricated.** Every step performed and every screenshot captured this run; a failed repro is reported as a finding.
+9. **Repro is never fabricated.** Every step performed and every screenshot captured this run; a failed repro is reported as a finding. `verify-repro.sh` proves package structure and coarse provenance, while the skill reads each screenshot to judge visual truth.
 10. **No undeclared artifacts.** Every file a run writes appears in the artifact registry — `recon/docs/registry.yaml`, the single source that `recon/scripts/lint-workspace.sh <TICKET>` executes (every stage runs it in its Report step; exit 1 on violations). The table below is a checked mirror of that file, kept honest by `tools/check-coherence.sh`.
 11. **Determinism definition:** given the same ticket state, a run produces the same verdict regardless of what earlier runs left behind.
 12. **Governance is opt-in and fenced.** `detect-governance.sh` resolves the ladder (env > `~/.config/recon/config` > probe); detection alone never opts a developer in — a detected-but-unchosen tool yields `undecided` and exactly one persisted question. When governance resolves to `none`, governance-system vocabulary (decree/SPEC/PRD/ADR) is banned from every artifact — `lint-workspace.sh` greps for it. All adapter vocabulary lives in the adapter skill (`recon-<governance>`), which a `none` run never loads.
 13. **Comment shape is mechanical — and so is the comment.** A posting-path comment is exactly n+4 non-empty lines — header, n one-line blockers `*i. Title* — [~accountid]: ask?` numbered 1..n, attachment-links line, reply line, marker line LAST — with n ≥ 1, EMITTED from `triage.yaml` + `meta.yaml` by `recon/scripts/render-comment.sh` (the model never writes `comment.txt`; edits happen in `triage.yaml` and re-render) and independently verified by `recon/scripts/verify-comment-shape.sh` before the gate. All detail lives in the dossier question packs (`blockers[].detail`), never the comment.
 14. **Attachments replace, never accumulate.** Files named `recon-*-<TICKET>.*` are recon-owned; `recon/scripts/attach-artifacts.sh` deletes stale ones then uploads, always BEFORE the comment posts (Jira binds duplicate-filename `[^…]` links to the OLDER attachment). Same approval gate as invariant 6.
 15. **The disposition is derived.** `verify-triage.sh` re-computes the verdict from the six checks (any of checks 2–5 failing → `BLOCKED`; else check 1 `partial`/`false` → `NEEDS_INFO`; else `READY`; BLOCKED/NEEDS_INFO require blockers ≥ 1, READY requires 0) and fails on mismatch. The model fills the checks and blockers with evidence; it never reconciles the verdict by hand.
-16. **The ticket ledger is output, never evidence.** `history.ndjson` (workspace root) is the append-only cross-run event log: written ONLY by `log-event.sh` (closed vocabulary — `--vocab` prints it), preserved across runs by `fresh-workspace.sh`, validated by `lint-workspace.sh`. Every `0.14.x` event carries the current normalized host and surface. No check, verdict, or routing decision may read it — determinism (invariant 11) binds exactly as if it did not exist. Views (state canvas, humans) may render it as a timeline.
+16. **The ticket ledger is output, never evidence.** `history.ndjson` (workspace root) is the append-only cross-run event log: written ONLY by `log-event.sh` (closed vocabulary — `--vocab` prints it), preserved across runs by `fresh-workspace.sh`, validated by `lint-workspace.sh`. Every event carries the current normalized host and surface. No check, verdict, or routing decision may read it — determinism (invariant 11) binds exactly as if it did not exist. Views (state canvas, humans) may render it as a timeline.
+17. **Generated handoff evidence is verified before consumption.** A repro package must pass `verify-repro.sh` before triage, discovery, or report consumes it. A routed Discovery package must pass `verify-discovery.sh` before the human gate and again after the gate before report or handoff consumes it. Inputs must be regular, non-symlinked paths that resolve inside the current workspace. The routing record must retain invariant 7's complete producer/trace/commit envelope. Stable `REQ-N` / `REG-N` / `OPEN-N` IDs are exact visible joins across the contract and either acceptance checkboxes or problem-statement entries; HTML comments, fenced examples, and indented code cannot satisfy a structural heading or join. On approval, the complete OPEN resolution is copied verbatim into its visible same-ID entry. Repro exhibit references likewise count only when visible on their numbered step, never when hidden in an HTML comment.
 
 ## Artifact registry
 
@@ -69,12 +71,12 @@ All under `$RECON_ROOT/<TICKET>/`. Producer → consumers. **The authoritative r
 | `triage/triage.yaml` | triage | discovery precondition, `verify-triage.sh`, `render-comment.sh`, humans | schema in recon-triage SKILL.md; disposition derived + quotes verified by `verify-triage.sh` (invariant 15) |
 | `triage/jira/{comment.txt, post-result.json, attach-result.json}` | `render-comment.sh` (comment.txt) + triage (on posting path) | audit | comment.txt RENDERED from triage.yaml + meta.yaml, never hand-written, saved BEFORE gate; responses after POST; `attach-result.json` is written by `attach-artifacts.sh` and cleared at the start of each attach run |
 | `triage/jira/bundle-manifest.txt` | `package-artifacts.sh` | gate display, audit | size + rel path per bundled file; the zip itself is staged in a temp dir (its contents ARE the workspace) |
-| `discovery/discovery.md` | discovery | gate, implementer verification | Gherkin: required + regression + OPEN scenarios |
-| `route/routing.yaml` | route-generic.sh or the governance adapter | discovery (route/brief_kind/handoff), recon-report | route + rule trace + governance/source + `brief_kind` + `handoff:` (data, quoted verbatim) + `evidence.repo_commit` |
+| `discovery/discovery.md` | discovery | gate, implementer verification | rendered Gherkin under visible stable `REQ-N`, `REG-N`, and `OPEN-N` H2 headings; or a visible evidenced no-scenarios declaration |
+| `route/routing.yaml` | route-generic.sh or the governance adapter | discovery (route/brief_kind/handoff), recon-report | route + rule trace + governance/source + `brief_kind` + `handoff:` (data, quoted verbatim) + full SHA-1/SHA-256 `evidence.repo_commit` |
 | `route/aux-intent-check.txt` | governance adapter only | audit, recon-report | raw adapter-check output backing the evidence lines |
-| `discovery/gate.yaml` | discovery | recon-report decision cards, humans | approved/date/open_scenario_resolutions/rejected — extracted from routing (the gate is discovery's act) |
-| `discovery/spec-draft.md` | discovery | implementer session | the brief named by `routing.brief_kind`; ACs 1:1 from Gherkin + Manual verification (or a problem statement) — governance-neutral |
-| `repro/repro.md` + `repro/exhibits/<n>-<slug>.png` | repro | gate questions, spec-draft Manual verification, PR "before" evidence, recon-report exhibits | numbered, human-re-runnable |
+| `discovery/gate.yaml` | discovery | recon-report decision cards, humans | approved/date plus exact `OPEN-N` resolution keys or a rejection reason — the gate is discovery's act |
+| `discovery/spec-draft.md` | discovery | implementer session | absent for `brief_kind: none`; otherwise the named brief with exact visible scenario-ID parity + Manual verification, or the fixed-section problem statement; approved OPEN resolution text is bound to its visible same-ID entry — governance-neutral |
+| `repro/repro.md` + `repro/exhibits/<n>-<slug>.png` | repro | gate questions, spec-draft Manual verification, PR "before" evidence, recon-report exhibits | fixed frontmatter (`ticket`, `reproduced`, `start_state`, `failure_reason`); successful steps and visibly referenced exhibits are numbered 1:1; inputs are regular in-workspace paths and PNGs pass chunk bounds/order, CRC, IDAT zlib EOF, and terminal-IEND checks; honest failures contain no invented success evidence |
 | `report/dossier.html` | recon-report | humans (published as a private artifact on-demand; attached to the Jira ticket by triage on the posting path) | a VIEW over the rows above — no new facts, fixed template |
 | `state/state.yaml` | `derive-state.sh` | `render-state-canvas.sh`, humans | flat derived state: stop label, node statuses, fact counts, canonical `next_action`, neutral next prose |
 | `state/canvas.html` | `render-state-canvas.sh` | recon-state display/publish step, humans | the living node canvas; always available locally |
@@ -84,17 +86,20 @@ All under `$RECON_ROOT/<TICKET>/`. Producer → consumers. **The authoritative r
 
 | Event | Condition | Action |
 |---|---|---|
-| Runtime resolution | before a skill's first path or host-tool action | `reconctl.sh` resolves root/host/surface, prints capabilities, and passes `preflight base|triage`; failure stops before mutation |
+| Runtime resolution | before a skill's first path or host-tool action | `reconctl.sh start base|triage` prints one root/host/surface/capability/preflight snapshot; failure stops before mutation and no context file is written |
 | Auto-chain to discovery | `disposition: READY` and user did not say "triage only" | invoke recon-discovery in the same run |
-| Blocker repro | stage 1, any blocker concerns observable UI behavior | invoke recon-repro BEFORE drafting; reference exhibits in the blocker's `detail` pack |
-| Primary-scenario repro | `task_class: defect` AND affected surface is visible UI AND `routing.route` ∉ {`direct`, `no-doc`} | invoke recon-repro for the bug itself BEFORE the gate |
-| OPEN-scenario repro | any OPEN scenario concerns observable UI behavior | invoke recon-repro; reference steps + screenshots in the gate question |
+| Blocker repro | stage 1, any blocker concerns observable UI behavior | invoke recon-repro and require `verify-repro.sh` clean BEFORE drafting; reference exhibits in the blocker's `detail` pack |
+| Primary-scenario repro | `task_class: defect` AND affected surface is visible UI AND `routing.route` ∉ {`direct`, `no-doc`} | invoke recon-repro for the bug itself, verify it, then draft the brief |
+| OPEN-scenario repro | any OPEN scenario concerns observable UI behavior | invoke recon-repro, verify it, then reference steps + screenshots in the gate question |
 | Repro session reuse | primary + OPEN scenarios share a start state | one dev-server session covers both |
+| Repro verification | `repro/repro.md` written or consumed | `verify-repro.sh` until `verify: clean`; then the skill still reads every screenshot for visual meaning |
 | Comment edit-vs-create | any fetched comment contains `recon-triage` | EDIT the most recent one; never create a second |
 | Answered-blocker detection | human comment posted after a marker comment | counts as replying to its questions |
 | Step-0 re-invocation | `meta.yaml` younger than 30 min | script prints `SKIPPED`; continue the current run |
 | Governance resolution | `detect-governance.sh` ladder: env > config > probe-absent→none > probe-present-no-choice→undecided | undecided → ONE host-native user interaction (see `hosts.md`), answer persisted via `set-governance.sh`, re-resolve |
 | Routing dispatch | `governance: none` → `route-generic.sh <TICKET> <source>`; else → invoke skill `recon-<governance>` | either producer writes `route/routing.yaml` |
+| Discovery pre-gate verification | route + contract + route-required brief/repro are ready | `verify-discovery.sh <TICKET> pre-gate` until clean before asking approval |
+| Discovery post-gate verification | `discovery/gate.yaml` written or edited | bind every approved OPEN resolution verbatim to its same-ID brief entry, then run `verify-discovery.sh <TICKET> post-gate` until clean before rejection stop, report, or handoff |
 | Vocabulary fence | `route/routing.yaml` has `governance: none` | lint greps all artifacts for governance vocabulary; any hit = violation |
 | Dossier | auto render-only on the `BLOCKED`/`NEEDS_INFO` posting path; on demand otherwise | recon-report always renders; publishes only when `publish_once` is available |
 | Blocked delivery | disposition ∈ {`BLOCKED`, `NEEDS_INFO`} (requires n ≥ 1 structured blockers) | recon-report render-only → `package-artifacts.sh` → gate → `attach-artifacts.sh` → comment (attach strictly first) |
@@ -117,6 +122,8 @@ All under `$RECON_ROOT/<TICKET>/`. Producer → consumers. **The authoritative r
 | gates: who may approve, what gets recorded | disposition rationale in evidence lines |
 | comment shape: n+4 lines (`verify-comment-shape.sh`) | blocker ask/detail wording (within triage rule 7 / invariant 8) |
 | disposition derivation + typed-evidence/quote verification (`verify-triage.sh`) | |
+| repro frontmatter, visible step/exhibit, non-symlink path, PNG chunk/CRC/zlib/IEND, and mtime verification (`verify-repro.sh`) | screenshot visual meaning |
+| visible scenario IDs, implementation/problem brief parity/shape, complete route producer/trace/commit envelope, block-scalar handoff, and exact same-ID gate-resolution verification (`verify-discovery.sh`) | scenario content + routing rule choice + gate recommendation |
 | comment rendering from triage.yaml (`render-comment.sh`) | |
 | attachment replace + ordering (`attach-artifacts.sh`) | |
 | bundle packaging + manifest (`package-artifacts.sh`) | |
@@ -126,18 +133,19 @@ All under `$RECON_ROOT/<TICKET>/`. Producer → consumers. **The authoritative r
 
 ## Consuming the artifacts (implementer sessions)
 
-1. Read `discovery/spec-draft.md` — it is self-sufficient: acceptance criteria, technical design (names the contract to reuse), integration guardrails, and **Manual verification** (start state + numbered steps to reach the surface; BEFORE/AFTER outcomes).
-2. Verify your work against the scenarios in `discovery/discovery.md`, including the regression ("must-not-change") ones.
-3. `repro/exhibits/*.png` are your PR's "before" screenshots; capture "after" equivalents at the same states.
-4. Do not read `runs/` (invariant 3 binds you too). Do not treat `triage.yaml` evidence as current after your changes land.
+1. Run `verify-discovery.sh <TICKET> post-gate`; if repro exists, also run `verify-repro.sh <TICKET>`. Stop on either failure rather than implementing from a drifted package.
+2. Read `discovery/spec-draft.md` when the route has a brief — it is self-sufficient: acceptance criteria keyed by scenario ID, technical design (names the contract to reuse), integration guardrails, and **Manual verification** (start state + numbered steps to reach the surface; BEFORE/AFTER outcomes). A `brief_kind: none` route intentionally has no draft.
+3. Verify your work against the stable IDs in `discovery/discovery.md`, including the regression (`REG-N`) scenarios and approved `OPEN-N` resolution.
+4. `repro/exhibits/*.png` are your PR's "before" screenshots; capture "after" equivalents at the same states.
+5. Do not read `runs/` (invariant 3 binds you too). Do not treat `triage.yaml` evidence as current after your changes land.
 
 ## Change protocol (editor sessions)
 
 1. Edit the source repository, never an installed Claude or Codex cache. A marketplace clone is a distribution mirror, not an alternate source of truth.
 2. Do not hand-edit version fields during implementation. The release rail computes and writes the next version, creates the release commit/tag, and pushes only after explicit release approval. Until that gate runs, validated work may remain on the current unreleased version.
-3. Regenerate native adapters with `python3 tools/generate-adapters.py`; `python3 tools/generate-adapters.py --check` must pass. Refresh local installs only through `activate-plugin.sh` (Claude Code) and `activate-codex-plugin.sh` (Codex). Do not delete previously pinned cache directories used by live sessions.
+3. Regenerate native adapters with `python3 tools/generate-adapters.py`; `python3 tools/generate-adapters.py --check` must pass. Refresh local installs only through `activate-plugin.sh` (Claude Code) and `activate-codex-plugin.sh` (Codex). Codex activation must bind clean same-origin source/configured checkouts to the exact released commit, reject ignored/untracked, sparse/assume-unchanged, or special plugin entries, attest the materialized plugin tree before and after installation, attest the actual installed version/path, then repeat the full checkout/tree attestation immediately before success. Do not delete previously pinned cache directories used by live sessions.
 4. Mechanical checks in skills must be `find`-based — `ls`/`grep` may be aliased or function-wrapped in a user's shell with non-POSIX exit codes.
-5. Any new behavior must land as a rail (script/table/schema) or as judgment-with-evidence; update this doc's tables in the same commit.
+5. Any new behavior must land as a rail (script/table/schema) or as judgment-with-evidence; update this doc's tables in the same commit. New artifact verifiers need isolated clean and failing fixtures.
 6. Governance adapters follow the convention: skill `recon-<governance>`, same contract as recon-decree (reads `discovery/`, writes `route/routing.yaml` incl. `handoff:` data, vocabulary quarantined in its own SKILL.md).
 7. Docs must not outlive the files they name: `tools/check-links.sh` (pre-commit hook — enable per clone with `git config core.hooksPath .githooks`) resolves every backticked script name, `../`-relative path, and `blob/master` link against the working tree, then runs lychee over the real links. Renaming a script without updating its references fails the commit.
 8. Docs must not contradict the data they mirror: `tools/check-coherence.sh` (same pre-commit hook) verifies the facts that exist in more than one place. Every shared fact has exactly ONE owner file; every other appearance is a mirror the checker validates — never a place you author the fact. The ownership table:

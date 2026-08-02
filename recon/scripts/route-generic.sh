@@ -22,7 +22,14 @@ DISC="$DIR/discovery/discovery.md"
 [ -f "$DISC" ] || { echo "missing $DISC — run discovery's contract step first" >&2; exit 2; }
 
 N="$(grep -cE '^[[:space:]#>*-]*Scenario' "$DISC" || true)"
-REPO_COMMIT="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
+REPO_COMMIT="$(git rev-parse --verify 'HEAD^{commit}' 2>/dev/null)" || {
+  echo "cannot pin routing evidence: current repository has no Git HEAD commit" >&2
+  exit 2
+}
+[[ "$REPO_COMMIT" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]] || {
+  echo "cannot pin routing evidence: Git returned an invalid object ID" >&2
+  exit 2
+}
 mkdir -p "$DIR/route"
 
 if [ "$N" -eq 0 ]; then

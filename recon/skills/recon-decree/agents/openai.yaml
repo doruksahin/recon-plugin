@@ -1,4 +1,4 @@
 interface:
   display_name: "Recon Decree"
-  short_description: "Route discovery through Decree governance"
-  default_prompt: "Use $recon-decree to route this discovery through the Decree policy table."
+  short_description: "Internal Decree continuation for Discovery"
+  default_prompt: "Continue the active Recon Discovery run through Decree governance using its existing artifacts."

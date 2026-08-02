@@ -1,19 +1,24 @@
 # Local Host Contract
 
-Recon `0.14.0` executes on Claude Code and local Codex (app or CLI). Hosted
+Recon `0.15.0` executes on Claude Code and local Codex (app or CLI). Hosted
 ChatGPT, Codex Cloud, MCP, remote state, and remote publishing are not runtime
 targets for this release.
 
-Before a skill's first path or tool action, resolve the contract mechanically:
+Before a skill's first path or tool action, capture the contract and preflight
+in one pure-output invocation:
 
 ```bash
 CTL="<skill base dir>/../../scripts/reconctl.sh"
-RECON_ROOT="$(bash "$CTL" root)"
-RECON_HOST="$(bash "$CTL" detect-host)"
-RECON_SURFACE="$(bash "$CTL" detect-surface)"
-bash "$CTL" capabilities "$RECON_HOST"
-bash "$CTL" preflight <base|triage>
+bash "$CTL" start <base|triage>
 ```
+
+The snapshot emits `root`, `host`, `surface`, namespaced `capability.*` lines,
+the requested `profile`, each preflight check, and one final
+`preflight: PASS|FAIL` verdict. It writes no context file and creates no
+workspace state.
+Retain the printed values for the skill run. The older scalar commands remain
+available for point lookups and compatibility, but skill startup does not
+reconstruct one contract from separate shell calls.
 
 `RECON_HOST` and `RECON_SURFACE` are optional explicit overrides and have the
 highest precedence. Without them, `reconctl.sh` recognizes Claude Code and
@@ -26,10 +31,11 @@ so presence alone cannot say which host is driving. Both present resolves to
 `unknown`, `preflight` emits `check.host: WARN`, and `RECON_HOST` is the only
 way to decide. Never infer the host from anything else.
 
-Shell calls are isolated on some hosts. For later calls, either pass
-`RECON_ROOT`, `RECON_HOST`, and `RECON_SURFACE` in that call or substitute the
-resolved absolute root in the command. Rails that need identity call
-`reconctl.sh` themselves, so provenance does not depend on model memory.
+Shell calls are isolated on some hosts. For later calls, either pass the
+snapshot values in that call or substitute the resolved absolute root. The
+snapshot is startup context, not frozen runtime identity: rails that record
+provenance call `reconctl.sh` themselves and therefore observe the current host
+and surface even after a cross-harness continuation.
 
 The workspace default remains `~/.claude/recon` for compatibility. Set an
 absolute `RECON_ROOT` to use another local or shared directory.
@@ -48,8 +54,8 @@ absolute `RECON_ROOT` to use another local or shared directory.
 | Local shell/filesystem | available | available |
 | Network/Jira | local environment; `preflight triage` decides | `CODEX_SANDBOX_NETWORK_DISABLED=1` means unreachable; otherwise `preflight triage` decides |
 
-The table is explanatory. `reconctl.sh capabilities` is the executable source
-for host mechanics.
+The table is explanatory. `reconctl.sh start` and `capabilities` are the
+executable sources for host mechanics.
 
 ## Canonical actions
 

@@ -1,6 +1,6 @@
 ---
 name: recon-publish
-description: Release and distribute this plugin end-to-end — cut the version, push and create the GitHub release, activate native Claude Code and Codex installs, sync distribution mirrors, and republish declared artifact mirrors when the host supports it. Use when asked to publish, release, ship, bump-and-push, or activate the plugin.
+description: Release and distribute Recon through the gated release rail, native activation, mirrors, and smoke test. Use when asked to publish, release, ship, bump and push, or activate the plugin.
 ---
 
 # Recon Publish
@@ -12,10 +12,10 @@ recon for now; `activate-plugin.sh` is deliberately plugin-agnostic so this
 skill can extract to a shared devkit later.)
 
 Read `../../docs/hosts.md` before the approval or artifact-republish steps.
-Resolve host, surface, workspace root, and capabilities with `reconctl.sh`, then
-run `reconctl.sh preflight base`. A failed preflight is a hard STOP. The gate
-may use a host-native interaction, but release authorization and mirror
-semantics do not change.
+Run `reconctl.sh start base` once and retain its root, host, surface,
+capabilities, and preflight snapshot. A failed preflight is a hard STOP. The
+gate may use a host-native interaction, but release authorization and mirror
+semantics do not change. Later rails still detect current runtime identity.
 
 ## Contract
 
@@ -41,7 +41,12 @@ semantics do not change.
 3. **Activation is the rail's job.** `activate-plugin.sh` validates
    `installed_plugins.json`'s shape and fails loudly on surprise — if it
    refuses, report its message verbatim; do NOT hand-edit that file to push
-   past it.
+   past it. `activate-codex-plugin.sh` may fast-forward only a clean same-origin
+   configured clone, requires both clean HEADs to equal the released commit,
+   rejects ignored/untracked or sparse/assume-unchanged plugin entries, and
+   attests the exact materialized plugin tree before and after installation.
+   After Codex's own JSON attests the released version and source path, the rail
+   repeats the complete checkout/tree attestation immediately before success.
 4. **Mirrors close the loop.** After the release, any file changed since the
    previous tag whose header comment carries `Published at: <artifact URL>`
    must be republished to that exact URL (the version bump rewrites
@@ -69,8 +74,8 @@ tools/cz.sh bump --changelog --dry-run
 tools/release.sh --yes
 ```
 
-4. **Activate + sync** through the two native rails. Quote their activation or
-   setup lines verbatim:
+4. **Activate + sync** through the two native rails. Quote their activation,
+   verification, or setup lines verbatim:
 
 ```bash
 bash recon/scripts/activate-plugin.sh
