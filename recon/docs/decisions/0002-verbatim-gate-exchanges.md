@@ -1,6 +1,6 @@
 # 0002 — Verbatim gate exchanges with railed presentation
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-08-02
 - Deciders: Doruk
 
