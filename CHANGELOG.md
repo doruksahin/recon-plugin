@@ -1,3 +1,9 @@
+## v0.12.0 (2026-08-02)
+
+### Features
+
+- **publish**: recon-publish skill — gated release + distribution as one flow
+
 ## v0.11.0 (2026-08-02)
 
 ### Features
