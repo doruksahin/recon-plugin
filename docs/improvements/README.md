@@ -19,6 +19,11 @@ model writes is asks, detail packs, headline, lede — everything else is derive
 | [validate-triage-yaml](validate-triage-yaml/README.md) | proposed | P1 | Schema + regex lint for triage.yaml: rule-7 identifier bans, length caps, ask shape |
 | [verify-quotes](verify-quotes/README.md) | shipped (v0.9.0) | P1 | Type evidence lines; substring-check every quote against ticket.json |
 | [render-comment](render-comment/README.md) | shipped (v0.9.0) | P2 | Generate comment.txt from triage.yaml by script — the model never writes it |
+| [deterministic-decree-routing](deterministic-decree-routing/README.md) | proposed (policy needed) | P1 | Apply Decree routes from typed facts with a total, mechanically tested decision table |
+| [render-dossier-rail](render-dossier-rail/README.md) | proposed (after schemas) | P1 | Render dossiers from artifacts; let the model author only headline and lede |
+| [verify-discovery-package](verify-discovery-package/README.md) | in-progress | P1 | Fail discovery when scenarios, brief, gate, and repro references do not agree |
+| [verify-repro-evidence](verify-repro-evidence/README.md) | in-progress | P1 | Verify every repro step is fresh, numbered, and backed by a valid screenshot |
+| [skill-metadata-budget](skill-metadata-budget/README.md) | in-progress (companion) | P2 | Keep every skill description under 200 characters and fail checks on overflow |
 | [slop-lint](slop-lint/README.md) | proposed | P3 | Banned-phrase denylist + structural caps on the remaining free-text slots |
 | [golden-fixtures](golden-fixtures/README.md) | proposed | P3 | Canned ticket.json fixtures + golden-output diffs; regression-test the pipeline |
 
@@ -39,3 +44,5 @@ Failure modes observed live that the skills don't handle or handle ambiguously.
 | [step0-run-identity](step0-run-identity/README.md) | proposed | P3 | Key the fresh-workspace guard on a run token, not elapsed time |
 | [jira-api-v3-search](jira-api-v3-search/README.md) | proposed | P3 | Migrate search references to /rest/api/3/search/jql; v2 search is removed |
 | [state-canvas-skill](state-canvas-skill/README.md) | shipped (v0.13.0) | P2 | New skill renders a node-canvas artifact per ticket; state derived from file presence, one stable URL |
+| [jira-delivery-rail](jira-delivery-rail/README.md) | proposed (dedicated release) | P1 | Bind Jira approval to exact bytes, then deliver attachments and one comment idempotently |
+| [single-runtime-bootstrap](single-runtime-bootstrap/README.md) | in-progress (narrow) | P2 | Resolve host, capabilities, root, and preflight with one atomic bootstrap command |
