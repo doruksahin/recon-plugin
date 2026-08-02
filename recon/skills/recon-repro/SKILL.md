@@ -131,7 +131,7 @@ read every PNG back after the rail passes and verify its visible state yourself.
 
 ### 8. Return — and SHOW the evidence
 
-**Show the screenshots to the user** through the host file-display capability in `hosts.md` so they are visible on screen BEFORE any question is asked — a plain file path is not shown evidence; mention that the full session video is at `repro/session/session.webm`. Then print the concrete question text for the calling skill — `recon:recon-triage`/`recon:recon-discovery` embed it in their drafted comment or gate question. When invoked for SPEC/PR smoke evidence, show and print the evidence paths instead.
+**Show the screenshots to the user** through the host file-display capability in `hosts.md` so they are visible on screen BEFORE any question is asked — a plain file path is not shown evidence. **Also render `repro/session/viewer.html`** through the host render-local capability (it plays `session.webm` with a clickable action-marker timeline — the fastest way for a human to verify the session); when no render capability exists, name the two paths (`viewer.html`, `session.webm`) instead. Then print the concrete question text for the calling skill — `recon:recon-triage`/`recon:recon-discovery` embed it in their drafted comment or gate question. When invoked for SPEC/PR smoke evidence, show and print the evidence paths instead.
 
 ---
 
