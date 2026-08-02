@@ -1,3 +1,9 @@
+## v0.18.0 (2026-08-03)
+
+### Features
+
+- **discovery**: deliver approved READY packets to Jira
+
 ## v0.17.0 (2026-08-02)
 
 ### BREAKING CHANGE
