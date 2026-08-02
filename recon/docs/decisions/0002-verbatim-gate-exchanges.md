@@ -28,7 +28,7 @@ Make the in-session gate exchange a verbatim, verifier-checked artifact, with th
 - Full audit chain in registered artifacts: question as rendered → recommendation → verbatim answer → mapped resolution → same-ID binding in the brief. A future reader of the workspace can judge whether the mapping was faithful — today's chat-only gap closes.
 - Presentation drift is eliminated: what the user was asked is exactly what `discovery.md` says, byte-for-byte, every run.
 - `discovery.md` gains an authoring requirement (a visible recommendation per OPEN scenario) that *render-gate.sh* and `verify-discovery.sh` enforce.
-- Breaking release: `gate.yaml` consumers (`verify-discovery.sh`, recon-report decision cards) and golden fixtures (`docs/improvements/golden-fixtures/`) must move in the same commit.
+- Breaking release: `gate.yaml` consumers (`verify-discovery.sh`, recon-report decision cards) and golden fixtures (`docs/improvement-proposals/0.14.0/golden-fixtures/`) must move in the same commit.
 - The other in-session gates (triage's post/edit/don't-post — where "Don't post" currently leaves no artifact at all — the governance one-time question, the state-canvas first publish) remain unrecorded until they adopt the pattern.
 - A consolidated per-ticket "decisions" view becomes trivial later: it can be derived from exchange records + the Jira trail, because the data now exists.
 
@@ -40,7 +40,7 @@ Make the in-session gate exchange a verbatim, verifier-checked artifact, with th
 - `recon/docs/registry.yaml` — `discovery/gate-questions.md` entry, first
 - `recon/docs/pipeline.md` — registry mirror, trigger table, rails-vs-judgment table, invariant 17 wording
 - `recon/docs/workspace-index.md` + `docs/flow.html` — registry mirrors
-- `docs/improvements/golden-fixtures/` — clean + failing fixtures for each new verifier check
+- `docs/improvement-proposals/0.14.0/golden-fixtures/` — clean + failing fixtures for each new verifier check
 
 ## Validation
 

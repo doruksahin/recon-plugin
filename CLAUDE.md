@@ -21,6 +21,16 @@ A multi-harness **agent plugin** shipping one workflow, `recon` — a determinis
 
 Each of `recon/scripts/`, `recon/docs/`, `recon/skills/`, `tools/`, and `docs/` carries its own `CLAUDE.md` with a role line per file — enforced by the coherence check, so read the local one before editing in a directory.
 
+## Improvement-proposal records
+
+Improvement proposals are durable, version-scoped evidence, not a floating backlog.
+Create each at `docs/improvement-proposals/<future-target-version>/<slug>/README.md`.
+Before writing the proposal, reserve the future SemVer cohort and add its cohort
+index; never add new work to a released version directory or directly below
+`improvement-proposals/`. The local instructions in
+[`docs/improvement-proposals/CLAUDE.md`](docs/improvement-proposals/CLAUDE.md) define
+the required before/after evidence and status updates.
+
 ## Authoritative docs — read before editing
 
 When editing this plugin you are an **"editor session"** in the sense of [recon/docs/pipeline.md](recon/docs/pipeline.md); its **Change protocol** section is binding. Key rules from it:

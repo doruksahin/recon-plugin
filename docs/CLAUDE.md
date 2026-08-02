@@ -8,4 +8,4 @@ fails `tools/check-coherence.sh` (role coverage).
 | --- | --- |
 | `flow.html` | Source of the published "Recon Pipeline — Flow" artifact (URL in the file's header comment). A registry + version MIRROR: the workspace table is checked token-by-token against `recon/docs/registry.yaml`, and the `coherence:version` markers pin its version stamps to `plugin.json`. After editing, republish the artifact — the one mirror the pre-commit hook cannot reach. |
 | `plans/` | Dated design docs, implementation plans, and spike notes for shipped work — the long-form record behind CHANGELOG entries. |
-| `improvements/` | The improvement backlog: one folder per idea with concrete before/after, statuses in its own `README.md` index, conventions in its own `CLAUDE.md`. Ideas graduate to `plans/` when accepted. |
+| `improvement-proposals/` | Versioned improvement-proposal ledger: every record lives at `<target-version>/<slug>/README.md`, with concrete before/after and a cohort index. New proposals must reserve a future version directory; accepted ideas graduate to `plans/`. |

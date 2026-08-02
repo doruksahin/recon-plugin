@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Ship the two accepted improvements — [ticket-ledger](../improvements/ticket-ledger/README.md) and [state-canvas-skill](../improvements/state-canvas-skill/README.md) — as rails + one new skill, per the pipeline.md Change protocol.
+**Goal:** Ship the two accepted improvements — [ticket-ledger](../improvement-proposals/0.13.0/ticket-ledger/README.md) and [state-canvas-skill](../improvement-proposals/0.13.0/state-canvas-skill/README.md) — as rails + one new skill, per the pipeline.md Change protocol.
 
 **Architecture:** Three new rails (*log-event.sh*, *derive-state.sh*, *render-state-canvas.sh*) carry all execution; the new skill *recon-state* holds only the publish step (the Artifact tool needs a session) behind a first-publish gate. The ledger is a root-level append-only `history.ndjson` that `fresh-workspace.sh` preserves across runs and NOTHING may read as evidence (new invariant). The canvas is the approved ATT-5047 node-canvas design turned into a token-substitution template.
 

@@ -1,6 +1,6 @@
 # Proofshot as the single repro runtime — implementation plan
 
-Implements [docs/improvements/proofshot-repro-runtime/README.md](../improvements/proofshot-repro-runtime/README.md).
+Implements [docs/improvement-proposals/0.16.0/proofshot-repro-runtime/README.md](../improvement-proposals/0.16.0/proofshot-repro-runtime/README.md).
 Ships as one `feat(repro)!` commit (new required runtime dependency, stage-semantics
 change). Target: the release after v0.15.0.
 
