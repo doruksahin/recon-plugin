@@ -53,6 +53,21 @@ PREFLIGHT="$(bash "$SCRIPT_DIR/reconctl.sh" preflight triage)" || PREFLIGHT_STAT
 printf '%s\n' "$PREFLIGHT" | sed 's/^/  /'
 [ "${PREFLIGHT_STATUS:-0}" -eq 0 ] || echo "  fix the failed preflight checks before running Recon Triage"
 
+# --- Repro recorder: derived from the same preflight rail the skill runs.
+# (Separate sed expressions: BSD sed has no \| alternation in BRE.)
+REPRO_PF="$(bash "$SCRIPT_DIR/reconctl.sh" preflight repro 2>/dev/null)" || true
+RECORDER_LINES="$(printf '%s\n' "$REPRO_PF" | sed -n \
+  -e 's/^check\.command\.proofshot: //p' \
+  -e 's/^check\.command\.agent-browser: //p' \
+  -e 's/^check\.proofshot_version: //p')"
+if [ -z "$RECORDER_LINES" ]; then
+  echo "  repro recorder      ✗ preflight repro produced no recorder checks — run reconctl.sh preflight repro directly"
+elif printf '%s\n' "$RECORDER_LINES" | grep -q FAIL; then
+  echo "  repro recorder      ✗ $(printf '%s\n' "$RECORDER_LINES" | grep FAIL | head -1 | sed 's/^FAIL — //')"
+else
+  echo "  repro recorder      ✓ proofshot $(printf '%s\n' "$RECORDER_LINES" | sed -n 's/^PASS — \(.*\) (pinned)$/\1/p') + agent-browser (pinned)"
+fi
+
 # --- Handoff style: repo-dependent; reuse the resolution rail verbatim.
 GOV_OUT="$("$SCRIPT_DIR/detect-governance.sh" 2>/dev/null)" || GOV_OUT=""
 GOV="$(printf '%s\n' "$GOV_OUT" | sed -n 's/^governance: //p')"

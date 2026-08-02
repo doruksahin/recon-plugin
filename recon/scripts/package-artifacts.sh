@@ -22,12 +22,21 @@ mkdir -p "$DIR/triage/jira"
 MANIFEST="$DIR/triage/jira/bundle-manifest.txt"
 : > "$MANIFEST"
 
+# Per-file size guard: a long session.webm may exceed Jira attachment limits;
+# an oversized file degrades the bundle (visible SKIPPED line), never the
+# delivery. Override with RECON_BUNDLE_MAX_FILE_SIZE (bytes).
+MAX_FILE_SIZE="${RECON_BUNDLE_MAX_FILE_SIZE:-20971520}"
+
 while IFS= read -r f; do
   rel="${f#"$DIR"/}"
   case "$rel" in
     runs/* | triage/jira/bundle-manifest.txt) continue ;;
   esac
   size=$(wc -c < "$f" | tr -d ' ')
+  if [ "$size" -gt "$MAX_FILE_SIZE" ]; then
+    echo "SKIPPED: $rel ($size bytes > $MAX_FILE_SIZE limit)"
+    continue
+  fi
   printf '%s %s\n' "$size" "$rel" >> "$MANIFEST"
 done < <(find "$DIR" -type f ! -path "$DIR/runs/*" | LC_ALL=C sort)
 

@@ -72,17 +72,17 @@ verifier and rail depend on them; a version bump re-verifies each line.
 
 ## File-level checklist
 
-- [ ] *recon/scripts/record-repro.sh* — new rail (above)
-- [ ] `recon/scripts/reconctl.sh` — `repro` preflight profile + pinned-version check
-- [ ] `recon/scripts/artifact-tools.py` — session bundle + log cross-checks in `verify_repro`
-- [ ] `recon/scripts/package-artifacts.sh` — size guard
-- [ ] `recon/scripts/doctor.sh` — repro-recorder check lines (derived from `preflight repro`)
-- [ ] `recon/skills/recon-repro/SKILL.md` — record→drive→stop→transcribe workflow
-- [ ] `recon/docs/registry.yaml` + pipeline.md registry table + `recon/docs/workspace-index.md` + `docs/flow.html` — `session/` artifact
-- [ ] `recon/docs/pipeline.md` — invariant 9, stage R row, trigger rows, rails table
-- [ ] `recon/docs/hosts.md` — repro row + rule 5 + profile list
-- [ ] `recon/scripts/CLAUDE.md` + `recon/skills/CLAUDE.md` — role lines
-- [ ] `tools/test-artifact-verifiers.sh` — session fixtures (valid, missing-session,
+- [x] *recon/scripts/record-repro.sh* — new rail (above)
+- [x] `recon/scripts/reconctl.sh` — `repro` preflight profile + pinned-version check
+- [x] `recon/scripts/artifact-tools.py` — session bundle + log cross-checks in `verify_repro`
+- [x] `recon/scripts/package-artifacts.sh` — size guard
+- [x] `recon/scripts/doctor.sh` — repro-recorder check lines (derived from `preflight repro`)
+- [x] `recon/skills/recon-repro/SKILL.md` — record→drive→stop→transcribe workflow
+- [x] `recon/docs/registry.yaml` + pipeline.md registry table + `recon/docs/workspace-index.md` + `docs/flow.html` — `session/` artifact
+- [x] `recon/docs/pipeline.md` — invariant 9, stage R row, trigger rows, rails table
+- [x] `recon/docs/hosts.md` — repro row + rule 5 + profile list
+- [x] `recon/scripts/CLAUDE.md` + `recon/skills/CLAUDE.md` — role lines
+- [x] `tools/test-artifact-verifiers.sh` — session fixtures (valid, missing-session,
       unmatched exhibit, out-of-order screenshots, malformed log, stale timestamp,
       bad webm, failed-with/without-session)
 

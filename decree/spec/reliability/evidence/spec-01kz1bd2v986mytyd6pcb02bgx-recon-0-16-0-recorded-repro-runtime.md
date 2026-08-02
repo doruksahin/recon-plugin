@@ -3,6 +3,7 @@ id: SPEC-01KZ1BD2V986MYTYD6PCB02BGX
 status: draft
 date: 2026-08-02
 governs:
+- recon/scripts/record-repro.sh
 - recon/scripts/reconctl.sh
 - recon/scripts/artifact-tools.py
 - recon/scripts/verify-repro.sh

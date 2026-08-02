@@ -131,6 +131,32 @@ write_success_repro() {
     >"$ws/repro/repro.md"
   make_png "$ws/repro/exhibits/1-baseline.png"
   make_png "$ws/repro/exhibits/2-result.png"
+  write_session_bundle "$ws"
+}
+
+# The recorded proofshot bundle a finalized record-repro.sh run leaves at
+# repro/session/ — the vendored 1.6.0 shape verify-repro.sh cross-checks.
+write_session_bundle() {
+  local ws="$1"
+  local dir="$ws/repro/session"
+  mkdir -p "$dir"
+  printf '%s\n' \
+    '[' \
+    "  {\"action\": \"open http://localhost:3000/collections\", \"relativeTimeSec\": 1.0, \"timestamp\": \"$RUN_STARTED\"}," \
+    "  {\"action\": \"screenshot 1-baseline.png\", \"relativeTimeSec\": 2.0, \"timestamp\": \"$RUN_STARTED\"}," \
+    "  {\"action\": \"click @e3\", \"relativeTimeSec\": 3.0, \"timestamp\": \"$RUN_STARTED\", \"element\": {\"ref\": \"@e3\"}}," \
+    "  {\"action\": \"screenshot 2-result.png\", \"relativeTimeSec\": 4.0, \"timestamp\": \"$RUN_STARTED\"}" \
+    ']' \
+    >"$dir/session-log.json"
+  printf '{"branch": "main", "commitSha": "%s", "startedAt": "%s", "description": "fixture"}\n' \
+    "$FIXTURE_COMMIT" "$RUN_STARTED" >"$dir/metadata.json"
+  python3 - "$dir/session.webm" <<'PY'
+import sys
+from pathlib import Path
+
+Path(sys.argv[1]).write_bytes(b"\x1a\x45\xdf\xa3" + b"\x00" * 60)
+PY
+  printf 'console clean\n' >"$dir/console-output.log"
 }
 
 write_failed_repro() {
@@ -458,6 +484,172 @@ expect_pass "successful repro" env RECON_ROOT="$CASE_ROOT" bash "$REPRO_VERIFY" 
 new_workspace repro-honest-failure
 write_failed_repro "$CASE_WS"
 expect_pass "honest failed repro" env RECON_ROOT="$CASE_ROOT" bash "$REPRO_VERIFY" "$TICKET"
+
+# Recorded-session provenance (invariant 9): success requires the bundle and
+# every exhibit must trace to a logged screenshot action.
+new_workspace repro-missing-session
+write_success_repro "$CASE_WS"
+rm -rf "$CASE_WS/repro/session"
+expect_violation "success without recorded session" \
+  "successful repro requires the recorded session bundle" \
+  env RECON_ROOT="$CASE_ROOT" bash "$REPRO_VERIFY" "$TICKET"
+
+new_workspace repro-unmatched-exhibit
+write_success_repro "$CASE_WS"
+python3 - "$CASE_WS/repro/session/session-log.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+entries = [e for e in json.loads(path.read_text())
+           if e["action"] != "screenshot 2-result.png"]
+path.write_text(json.dumps(entries, indent=2) + "\n")
+PY
+expect_violation "exhibit without logged screenshot action" \
+  "no matching screenshot action" \
+  env RECON_ROOT="$CASE_ROOT" bash "$REPRO_VERIFY" "$TICKET"
+
+new_workspace repro-shot-order
+write_success_repro "$CASE_WS"
+python3 - "$CASE_WS/repro/session/session-log.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+entries = json.loads(path.read_text())
+shots = [e for e in entries if e["action"].startswith("screenshot ")]
+rest = [e for e in entries if not e["action"].startswith("screenshot ")]
+shots.reverse()
+for index, entry in enumerate(rest + shots):
+    entry["relativeTimeSec"] = float(index + 1)
+path.write_text(json.dumps(rest + shots, indent=2) + "\n")
+PY
+expect_violation "screenshot actions out of step order" \
+  "out of step order" \
+  env RECON_ROOT="$CASE_ROOT" bash "$REPRO_VERIFY" "$TICKET"
+
+new_workspace repro-log-drift
+write_success_repro "$CASE_WS"
+python3 - "$CASE_WS/repro/session/session-log.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+entries = json.loads(path.read_text())
+entries[0]["surprise"] = "new upstream field"
+path.write_text(json.dumps(entries, indent=2) + "\n")
+PY
+expect_violation "session log schema drift" \
+  "unexpected key(s) surprise" \
+  env RECON_ROOT="$CASE_ROOT" bash "$REPRO_VERIFY" "$TICKET"
+
+new_workspace repro-log-not-array
+write_success_repro "$CASE_WS"
+printf '{}\n' >"$CASE_WS/repro/session/session-log.json"
+expect_violation "session log not an array" \
+  "session log must be a JSON array" \
+  env RECON_ROOT="$CASE_ROOT" bash "$REPRO_VERIFY" "$TICKET"
+
+new_workspace repro-stale-log-entry
+write_success_repro "$CASE_WS"
+python3 - "$CASE_WS/repro/session/session-log.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+entries = json.loads(path.read_text())
+entries[1]["timestamp"] = "2000-01-01T00:00:00Z"
+path.write_text(json.dumps(entries, indent=2) + "\n")
+PY
+expect_violation "stale session log entry" \
+  "timestamp predates this run" \
+  env RECON_ROOT="$CASE_ROOT" bash "$REPRO_VERIFY" "$TICKET"
+
+new_workspace repro-bad-webm
+write_success_repro "$CASE_WS"
+printf 'this is not a webm recording at all, but it is long enough\n' \
+  >"$CASE_WS/repro/session/session.webm"
+expect_violation "corrupt session video" \
+  "missing EBML magic" \
+  env RECON_ROOT="$CASE_ROOT" bash "$REPRO_VERIFY" "$TICKET"
+
+new_workspace repro-failed-with-session
+write_failed_repro "$CASE_WS"
+write_session_bundle "$CASE_WS"
+expect_pass "honest failed repro with recorded attempt" \
+  env RECON_ROOT="$CASE_ROOT" bash "$REPRO_VERIFY" "$TICKET"
+
+# record-repro.sh rail contract, driven against a stubbed proofshot that
+# mimics the 1.6.0 on-disk session shape — no browser, no network.
+RECORD_REPRO="$ROOT/recon/scripts/record-repro.sh"
+STUB_BIN="$FIXTURE/stub-bin"
+mkdir -p "$STUB_BIN"
+cat >"$STUB_BIN/proofshot" <<'SH'
+#!/bin/bash
+set -euo pipefail
+SESSION_DIR="session-staging/2026-01-01_00-00-00_stub"
+case "${1:-}" in
+  start)
+    mkdir -p "$SESSION_DIR"
+    printf '{"sessionDir": "%s"}\n' "$SESSION_DIR" > session-staging/.session.json
+    ;;
+  exec)
+    if [ "${2:-}" = "screenshot" ]; then
+      printf 'stub-png' > "$SESSION_DIR/${3:?}"
+    fi
+    ;;
+  stop)
+    printf '[{"action": "screenshot 1-baseline.png", "relativeTimeSec": 1.0, "timestamp": "2026-01-01T00:00:00Z"}]\n' \
+      > "$SESSION_DIR/session-log.json"
+    python3 -c 'import pathlib,sys; pathlib.Path(sys.argv[1]).write_bytes(b"\x1a\x45\xdf\xa3" + b"\x00" * 60)' \
+      "$SESSION_DIR/session.webm"
+    printf '{"startedAt": "2026-01-01T00:00:00Z"}\n' > "$SESSION_DIR/metadata.json"
+    : > "$SESSION_DIR/console-output.log"
+    rm -f session-staging/.session.json
+    ;;
+  --version) echo "1.6.0" ;;
+  *) exit 2 ;;
+esac
+SH
+chmod +x "$STUB_BIN/proofshot"
+printf '#!/bin/bash\nexit 0\n' >"$STUB_BIN/agent-browser"
+chmod +x "$STUB_BIN/agent-browser"
+
+new_workspace rail-guarded-exec
+mkdir -p "$CASE_WS/repro"
+expect_exit_code "guarded exec without recording" "no active recording" 2 \
+  env PATH="$STUB_BIN:$PATH" RECON_ROOT="$CASE_ROOT" \
+  bash "$RECORD_REPRO" "$TICKET" exec open "http://localhost:3000/"
+
+new_workspace rail-stop-unstarted
+mkdir -p "$CASE_WS/repro"
+expect_exit_code "stop without recording" "no active recording to stop" 2 \
+  env PATH="$STUB_BIN:$PATH" RECON_ROOT="$CASE_ROOT" \
+  bash "$RECORD_REPRO" "$TICKET" stop
+
+new_workspace rail-lifecycle
+expect_pass "rail start" \
+  env PATH="$STUB_BIN:$PATH" RECON_ROOT="$CASE_ROOT" \
+  bash "$RECORD_REPRO" "$TICKET" start
+expect_pass "rail guarded exec" \
+  env PATH="$STUB_BIN:$PATH" RECON_ROOT="$CASE_ROOT" \
+  bash "$RECORD_REPRO" "$TICKET" exec screenshot 1-baseline.png
+expect_pass "rail stop finalizes" \
+  env PATH="$STUB_BIN:$PATH" RECON_ROOT="$CASE_ROOT" \
+  bash "$RECORD_REPRO" "$TICKET" stop
+[ -f "$CASE_WS/repro/session/session-log.json" ] \
+  || fail "rail stop did not finalize session-log.json"
+[ -f "$CASE_WS/repro/exhibits/1-baseline.png" ] \
+  || fail "rail stop did not relocate the step screenshot into exhibits/"
+[ ! -e "$CASE_WS/repro/session-staging" ] \
+  || fail "rail stop left session-staging behind"
+[ ! -e "$CASE_WS/repro/proofshot.config.json" ] \
+  || fail "rail stop left proofshot.config.json behind"
+PASS_COUNT=$((PASS_COUNT + 1))
 
 # Repro: non-contiguous steps, corrupt/stale/orphan exhibits, and fabricated
 # evidence on a failure all stop at the verifier.

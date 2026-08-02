@@ -153,10 +153,20 @@ it; the skill separately judges whether each image visibly proves its claim.
 
 ### `repro/exhibits/<n>-<slug>.png`
 One screenshot per state, numbered in step order (`1-baseline.png`,
-`2-dropdown-open.png`, …). Captured live this run — never reused from history.
-They serve three consumers: the gate's questions, the spec draft's Manual
-verification, and the eventual PR's "before" evidence. Missing, orphaned,
-corrupt, stale, or misnumbered images fail package verification.
+`2-dropdown-open.png`, …). Captured live this run by a logged `screenshot`
+action inside the recorded session — never reused from history. They serve
+three consumers: the gate's questions, the spec draft's Manual verification,
+and the eventual PR's "before" evidence. Missing, orphaned, corrupt, stale,
+or misnumbered images fail package verification.
+
+### `repro/session/` — the recorded session bundle
+Finalized by `record-repro.sh stop`: `session-log.json` (the timestamped
+action log `repro.md` steps are transcribed from), `session.webm` (the full
+session video — in the delivery zip, a PM can watch the anomaly),
+`metadata.json`, `console-output.log`, and `server.log` when the rail started
+the dev server. Required for every successful repro; a failed repro keeps the
+bundle only when the recording actually started. `verify-repro.sh`
+cross-checks exhibits against the logged screenshot actions.
 
 ---
 

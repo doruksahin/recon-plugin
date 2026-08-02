@@ -9,7 +9,7 @@ in one pure-output invocation:
 
 ```bash
 CTL="<skill base dir>/../../scripts/reconctl.sh"
-bash "$CTL" start <base|triage>
+bash "$CTL" start <base|triage|repro>
 ```
 
 The snapshot emits `root`, `host`, `surface`, namespaced `capability.*` lines,
@@ -50,7 +50,7 @@ absolute `RECON_ROOT` to use another local or shared directory.
 | Display a local file | `SendUserFile` | Markdown with an absolute local path |
 | Publish once | native Artifact tool | unavailable; render-only |
 | Update one stable URL | native Artifact tool with the saved URL | unavailable; never write `state/artifact-url` |
-| Browser/repro | preview/browser tools | in-app browser or computer-use when available |
+| Repro recorder | pinned proofshot + agent-browser CLIs via `record-repro.sh` (`preflight repro` decides) | same — one recorder contract on every host |
 | Local shell/filesystem | available | available |
 | Network/Jira | local environment; `preflight triage` decides | `CODEX_SANDBOX_NETWORK_DISABLED=1` means unreachable; otherwise `preflight triage` decides |
 
@@ -88,7 +88,8 @@ scripts may use.
    and stop before the side effect.
 4. Only `publish_stable_url: available` may create, update, or use
    `state/artifact-url`; all other cases are render-only.
-5. Missing browser capability produces an honest failed-repro finding; it
-   never permits fabricated steps or screenshots.
+5. A failed `repro` preflight (recorder missing or version-mismatched)
+   produces an honest failed-repro finding; it never permits fabricated
+   steps, fabricated screenshots, or an unrecorded browser session.
 6. Host mechanics may change invocation and presentation, not artifact
    schemas, evidence requirements, routing, or approval semantics.

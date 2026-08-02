@@ -108,6 +108,11 @@
   producer: repro
   consumers: blocker detail packs, dossier exhibits, PR before-evidence
 
+- pattern: "repro/session/*"
+  token: "session/"
+  producer: record-repro.sh (proofshot bundle, finalized at stop)
+  consumers: verify-repro.sh log cross-check, delivery bundle (video), audit
+
 - pattern: "report/dossier.html"
   token: "dossier.html"
   producer: recon-report

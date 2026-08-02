@@ -372,8 +372,8 @@
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span> triggers <span class="sep">·</span> <span class="w-judge">judgment</span> reproduces</dd>
       <dt>in</dt><dd><code>task_class</code> + surface + route (condition table)</dd>
-      <dt>out</dt><dd><code>repro/repro.md</code> fixed frontmatter <span class="sep">·</span> <code>repro/exhibits/&lt;n&gt;-&lt;slug&gt;.png</code></dd>
-      <dt>rule</dt><dd>fires on defect + visible UI + non-trivial route, or any UI OPEN scenario <span class="sep">·</span> happens before the brief <span class="sep">·</span> failed repro = reported finding, never faked</dd>
+      <dt>out</dt><dd><code>repro/repro.md</code> fixed frontmatter <span class="sep">·</span> <code>repro/exhibits/&lt;n&gt;-&lt;slug&gt;.png</code> <span class="sep">·</span> <code>repro/session/</code> recorded bundle (action log + video)</dd>
+      <dt>rule</dt><dd>fires on defect + visible UI + non-trivial route, or any UI OPEN scenario <span class="sep">·</span> every browser action recorded through <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/record-repro.sh">record-repro.sh</a> (pinned proofshot) <span class="sep">·</span> happens before the brief <span class="sep">·</span> failed repro = reported finding, never faked</dd>
     </dl>
   </div>
 
@@ -382,9 +382,9 @@
       <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-repro.sh">verify-repro.sh</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span> for structure/provenance <span class="sep">·</span> <span class="w-judge">judgment</span> still reads the pixels</dd>
-      <dt>in</dt><dd><code>repro.md</code> + current-run PNG exhibits</dd>
+      <dt>in</dt><dd><code>repro.md</code> + current-run PNG exhibits + <code>session-log.json</code></dd>
       <dt>out</dt><dd><code>verify: clean</code> or actionable package failures</dd>
-      <dt>rule</dt><dd>regular non-symlinked paths · contiguous visible step/exhibit parity (HTML comments do not count) · PNG chunk/order/CRC/zlib/IEND integrity · no orphan/stale evidence <span class="sep">·</span> visual meaning remains human/model judgment</dd>
+      <dt>rule</dt><dd>regular non-symlinked paths · contiguous visible step/exhibit parity (HTML comments do not count) · PNG chunk/order/CRC/zlib/IEND integrity · exhibits paired to logged screenshot actions in step order · no orphan/stale evidence <span class="sep">·</span> visual meaning remains human/model judgment</dd>
     </dl>
   </div>
 
@@ -464,6 +464,7 @@
           <tr><td class="mono">discovery/{discovery.md, gate.yaml, spec-draft.md}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-discovery/SKILL.md">discovery</a>, verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-discovery.sh">verify-discovery.sh</a></td><td>gate, dossier decision cards, the implementing session; spec-draft absent for brief_kind none</td></tr>
           <tr><td class="mono">route/{routing.yaml, aux-intent-check.txt}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/route-generic.sh">route-generic.sh</a> | <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-decree/SKILL.md">recon-decree</a></td><td>discovery (route, brief_kind, verbatim handoff), dossier</td></tr>
           <tr><td class="mono">repro/{repro.md, exhibits/*.png}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-repro/SKILL.md">repro</a>, verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-repro.sh">verify-repro.sh</a></td><td>blocker detail packs, gate questions, Manual verification, PR "before" evidence</td></tr>
+          <tr><td class="mono">repro/session/*</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/record-repro.sh">record-repro.sh</a> (proofshot bundle, finalized at stop)</td><td>verify-repro.sh log cross-check, delivery bundle (video), audit</td></tr>
           <tr><td class="mono">report/dossier.html</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a></td><td>attached to the ticket on the posting path; published private on demand</td></tr>
           <tr><td class="mono">state/{state.yaml, canvas.html, artifact-url}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/derive-state.sh">derive-state.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-state-canvas.sh">render-state-canvas.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-state/SKILL.md">recon-state</a></td><td>living state: canonical next action + local canvas; stable URL only on capable hosts</td></tr>
         </tbody>

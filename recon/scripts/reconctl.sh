@@ -228,14 +228,14 @@ existing_parent() {
 
 validate_preflight_profile() {
   case "${1:-}" in
-    base|triage) ;;
-    *) echo "unknown preflight profile: ${1:-} (expected base|triage)" >&2; exit 2 ;;
+    base|triage|repro) ;;
+    *) echo "unknown preflight profile: ${1:-} (expected base|triage|repro)" >&2; exit 2 ;;
   esac
 }
 
 preflight_snapshot() {
   local profile="$1" root="$2" host="$3" surface="$4" include_runtime="$5"
-  local parent failures=0 cmd env_file code tmp
+  local parent failures=0 cmd env_file code tmp pinned installed
 
   printf 'profile: %s\n' "$profile"
   if [ "$include_runtime" = "1" ]; then
@@ -265,6 +265,33 @@ preflight_snapshot() {
   else
     emit_check workspace FAIL "no writable existing directory at or above $root"
     failures=$((failures + 1))
+  fi
+
+  # The recorded repro runtime: proofshot drives the separate agent-browser
+  # CLI, and the verifier vendors proofshot's session-log schema, so the
+  # version is PINNED here (the single owner of that fact). Absence or a
+  # mismatch fails closed — an unrecorded repro is never a fallback.
+  if [ "$profile" = "repro" ]; then
+    for cmd in proofshot agent-browser; do
+      if command -v "$cmd" >/dev/null 2>&1; then
+        emit_check "command.$cmd" PASS "$(command -v "$cmd")"
+      else
+        emit_check "command.$cmd" FAIL "npm install -g proofshot@${RECON_PROOFSHOT_VERSION:-1.6.0} agent-browser"
+        failures=$((failures + 1))
+      fi
+    done
+    if command -v proofshot >/dev/null 2>&1; then
+      pinned="${RECON_PROOFSHOT_VERSION:-1.6.0}"
+      installed="$(proofshot --version 2>/dev/null | tr -d '[:space:]')" || installed=""
+      if [ "$installed" = "$pinned" ]; then
+        emit_check proofshot_version PASS "$installed (pinned)"
+      else
+        emit_check proofshot_version FAIL "installed '$installed', pinned '$pinned' — npm install -g proofshot@$pinned"
+        failures=$((failures + 1))
+      fi
+    else
+      emit_check proofshot_version SKIP "proofshot missing"
+    fi
   fi
 
   if [ "$profile" = "triage" ]; then
@@ -377,8 +404,8 @@ commands:
   detect-surface                    print the normalized local execution surface
   invocation <ACTION> [TICKET]      render one host-native Recon invocation
   capabilities [HOST]               print the local host capability contract
-  preflight [base|triage]           verify required local execution preconditions
-  start <base|triage>               print one runtime/capability/preflight snapshot
+  preflight [base|triage|repro]     verify required local execution preconditions
+  start <base|triage|repro>         print one runtime/capability/preflight snapshot
 
 environment:
   RECON_ROOT                         absolute workspace root override
@@ -386,6 +413,7 @@ environment:
   RECON_SURFACE                      explicit surface override
   RECON_JIRA_ENV                     Jira env file override for preflight tests
   RECON_PREFLIGHT_TIMEOUT            Jira reachability timeout in seconds
+  RECON_PROOFSHOT_VERSION            pinned repro recorder version (default 1.6.0)
 
 The default root remains ~/.claude/recon for backward compatibility.
 Supported executable hosts in v0.15.0 are Claude Code and local Codex.

@@ -88,7 +88,32 @@ if clean_env RECON_ROOT="$FIXTURE/start-missing-profile" bash "$CTL" start \
 fi
 assert_contains "$(cat "$FIXTURE/start-missing-profile.out")" \
   "unknown preflight profile" "atomic start requires an explicit profile"
-assert_contains "$(clean_env bash "$CTL" help)" "start <base|triage>" "atomic start help"
+assert_contains "$(clean_env bash "$CTL" help)" "start <base|triage|repro>" "atomic start help"
+
+# The repro profile pins the recorder: absent binaries or a version mismatch
+# fail closed; a stubbed pinned install passes.
+STUB_BIN="$FIXTURE/recorder-stub-bin"
+mkdir -p "$STUB_BIN"
+printf '#!/bin/bash\n[ "${1:-}" = "--version" ] && echo 1.6.0\nexit 0\n' >"$STUB_BIN/proofshot"
+printf '#!/bin/bash\nexit 0\n' >"$STUB_BIN/agent-browser"
+chmod +x "$STUB_BIN/proofshot" "$STUB_BIN/agent-browser"
+if clean_env RECON_ROOT="$FIXTURE/repro-missing" PATH="/usr/bin:/bin" \
+  bash "$CTL" preflight repro >"$FIXTURE/repro-missing.out" 2>&1; then
+  fail "repro preflight passed without the recorder installed"
+fi
+assert_contains "$(cat "$FIXTURE/repro-missing.out")" \
+  "check.command.proofshot: FAIL" "repro preflight fails closed without proofshot"
+REPRO_PF="$(clean_env RECON_ROOT="$FIXTURE/workspaces" PATH="$STUB_BIN:/usr/bin:/bin" \
+  bash "$CTL" preflight repro)"
+assert_contains "$REPRO_PF" "check.proofshot_version: PASS" "pinned recorder version passes"
+assert_contains "$REPRO_PF" "preflight: PASS" "repro preflight verdict"
+if clean_env RECON_ROOT="$FIXTURE/workspaces" PATH="$STUB_BIN:/usr/bin:/bin" \
+  RECON_PROOFSHOT_VERSION=9.9.9 bash "$CTL" preflight repro \
+  >"$FIXTURE/repro-mismatch.out" 2>&1; then
+  fail "repro preflight passed a version mismatch"
+fi
+assert_contains "$(cat "$FIXTURE/repro-mismatch.out")" \
+  "check.proofshot_version: FAIL" "version mismatch fails closed"
 
 # Codex declares its own network policy; preflight must not probe past it.
 assert_contains "$(clean_env RECON_HOST=codex CODEX_SANDBOX_NETWORK_DISABLED=1 bash "$CTL" capabilities)" \

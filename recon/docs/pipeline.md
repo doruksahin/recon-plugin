@@ -15,8 +15,9 @@ preflight, capability levels, and human-facing invocation rendering.
 is `~/.claude/recon`. `RECON_HOST` and `RECON_SURFACE` are explicit overrides;
 otherwise the rail detects Claude Code or local Codex and fails closed as
 `unknown`. Skills read `recon/docs/hosts.md` and run `reconctl.sh start
-base|triage` for one pure-output runtime, capability, and preflight snapshot
-before mutation. Later rails re-detect current identity for provenance. Host
+base|triage|repro` for one pure-output runtime, capability, and preflight
+snapshot before mutation (the `repro` profile adds the pinned proofshot +
+agent-browser recorder checks). Later rails re-detect current identity for provenance. Host
 mechanics may change; gates, schemas, evidence, and routing semantics may not.
 Hosted runtimes are outside the executable `0.15.0` contract.
 
@@ -28,7 +29,7 @@ Hosted runtimes are outside the executable `0.15.0` contract.
 | 1 | Blocker triage | recon-triage | ticket ID/URL | verdict verified by `verify-triage.sh` → `READY` → stage 2 (auto-chain, unless user said "triage only") · `BLOCKED`/`NEEDS_INFO` → repro (if UI blockers) → dossier (render-only, auto) → render + shape rails → package → comment+attachments gate → attach then comment → **STOP** |
 | 2 | Code discovery | recon-discovery | `triage/triage.yaml` with `disposition: READY` | ID-bearing contract → routing → required repro + verification → brief → pre-gate verification → gate → post-gate verification → **STOP** (handoff quoted verbatim from `route/routing.yaml`, never executed) |
 | RT | Routing | `scripts/route-generic.sh` (governance `none`) **or** the adapter skill `recon-<governance>` (e.g. recon-decree) | invoked by stage 2 after the contract; governance resolved by `scripts/detect-governance.sh` | `route/routing.yaml` (route, rule trace, `brief_kind`, `handoff:` as data) |
-| R | Live repro | recon-repro | invoked by stage 1 or 2 per trigger table | `repro.md` + screenshots, or an honest failure finding; both must pass `verify-repro.sh` |
+| R | Live repro | recon-repro | invoked by stage 1 or 2 per trigger table | `repro.md` + screenshots + the recorded session bundle (`repro/session/`), or an honest failure finding; both must pass `verify-repro.sh` |
 | D | Dossier | recon-report | on demand after any STOP (current run exists), or auto-invoked render-only by stage 1's `BLOCKED`/`NEEDS_INFO` posting path | always `report/dossier.html`; private artifact URL only when `publish_once` is available |
 | S | State canvas | recon-state | on demand, and local refresh at a STOP/gate | always `state/state.yaml` + `state/canvas.html`; `state/artifact-url` only when `publish_stable_url` is available |
 
@@ -46,7 +47,7 @@ Hosted runtimes are outside the executable `0.15.0` contract.
 6. **No mutating Jira call (comment create/edit, attachment delete/upload) without explicit human approval in-session.** Drafts are saved to `comment.txt` and attachments staged before the gate; one "post" answer authorizes the comment AND the attachments; at most one marker comment per ticket, edited on re-runs.
 7. **Routing is a stage with exactly two producers** — `route-generic.sh` (rail) or the governance adapter skill — writing `route/routing.yaml` with non-empty `matched_rule`, `governance`, `governance_source`, `rules_not_matched`, a full lowercase 40- or 64-character Git object ID in `evidence.repo_commit`, and a block-scalar `handoff:`. The Discovery verifier rejects missing, placeholder, malformed, duplicate, or unknown envelope fields without second-guessing the producer's semantic rule choice. Never route by feel; discovery consumes the record and quotes `handoff:` VERBATIM (the handoff is data, authored once).
 8. **Human-facing questions are concrete**: numbered steps from a stated start state, real entity names, options as user-observable outcomes. Internal identifiers are banned from question text.
-9. **Repro is never fabricated.** Every step performed and every screenshot captured this run; a failed repro is reported as a finding. `verify-repro.sh` proves package structure and coarse provenance, while the skill reads each screenshot to judge visual truth.
+9. **Repro is never fabricated — and the recording proves it.** Every browser action runs inside a recorded proofshot session bracketed by `record-repro.sh` (guarded `exec`; unrecorded actions are unreachable), every step is performed and every screenshot captured this run by a logged `screenshot` action; a failed repro is reported as a finding. `verify-repro.sh` proves package structure, session provenance (schema-exact action log inside the run window, exhibits paired to logged screenshot actions in step order, a real `session.webm`), and coarse provenance, while the skill reads each screenshot to judge visual truth.
 10. **No undeclared artifacts.** Every file a run writes appears in the artifact registry — `recon/docs/registry.yaml`, the single source that `recon/scripts/lint-workspace.sh <TICKET>` executes (every stage runs it in its Report step; exit 1 on violations). The table below is a checked mirror of that file, kept honest by `tools/check-coherence.sh`.
 11. **Determinism definition:** given the same ticket state, a run produces the same verdict regardless of what earlier runs left behind.
 12. **Governance is opt-in and fenced.** `detect-governance.sh` resolves the ladder (env > `~/.config/recon/config` > probe); detection alone never opts a developer in — a detected-but-unchosen tool yields `undecided` and exactly one persisted question. When governance resolves to `none`, governance-system vocabulary (decree/SPEC/PRD/ADR) is banned from every artifact — `lint-workspace.sh` greps for it. All adapter vocabulary lives in the adapter skill (`recon-<governance>`), which a `none` run never loads.
@@ -76,7 +77,8 @@ All under `$RECON_ROOT/<TICKET>/`. Producer → consumers. **The authoritative r
 | `route/aux-intent-check.txt` | governance adapter only | audit, recon-report | raw adapter-check output backing the evidence lines |
 | `discovery/gate.yaml` | discovery | recon-report decision cards, humans | approved/date plus exact `OPEN-N` resolution keys or a rejection reason — the gate is discovery's act |
 | `discovery/spec-draft.md` | discovery | implementer session | absent for `brief_kind: none`; otherwise the named brief with exact visible scenario-ID parity + Manual verification, or the fixed-section problem statement; approved OPEN resolution text is bound to its visible same-ID entry — governance-neutral |
-| `repro/repro.md` + `repro/exhibits/<n>-<slug>.png` | repro | gate questions, spec-draft Manual verification, PR "before" evidence, recon-report exhibits | fixed frontmatter (`ticket`, `reproduced`, `start_state`, `failure_reason`); successful steps and visibly referenced exhibits are numbered 1:1; inputs are regular in-workspace paths and PNGs pass chunk bounds/order, CRC, IDAT zlib EOF, and terminal-IEND checks; honest failures contain no invented success evidence |
+| `repro/repro.md` + `repro/exhibits/<n>-<slug>.png` | repro | gate questions, spec-draft Manual verification, PR "before" evidence, recon-report exhibits | fixed frontmatter (`ticket`, `reproduced`, `start_state`, `failure_reason`); successful steps and visibly referenced exhibits are numbered 1:1 and transcribed from the session log; inputs are regular in-workspace paths and PNGs pass chunk bounds/order, CRC, IDAT zlib EOF, and terminal-IEND checks; honest failures contain no invented success evidence |
+| `repro/session/…` | `record-repro.sh` (proofshot bundle, finalized at stop) | `verify-repro.sh` log cross-check, delivery bundle (video), audit | `session-log.json` action log + `session.webm` + `metadata.json` + console/server logs; REQUIRED for `reproduced: true`; exhibits must pair with logged screenshot actions in step order |
 | `report/dossier.html` | recon-report | humans (published as a private artifact on-demand; attached to the Jira ticket by triage on the posting path) | a VIEW over the rows above — no new facts, fixed template |
 | `state/state.yaml` | `derive-state.sh` | `render-state-canvas.sh`, humans | flat derived state: stop label, node statuses, fact counts, canonical `next_action`, neutral next prose |
 | `state/canvas.html` | `render-state-canvas.sh` | recon-state display/publish step, humans | the living node canvas; always available locally |
@@ -92,6 +94,7 @@ All under `$RECON_ROOT/<TICKET>/`. Producer → consumers. **The authoritative r
 | Primary-scenario repro | `task_class: defect` AND affected surface is visible UI AND `routing.route` ∉ {`direct`, `no-doc`} | invoke recon-repro for the bug itself, verify it, then draft the brief |
 | OPEN-scenario repro | any OPEN scenario concerns observable UI behavior | invoke recon-repro, verify it, then reference steps + screenshots in the gate question |
 | Repro session reuse | primary + OPEN scenarios share a start state | one dev-server session covers both |
+| Repro recording | any repro browser interaction | `record-repro.sh <TICKET> start` (recorded session + dev server via `--run`) → every action through guarded `exec` → `stop` finalizes `repro/session/` and relocates step screenshots to `repro/exhibits/`; a failed `start` or failed `repro` preflight is an honest failed-repro finding, never unrecorded browsing |
 | Repro verification | `repro/repro.md` written or consumed | `verify-repro.sh` until `verify: clean`; then the skill still reads every screenshot for visual meaning |
 | Comment edit-vs-create | any fetched comment contains `recon-triage` | EDIT the most recent one; never create a second |
 | Answered-blocker detection | human comment posted after a marker comment | counts as replying to its questions |
@@ -122,7 +125,8 @@ All under `$RECON_ROOT/<TICKET>/`. Producer → consumers. **The authoritative r
 | gates: who may approve, what gets recorded | disposition rationale in evidence lines |
 | comment shape: n+4 lines (`verify-comment-shape.sh`) | blocker ask/detail wording (within triage rule 7 / invariant 8) |
 | disposition derivation + typed-evidence/quote verification (`verify-triage.sh`) | |
-| repro frontmatter, visible step/exhibit, non-symlink path, PNG chunk/CRC/zlib/IEND, and mtime verification (`verify-repro.sh`) | screenshot visual meaning |
+| repro session recording: pinned recorder preflight, guarded exec, bundle finalization (`record-repro.sh`, `reconctl.sh preflight repro`) | human phrasing of the steps transcribed from the session log |
+| repro frontmatter, visible step/exhibit, non-symlink path, PNG chunk/CRC/zlib/IEND, session-log cross-check, and mtime verification (`verify-repro.sh`) | screenshot visual meaning |
 | visible scenario IDs, implementation/problem brief parity/shape, complete route producer/trace/commit envelope, block-scalar handoff, and exact same-ID gate-resolution verification (`verify-discovery.sh`) | scenario content + routing rule choice + gate recommendation |
 | comment rendering from triage.yaml (`render-comment.sh`) | |
 | attachment replace + ordering (`attach-artifacts.sh`) | |

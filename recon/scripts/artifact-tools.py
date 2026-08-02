@@ -37,6 +37,18 @@ EXHIBIT_TOKEN = re.compile(
 STEP_LINE = re.compile(r"^\s*([1-9][0-9]*)\.\s+(\S.*)$")
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 MTIME_TOLERANCE_SECONDS = 2.0
+
+# The recorded proofshot session bundle (vendored 1.6.0 contract — see
+# docs/plans/2026-08-02-proofshot-repro-runtime.md). Schema drift in a
+# proofshot upgrade must fail here loudly, never pass silently.
+SESSION_REQUIRED_FILES = ("session-log.json", "session.webm", "metadata.json")
+SESSION_ENTRY_REQUIRED = {"action", "relativeTimeSec", "timestamp"}
+SESSION_ENTRY_OPTIONAL = {"element"}
+SCREENSHOT_ACTION = re.compile(
+    r"^screenshot\s+([1-9][0-9]*)-([a-z0-9]+(?:-[a-z0-9]+)*)\.png$"
+)
+WEBM_MAGIC = b"\x1a\x45\xdf\xa3"
+WEBM_MIN_BYTES = 32
 GIT_OBJECT_ID = re.compile(r"(?:[0-9a-f]{40}|[0-9a-f]{64})")
 
 SCENARIO_ID = r"(?:REQ|REG|OPEN)-[1-9][0-9]*"
@@ -413,6 +425,204 @@ def validate_png(path, rel, started, errors):
             )
 
 
+def check_session_mtime(path, rel, started, errors):
+    if started is None:
+        return
+    try:
+        modified = path.stat().st_mtime
+    except OSError as exc:
+        errors.append(f"{rel}: cannot read mtime: {exc}")
+        return
+    if modified + MTIME_TOLERANCE_SECONDS < started:
+        age = int(started - modified)
+        errors.append(
+            f"{rel}: mtime predates this run by {age}s "
+            f"(tolerance {int(MTIME_TOLERANCE_SECONDS)}s)"
+        )
+
+
+def parse_session_log(path, rel, started, errors):
+    """Validate the proofshot action log; return its entries (or [])."""
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        errors.append(f"{rel}: cannot read session log: {exc}")
+        return []
+    try:
+        entries = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        errors.append(f"{rel}: not valid JSON: {exc}")
+        return []
+    if not isinstance(entries, list):
+        errors.append(f"{rel}: session log must be a JSON array of entries")
+        return []
+    previous = None
+    for index, entry in enumerate(entries):
+        label = f"{rel} entry {index}"
+        if not isinstance(entry, dict):
+            errors.append(f"{label}: must be an object")
+            continue
+        keys = set(entry)
+        missing = sorted(SESSION_ENTRY_REQUIRED - keys)
+        unknown = sorted(keys - SESSION_ENTRY_REQUIRED - SESSION_ENTRY_OPTIONAL)
+        if missing:
+            errors.append(f"{label}: missing key(s) {', '.join(missing)}")
+        if unknown:
+            errors.append(
+                f"{label}: unexpected key(s) {', '.join(unknown)} — "
+                "proofshot log schema drift; re-pin the recorder version"
+            )
+        action = entry.get("action")
+        if not isinstance(action, str) or not action.strip():
+            errors.append(f"{label}: action must be a non-empty string")
+        relative = entry.get("relativeTimeSec")
+        if not isinstance(relative, (int, float)) or isinstance(relative, bool) \
+                or relative < 0:
+            errors.append(f"{label}: relativeTimeSec must be a number >= 0")
+        elif previous is not None and relative < previous:
+            errors.append(
+                f"{label}: relativeTimeSec decreases ({relative} after {previous})"
+            )
+        else:
+            previous = relative
+        stamp = entry.get("timestamp")
+        if not isinstance(stamp, str):
+            errors.append(f"{label}: timestamp must be an ISO-8601 string")
+        else:
+            try:
+                parsed = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+            except ValueError:
+                errors.append(f"{label}: timestamp is not ISO-8601: '{stamp}'")
+            else:
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=timezone.utc)
+                if started is not None and (
+                    parsed.timestamp() + MTIME_TOLERANCE_SECONDS < started
+                ):
+                    age = int(started - parsed.timestamp())
+                    errors.append(
+                        f"{label}: timestamp predates this run by {age}s "
+                        f"(tolerance {int(MTIME_TOLERANCE_SECONDS)}s)"
+                    )
+    return [entry for entry in entries if isinstance(entry, dict)]
+
+
+def validate_session(repro_dir, reproduced, exhibit_files, started, errors):
+    """Verify the recorded session bundle at repro/session/.
+
+    reproduced true REQUIRES the bundle and pairs every exhibit with a logged
+    screenshot action; reproduced false permits an absent bundle (the app may
+    never have booted) and validates a present one structurally only.
+    """
+    session_dir = repro_dir / "session"
+    path_errors = []
+    state = validate_existing_path(
+        session_dir, repro_dir, "repro/session/", "directory", path_errors
+    )
+    if state is None:
+        if reproduced == "true":
+            errors.append(
+                "successful repro requires the recorded session bundle at "
+                "repro/session/ (run record-repro.sh start/exec/stop)"
+            )
+        return
+    errors.extend(path_errors)
+    if state is not True:
+        return
+
+    session_files = {}
+    for path in sorted(session_dir.rglob("*")):
+        rel = "session/" + path.relative_to(session_dir).as_posix()
+        state = validate_existing_path(path, session_dir, rel, "file", errors)
+        if state is not True:
+            continue
+        session_files[path.name] = path
+        check_session_mtime(path, rel, started, errors)
+
+    for name in SESSION_REQUIRED_FILES:
+        if name not in session_files:
+            errors.append(f"session/{name}: required session file is missing")
+
+    metadata = session_files.get("metadata.json")
+    if metadata is not None:
+        try:
+            parsed = json.loads(metadata.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            errors.append(f"session/metadata.json: not valid JSON: {exc}")
+        else:
+            if not isinstance(parsed, dict) or not isinstance(
+                parsed.get("startedAt"), str
+            ):
+                errors.append(
+                    "session/metadata.json: must be an object with a "
+                    "startedAt string"
+                )
+
+    video = session_files.get("session.webm")
+    if video is not None:
+        try:
+            head = video.read_bytes()
+        except OSError as exc:
+            errors.append(f"session/session.webm: cannot read video: {exc}")
+        else:
+            if len(head) < WEBM_MIN_BYTES:
+                errors.append(
+                    f"session/session.webm: implausibly small "
+                    f"({len(head)} byte(s) < {WEBM_MIN_BYTES})"
+                )
+            if head[: len(WEBM_MAGIC)] != WEBM_MAGIC:
+                errors.append(
+                    "session/session.webm: missing EBML magic — not a webm "
+                    "recording"
+                )
+
+    log = session_files.get("session-log.json")
+    entries = []
+    if log is not None:
+        entries = parse_session_log(log, "session/session-log.json", started, errors)
+
+    if reproduced != "true":
+        return
+
+    shot_indices = {}
+    for index, entry in enumerate(entries):
+        action = entry.get("action")
+        if not isinstance(action, str):
+            continue
+        match = SCREENSHOT_ACTION.match(action.strip())
+        if match:
+            name = f"{match.group(1)}-{match.group(2)}.png"
+            shot_indices[name] = index
+
+    for rel in sorted(exhibit_files):
+        name = rel[len("exhibits/"):]
+        if name not in shot_indices:
+            errors.append(
+                f"{rel}: no matching screenshot action in "
+                "session-log.json — the exhibit was not produced by the "
+                "recorded session"
+            )
+    exhibit_names = {rel[len("exhibits/"):] for rel in exhibit_files}
+    for name in sorted(shot_indices):
+        if name not in exhibit_names:
+            errors.append(
+                f"session-log.json records 'screenshot {name}' but "
+                f"repro/exhibits/{name} does not exist"
+            )
+
+    ordered = [
+        (int(name.split("-", 1)[0]), shot_indices[name])
+        for name in shot_indices
+        if name in exhibit_names
+    ]
+    ordered.sort()
+    log_positions = [index for _, index in ordered]
+    if log_positions != sorted(log_positions):
+        errors.append(
+            "screenshot actions in session-log.json are out of step order"
+        )
+
+
 def verify_repro(workspace, ticket):
     repro_dir = workspace / "repro"
     repro_path = workspace / "repro" / "repro.md"
@@ -559,13 +769,20 @@ def verify_repro(workspace, ticket):
         if exhibit_files:
             errors.append("failed repro must not contain success screenshots")
 
+    validate_session(repro_dir, reproduced, exhibit_files, started, errors)
+
     if errors:
         for error in errors:
             print(f"REPRO: {error}")
         return 1
+    session_note = (
+        "session recorded"
+        if (repro_dir / "session").is_dir()
+        else "no session (honest failure before recording)"
+    )
     print(
         f"verify: clean — repro reproduced {reproduced}, "
-        f"{len(steps)} step(s), {len(exhibit_files)} exhibit(s)"
+        f"{len(steps)} step(s), {len(exhibit_files)} exhibit(s), {session_note}"
     )
     return 0
 
