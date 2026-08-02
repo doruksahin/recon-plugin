@@ -1,3 +1,10 @@
+## v0.13.0 (2026-08-02)
+
+### Features
+
+- **state**: recon-state skill — derived state canvas, ledger timeline, stable artifact URL
+- **workspace**: cross-run ticket ledger — history.ndjson + log-event rail
+
 ## v0.12.0 (2026-08-02)
 
 ### Features
