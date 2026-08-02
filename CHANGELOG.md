@@ -1,3 +1,31 @@
+## v0.16.0 (2026-08-02)
+
+### BREAKING CHANGE
+
+- discovery/gate.yaml must now carry an exchanges list (one
+entry per OPEN-N plus PACKAGE, each with presented/answer_verbatim/resolution,
+recommendation on OPEN entries) and the gate must be presented from the
+rail-rendered discovery/gate-questions.md — verify-discovery.sh post-gate
+rejects packages without them. OPEN scenario options in discovery.md must be
+visible '- A: <outcome>' list lines with exactly one option ending in
+'(recommended)'.
+- recon-repro requires proofshot@1.6.0 and agent-browser
+on PATH (npm install -g proofshot@1.6.0 agent-browser); reproduced: true
+packages without a recorded session bundle now fail verify-repro.sh, and
+repro/session/* joins the artifact registry.
+
+### Features
+
+- **report**: point the dossier at the recorded session bundle
+- **gate**: record the gate exchange verbatim from railed questions
+- **repro**: render the session viewer at evidence time
+- **repro**: record every repro session with a pinned proofshot runtime
+
+### Bug Fixes
+
+- **tools**: make the git fixtures hermetic against inherited env
+- **repro**: stop the dev server the recording started
+
 ## v0.15.0 (2026-08-02)
 
 ### BREAKING CHANGE

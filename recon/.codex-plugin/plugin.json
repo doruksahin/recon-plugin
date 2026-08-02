@@ -1,6 +1,6 @@
 {
   "name": "recon",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Deterministic Jira task recon pipeline: blocker triage → code discovery → decree routing, with live visual evidence. Runs before planning; ends at a human approval gate.",
   "author": {
     "name": "doruk"
