@@ -2,7 +2,7 @@
 
 > Run every repro under proofshot: action-log + video provenance; steps transcribed, not recalled
 
-- **Status:** proposed
+- **Status:** in-progress — plan: [2026-08-02-proofshot-repro-runtime](../../plans/2026-08-02-proofshot-repro-runtime.md)
 - **Priority:** P1
 - **Theme:** determinism rail
 - **Origin:** Skill-design review on 2 Aug 2026 — post-v0.15.0 audit of `recon-repro`

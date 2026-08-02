@@ -48,7 +48,7 @@ model writes is asks, detail packs, headline, lede — everything else is derive
 | [render-dossier-rail](render-dossier-rail/README.md) | proposed (after schemas) | P1 | Render dossiers from artifacts; let the model author only headline and lede |
 | [verify-discovery-package](verify-discovery-package/README.md) | implemented for v0.15.0 | P1 | Fail when visible scenarios, brief entries, gate decisions, and repro references do not agree |
 | [verify-repro-evidence](verify-repro-evidence/README.md) | implemented for v0.15.0 | P1 | Verify every repro step is fresh, numbered, and visibly backed by a structurally valid in-workspace PNG |
-| [proofshot-repro-runtime](proofshot-repro-runtime/README.md) | proposed | P1 | Run every repro under proofshot: action-log + video provenance; steps transcribed, not recalled |
+| [proofshot-repro-runtime](proofshot-repro-runtime/README.md) | in-progress | P1 | Run every repro under proofshot: action-log + video provenance; steps transcribed, not recalled |
 | [skill-metadata-budget](skill-metadata-budget/README.md) | implemented for v0.15.0 (companion) | P2 | Keep every skill description under 200 characters and fail checks on overflow |
 | [slop-lint](slop-lint/README.md) | proposed | P3 | Banned-phrase denylist + structural caps on the remaining free-text slots |
 | [golden-fixtures](golden-fixtures/README.md) | proposed | P3 | Canned ticket.json fixtures + golden-output diffs; regression-test the pipeline |
