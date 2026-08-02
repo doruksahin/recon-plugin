@@ -116,6 +116,7 @@ brew install uv       # optional; without it, commit messages go unchecked
 
 | Skill | Stage | What it does |
 |---|---|---|
+| `/recon:recon-help` | any time | Orientation + setup doctor: the one command, every skill's own description, and live checks (Jira credentials, handoff style) — all derived by `doctor.sh` at run time, never restated from memory |
 | `/recon:recon-triage` | 0 | Blocker verdict (READY/BLOCKED/NEEDS_INFO) from six mechanical checks; drafts owner-addressed questions; never plans |
 | `/recon:recon-discovery` | 1 | Code surface with `file:line` evidence, Gherkin behavior contract, routing via the governance adapter or generic rail, approval gate |
 | `/recon:recon-repro` | on demand | Live-reproduces observable behavior: numbered steps + one screenshot per state; honest about failed repros |
@@ -136,7 +137,9 @@ Nothing is ever pushed, committed, or posted anywhere without an explicit per-ac
 
 ## Governance is opt-in (decree or nothing at all)
 
-Whether a run routes through decree is resolved by a ladder, most explicit wins: `RECON_GOVERNANCE` env (this run) → `~/.config/recon/config` `governance=none|decree|auto` (your standing choice) → the probe (decree CLI + `decree.toml`). **Detection alone never opts you in**: the first time decree is found with no recorded choice, you get exactly one question, and the answer is persisted. Developers who choose `none` (or never had decree) run the whole pipeline without seeing a single piece of decree vocabulary — all of it lives in the `recon-decree` adapter skill, and `lint-workspace.sh` greps every artifact to prove no leakage. Adapter convention for other governance systems: a sibling skill named `recon-<governance>` with the same contract.
+The developer-facing story is one sentence: **the first time recon meets a repo with a doc tool set up, it asks once how approved work should be handed off — the answer is saved and the question never fires again.** The question is phrased as outcomes, not config values — *"Write decree docs" / "Plain briefs" / "Follow each repo"* — every discovery report states the resolved handoff style in the same plain words, and you can change your answer anytime with `recon/scripts/set-governance.sh <none|decree|auto>`.
+
+Internals (for debugging, not onboarding): resolution is a ladder, most explicit wins — `RECON_GOVERNANCE` env (this run only) → `~/.config/recon/config` `governance=none|decree|auto` (the saved answer) → the probe (decree CLI + `decree.toml`). **Detection alone never opts you in**: an unanswered probe hit yields `undecided` and exactly the one question above. Developers who choose plain briefs (or never had decree) run the whole pipeline without seeing a single piece of decree vocabulary — all of it lives in the `recon-decree` adapter skill, and `lint-workspace.sh` greps every artifact to prove no leakage. Adapter convention for other governance systems: a sibling skill named `recon-<governance>` with the same contract.
 
 ## Deterministic re-runs
 

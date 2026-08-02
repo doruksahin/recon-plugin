@@ -48,16 +48,21 @@ Read `triage/triage.yaml` (ticket, task_class, conflicts). Confirm you are in th
 
 Gherkin scenarios in `discovery.md`: the required behavior, the must-not-change behaviors (regression scenarios), and any **OPEN scenarios** from the edge-case scan, each with 2–3 labeled options (A/B/C). Option labels describe user-observable outcomes (rule 7), never internal state. If the change genuinely admits no scenario (copy fix, dead code, dep bump), say so in `discovery.md` and write none — the routing rail reads that fact.
 
-### 4. Resolve governance (rail + at most one one-time question)
+### 4. Resolve the handoff style (rail + at most one one-time question)
+
+Internally this is the `governance` setting; every USER-FACING word about it describes what the developer gets — the **handoff style** — never the machinery. Rule 7's concreteness applies to the pipeline's own questions exactly as it does to Jira asks: options are outcomes, not config values.
 
 ```bash
 bash "<skill base dir>/../../scripts/detect-governance.sh"   # run from the repo
 ```
 
 - `governance: none` or a concrete adapter → proceed to step 5 with the printed `source`.
-- `governance: undecided` (a governance tool is present but the developer never chose) → AskUserQuestion, once, ever:
-  - *"<tool from the script's evidence line> is set up in this repo — route recon runs through it?"* Options: `Use it` / `Don't use it` / `Per repo (auto)`.
-  - Persist: `bash "<skill base dir>/../../scripts/set-governance.sh" <the tool's name | none | auto>` — then re-run `detect-governance.sh`; it now resolves from config, forever.
+- `governance: undecided` (a doc tool is present but the developer never chose) → AskUserQuestion, once, ever. Take the tool's name from the script's evidence line and ask:
+  - *"This repo has <tool> set up. When a ticket is approved, how should recon hand off the work?"*
+    - **Write <tool> docs (Recommended)** — approved tickets route into this repo's <tool> flow (the handoff prints its commands)
+    - **Plain briefs** — approved tickets end at a standalone implementation brief; <tool> is never involved and its vocabulary never appears
+    - **Follow each repo** — <tool> docs wherever a repo has it set up, plain briefs everywhere else
+  - Persist the mapped value — docs → the tool's name, plain briefs → `none`, follow each repo → `auto`: `bash "<skill base dir>/../../scripts/set-governance.sh" <the tool's name | none | auto>` — then re-run `detect-governance.sh`; it now resolves from config and the question never fires again (change it anytime by re-running `set-governance.sh`).
 
 ### 5. Route (the routing stage — never done by hand)
 
@@ -109,12 +114,24 @@ Print:
 
 ```
 Wrote: ~/.claude/recon/<TICKET>/discovery/{discovery.md, spec-draft.md, gate.yaml}
-Route: <route> (rule <matched_rule>, governance: <governance>/<governance_source>) — see route/routing.yaml
+Route: <route> (rule <matched_rule>) — see route/routing.yaml
+Handoff style: <plain-words line from the table below> (governance: <governance>/<source>)
 Lint: <run `bash "<skill base dir>/../../scripts/lint-workspace.sh" <TICKET>` — quote its verdict line; fix any violation before reporting>
 Open decisions resolved at gate: <n>
 Next: <routing.yaml handoff, verbatim | rejected — reason recorded in gate.yaml, re-run instructions above>
 Optional: /recon:recon-report <TICKET> — shareable HTML dossier of this run (private artifact)
 ```
+
+The `Handoff style:` line translates the script's `source` token into the developer's own terms — MECHANICAL mapping, no improvisation. The fence still binds: rows marked † must not name the tool (governance resolved to `none`):
+
+| `source` | Handoff style line reads |
+|---|---|
+| `config` (value = a tool) | `<tool> docs — your standing choice (change anytime: set-governance.sh)` |
+| `config` (value = none) † | `plain briefs — your standing choice (change anytime: set-governance.sh)` |
+| `config-auto-probe` | `follow each repo — this repo has <tool>, so <tool> docs` / † `follow each repo — no doc tool here, so plain briefs` |
+| `env` | `<style> — set by RECON_GOVERNANCE for this run only` († phrase style without naming the tool when resolved to none) |
+| `probe-absent` † | `plain briefs — no doc tool in this repo` |
+| `env-decree-but-unavailable`, `config-decree-but-unavailable` † | `plain briefs this run — your chosen doc tool is not usable in this repo (CLI or its config file missing; see the script's evidence line)` |
 
 ---
 
