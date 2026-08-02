@@ -1,3 +1,10 @@
+## v0.10.0 (2026-08-02)
+
+### Features
+
+- **help**: recon-help skill + doctor.sh — help that cannot drift
+- **discovery**: handoff-style question and report speak outcomes
+
 ## v0.9.0 (2026-08-02)
 
 ### Features
