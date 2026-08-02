@@ -82,6 +82,19 @@ case "$CMD" in
       echo "no active recording to stop — run record-repro.sh $TICKET start first" >&2
       exit 2
     fi
+    # proofshot leaves the --run dev server behind (its own restarts self-heal
+    # the port, but a recon stage must not leak side effects past STOP). The
+    # marker records the port and whether the recording started the server —
+    # read it BEFORE proofshot stop clears it; kill only what the run started.
+    server_port="$(python3 -c '
+import json, sys
+try:
+    state = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(0)
+if state.get("serverAlreadyRunning") is False and state.get("port"):
+    print(state["port"])
+' "$MARKER" 2>/dev/null || true)"
     (cd "$REPRO_DIR" && proofshot stop "$@")
     session_dir=""
     count=0
@@ -109,6 +122,14 @@ case "$CMD" in
     actions="$(python3 -c 'import json,sys;print(len(json.load(open(sys.argv[1]))))' "$FINAL/session-log.json" 2>/dev/null || echo 0)"
     video_bytes="$(wc -c < "$FINAL/session.webm" 2>/dev/null | tr -d ' ' || echo 0)"
     echo "SESSION: repro/session ($actions logged action(s), session.webm $video_bytes bytes)"
+    if [ -n "$server_port" ] && command -v lsof >/dev/null 2>&1; then
+      pids="$(lsof -ti ":$server_port" 2>/dev/null || true)"
+      if [ -n "$pids" ]; then
+        # shellcheck disable=SC2086
+        kill $pids 2>/dev/null || true
+        echo "SERVER: stopped the dev server this recording started on :$server_port"
+      fi
+    fi
     ;;
   status)
     if [ -f "$MARKER" ]; then

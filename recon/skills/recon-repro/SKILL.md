@@ -87,7 +87,7 @@ Verify the needed entities exist (read the snapshot output) — if mock data lac
 bash "<skill base dir>/../../scripts/record-repro.sh" <TICKET> stop
 ```
 
-Quote its `EXHIBIT:` and `SESSION:` lines in your progress note. The bundle is now at `repro/session/` (action log, video, console/server logs) and the step screenshots are in `repro/exhibits/`.
+Quote its `EXHIBIT:` and `SESSION:` lines in your progress note. The bundle is now at `repro/session/` (action log, video, console/server logs), the step screenshots are in `repro/exhibits/`, and the rail shuts down the dev server the recording started (a user-started server is left alone).
 
 ### 6. Write `repro.md` — transcribed from the log
 
