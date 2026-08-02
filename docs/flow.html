@@ -398,7 +398,7 @@
 
   <div class="stopbar">
     <span class="stamp">Stop</span>
-    <p>After any stop, <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a> on demand: fills <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/template.html">the fixed template</a>, publishes <strong>private</strong> — no new facts, sharing is your call. (On the posting path it already ran render-only.)</p>
+    <p>After any stop, <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a> on demand: fills <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/template.html">the fixed template</a>, publishes <strong>private</strong> — no new facts, sharing is your call. (On the posting path it already ran render-only.) And <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-state/SKILL.md">recon-state</a> keeps the ticket's living canvas honest: state derived from artifact presence by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/derive-state.sh">rail</a>, republished to one stable URL at every stop.</p>
   </div>
 
   <section class="reg">
@@ -420,6 +420,7 @@
           <tr><td class="mono">route/{routing.yaml, aux-intent-check.txt}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/route-generic.sh">route-generic.sh</a> | <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-decree/SKILL.md">recon-decree</a></td><td>discovery (route, brief_kind, verbatim handoff), dossier</td></tr>
           <tr><td class="mono">repro/{repro.md, exhibits/*.png}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-repro/SKILL.md">repro</a></td><td>blocker detail packs, gate questions, Manual verification, PR "before" evidence</td></tr>
           <tr><td class="mono">report/dossier.html</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a></td><td>attached to the ticket on the posting path; published private on demand</td></tr>
+          <tr><td class="mono">state/{state.yaml, canvas.html, artifact-url}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/derive-state.sh">derive-state.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-state-canvas.sh">render-state-canvas.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-state/SKILL.md">recon-state</a></td><td>the living state canvas — one stable private URL per ticket, refreshed at every stop</td></tr>
         </tbody>
       </table>
     </div>

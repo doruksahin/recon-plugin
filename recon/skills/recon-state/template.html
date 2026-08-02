@@ -1,0 +1,431 @@
+<!-- recon-state canvas template. Filled MECHANICALLY by render-state-canvas.sh
+     from state/state.yaml + history.ndjson — every «MARKER» is substituted by
+     the rail; an unresolved marker fails the render (exit 1). The model never
+     edits this output. Design: the approved ATT-5047 node canvas (2 Aug 2026,
+     docs/plans/2026-08-02-state-canvas-ledger.md). -->
+<meta charset="utf-8">
+<title>«TICKET» — Recon State</title>
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --grid: rgba(148, 163, 205, 0.055);
+    --grid-major: rgba(148, 163, 205, 0.10);
+    --card: #121828;
+    --card-edge: #232c45;
+    --ink: #dfe4f2;
+    --ink-2: #8a93ad;
+    --ink-3: #626c86;
+    --wire: #2b3452;
+    --blue: #5b8cff;
+    --blue-deep: #3b6dff;
+    --green: #45b380;
+    --pop: #141b30;
+    --pop-edge: #2b3556;
+    --sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+  }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; overflow: hidden; }
+
+  .viewport { position: absolute; inset: 0; overflow: auto; }
+  .canvas {
+    position: relative; width: 1800px; height: 820px;
+    background:
+      linear-gradient(var(--grid-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 180px 180px, 180px 180px, 36px 36px, 36px 36px;
+  }
+  svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  svg.wires path { fill: none; stroke: var(--wire); stroke-width: 1.5; }
+  svg.wires path.dash { stroke-dasharray: 5 5; opacity: .7; }
+
+  .node { position: absolute; width: 216px; }
+  .card {
+    background: var(--card); border: 1px solid var(--card-edge); border-radius: 10px;
+    padding: 11px 14px 10px; cursor: pointer;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, .38);
+    transition: border-color .15s, transform .15s;
+  }
+  .card:hover { border-color: #35406a; transform: translateY(-1px); }
+  .card:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .idx { font-family: var(--mono); font-size: 11px; color: var(--ink-3); min-width: 14px; }
+  .ic { width: 18px; height: 18px; border-radius: 50%; flex: none; background: #1b2440; border: 1px solid #2c3757; position: relative; }
+  .done .ic { border-color: #2c4a3d; }
+  .done .ic::after {
+    content: ''; position: absolute; left: 5px; top: 4px; width: 5px; height: 8px;
+    border: solid var(--green); border-width: 0 1.5px 1.5px 0; transform: rotate(40deg);
+  }
+  .queued .ic::after { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: #3a4566; }
+  .now .ic { background: var(--blue-deep); border-color: var(--blue); }
+  .now .ic::after {
+    content: ''; position: absolute; left: 7px; top: 5px;
+    border-left: 6px solid #eaf0ff; border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  }
+  .ttl { font-weight: 600; font-size: 13.5px; letter-spacing: .01em; }
+  .dsc { font-size: 12px; color: var(--ink-2); line-height: 1.45; margin: 0 0 6px 22px; }
+  .sts { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-left: 22px; letter-spacing: .02em; }
+  .sts em { font-style: normal; color: var(--green); }
+  .now .sts { color: var(--blue); }
+
+  .node.now .card {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 1px var(--blue), 0 0 26px rgba(91, 140, 255, .30), 0 4px 18px rgba(0,0,0,.4);
+  }
+  .node.ghost .card { border-style: dashed; opacity: .55; box-shadow: none; }
+  .node.ghost .card:hover { opacity: .85; }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 9px;
+    font-family: var(--mono); font-size: 11px; font-weight: 600; color: #eaf0ff;
+    background: var(--blue-deep); border-radius: 999px; padding: 5px 12px;
+    box-shadow: 0 0 18px rgba(59, 109, 255, .45); cursor: pointer; border: 0;
+  }
+  .chip::before { content: '◆'; font-size: 8px; }
+
+  .hud { position: fixed; z-index: 5; pointer-events: none; }
+  .hud > * { pointer-events: auto; }
+  .head { left: 22px; top: 18px; }
+  .head h1 { font-family: var(--mono); font-size: 16px; margin: 0 0 2px; letter-spacing: .03em; }
+  .head h1 span { color: var(--blue); }
+  .head p { margin: 0; font-size: 12px; color: var(--ink-2); max-width: 44ch; }
+  .head .meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-top: 5px; }
+  .legend {
+    right: 22px; bottom: 16px; display: flex; gap: 14px; align-items: center;
+    font-family: var(--mono); font-size: 10.5px; color: var(--ink-3);
+    background: rgba(11, 15, 26, .75); padding: 6px 10px; border-radius: 8px;
+  }
+  .legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: -1px; }
+  .hint { left: 22px; bottom: 16px; display: flex; gap: 8px; align-items: center; }
+  .hint .h {
+    font-family: var(--mono); font-size: 10.5px; color: var(--ink-3);
+    background: rgba(11, 15, 26, .75); padding: 6px 10px; border-radius: 8px;
+  }
+  .hint button.h { border: 1px solid var(--card-edge); cursor: pointer; color: var(--ink-2); }
+  .hint button.h:hover { color: var(--ink); border-color: #35406a; }
+
+  .pop {
+    position: absolute; z-index: 10; width: 372px; max-height: 460px; overflow-y: auto;
+    background: var(--pop); border: 1px solid var(--pop-edge); border-radius: 12px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, .55); padding: 16px 18px 15px;
+    display: none;
+  }
+  .pop.open { display: block; }
+  .pop h4 {
+    font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--blue); margin: 0 0 8px;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .pop h4 .x { cursor: pointer; color: var(--ink-3); font-size: 13px; letter-spacing: 0; }
+  .pop h4 .x:hover { color: var(--ink); }
+  .pop p, .pop li { font-size: 12.5px; color: #aeb6cc; line-height: 1.55; }
+  .pop p { margin: 0 0 8px; }
+  .pop ul { margin: 0 0 8px; padding-left: 16px; }
+  .pop ul.bare { list-style: none; padding-left: 0; }
+  .pop b { color: var(--ink); font-weight: 600; }
+  .pop code { font-family: var(--mono); font-size: .88em; color: #c6cee6; background: #1b2340; padding: 1px 5px; border-radius: 4px; }
+  .pop .kv { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-top: 10px; }
+  .pop .ok { color: var(--green); }
+  .pop li.tl { display: flex; gap: 10px; }
+  .pop li.tl .ts { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); white-space: nowrap; padding-top: 1px; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .node.now .card { animation: breathe 3.2s ease-in-out infinite; }
+    @keyframes breathe {
+      0%, 100% { box-shadow: 0 0 0 1px var(--blue), 0 0 22px rgba(91,140,255,.24), 0 4px 18px rgba(0,0,0,.4); }
+      50%      { box-shadow: 0 0 0 1px var(--blue), 0 0 34px rgba(91,140,255,.42), 0 4px 18px rgba(0,0,0,.4); }
+    }
+  }
+</style>
+
+<div class="viewport" id="vp">
+  <div class="canvas" id="canvas">
+    <svg class="wires" id="wires" aria-hidden="true"></svg>
+
+    <div class="node «CLS:workspace»" id="n-w" style="left:44px; top:596px">
+      <div class="card" role="button" tabindex="0" data-pop="p-w">
+        <div class="row1"><span class="idx">0</span><span class="ic"></span><span class="ttl">Workspace</span></div>
+        <p class="dsc">Fresh run, prior runs archived.</p>
+        <div class="sts">«STS:workspace»</div>
+      </div>«CHIP:workspace»
+    </div>
+
+    <div class="node «CLS:triage»" id="n-t" style="left:296px; top:488px">
+      <div class="card" role="button" tabindex="0" data-pop="p-t">
+        <div class="row1"><span class="idx">1</span><span class="ic"></span><span class="ttl">Triage</span></div>
+        <p class="dsc">Six checks, derived verdict.</p>
+        <div class="sts">«STS:triage»</div>
+      </div>«CHIP:triage»
+    </div>
+
+    <div class="node «CLS:blocked_path»" id="n-gb" style="left:140px; top:312px">
+      <div class="card" role="button" tabindex="0" data-pop="p-gb">
+        <div class="row1"><span class="idx">·</span><span class="ic"></span><span class="ttl">Blocked path</span></div>
+        <p class="dsc">Jira comment + attachments.</p>
+        <div class="sts">«STS:blocked_path»</div>
+      </div>«CHIP:blocked_path»
+    </div>
+
+    <div class="node «CLS:contract»" id="n-c" style="left:556px; top:488px">
+      <div class="card" role="button" tabindex="0" data-pop="p-c">
+        <div class="row1"><span class="idx">2</span><span class="ic"></span><span class="ttl">Contract</span></div>
+        <p class="dsc">Scenarios + open calls.</p>
+        <div class="sts">«STS:contract»</div>
+      </div>«CHIP:contract»
+    </div>
+
+    <div class="node «CLS:repro»" id="n-r" style="left:610px; top:648px">
+      <div class="card" role="button" tabindex="0" data-pop="p-r">
+        <div class="row1"><span class="idx">R</span><span class="ic"></span><span class="ttl">Live repro</span></div>
+        <p class="dsc">Seen on screen, or reported honestly.</p>
+        <div class="sts">«STS:repro»</div>
+      </div>«CHIP:repro»
+    </div>
+
+    <div class="node «CLS:routing»" id="n-rt" style="left:812px; top:384px">
+      <div class="card" role="button" tabindex="0" data-pop="p-rt">
+        <div class="row1"><span class="idx">RT</span><span class="ic"></span><span class="ttl">Routing</span></div>
+        <p class="dsc">Policy table, two producers.</p>
+        <div class="sts">«STS:routing»</div>
+      </div>«CHIP:routing»
+    </div>
+
+    <div class="node «CLS:brief»" id="n-b" style="left:1052px; top:288px">
+      <div class="card" role="button" tabindex="0" data-pop="p-b">
+        <div class="row1"><span class="idx">3</span><span class="ic"></span><span class="ttl">Brief</span></div>
+        <p class="dsc">Implementer brief, self-sufficient.</p>
+        <div class="sts">«STS:brief»</div>
+      </div>«CHIP:brief»
+    </div>
+
+    <div class="node «CLS:approval_gate»" id="n-g" style="left:1292px; top:168px">
+      <div class="card" role="button" tabindex="0" data-pop="p-g">
+        <div class="row1"><span class="idx">4</span><span class="ic"></span><span class="ttl">Approval gate</span></div>
+        <p class="dsc">One decision, one approval.</p>
+        <div class="sts">«STS:approval_gate»</div>
+      </div>«CHIP:approval_gate»
+    </div>
+
+    <div class="node «CLS:handoff»" id="n-h" style="left:1532px; top:96px">
+      <div class="card" role="button" tabindex="0" data-pop="p-h">
+        <div class="row1"><span class="idx">5</span><span class="ic"></span><span class="ttl">Handoff</span></div>
+        <p class="dsc">Printed verbatim, never run.</p>
+        <div class="sts">«STS:handoff»</div>
+      </div>«CHIP:handoff»
+    </div>
+
+    <div class="node ghost «CLS:implement»" id="n-i" style="left:1640px; top:300px">
+      <div class="card" role="button" tabindex="0" data-pop="p-i">
+        <div class="row1"><span class="idx">→</span><span class="ic"></span><span class="ttl">Implement</span></div>
+        <p class="dsc">New session, outside recon.</p>
+        <div class="sts">«STS:implement»</div>
+      </div>«CHIP:implement»
+    </div>
+
+    <div class="node «CLS:dossier»" id="n-d" style="left:1080px; top:520px">
+      <div class="card" role="button" tabindex="0" data-pop="p-d">
+        <div class="row1"><span class="idx">D</span><span class="ic"></span><span class="ttl">Dossier</span></div>
+        <p class="dsc">Shareable HTML view.</p>
+        <div class="sts">«STS:dossier»</div>
+      </div>«CHIP:dossier»
+    </div>
+
+    <div class="pop" id="pop" role="dialog" aria-modal="false"></div>
+  </div>
+</div>
+
+<div class="hud head">
+  <h1><span>«TICKET»</span> — recon state</h1>
+  <p>«TITLE»</p>
+  <div class="meta">«META»</div>
+</div>
+<div class="hud hint">
+  <span class="h">click any node for detail</span>
+  <button class="h" data-pop="p-history" id="histbtn">history</button>
+</div>
+<div class="hud legend">
+  <span><i style="background:var(--green)"></i>done</span>
+  <span><i style="background:var(--blue)"></i>current</span>
+  <span><i style="background:#3a4566"></i>queued</span>
+  <span style="opacity:.7">⌁ not taken</span>
+</div>
+
+<!-- popover content templates — fixed text + rail-filled fact slots only -->
+<div hidden>
+  <div id="p-w" data-title="0 · workspace — rail">
+    <p><b>fresh-workspace.sh</b> ran at «RUN_STARTED» (plugin v«RUN_VERSION») — the only allowed producer of a run.</p>
+    <ul>
+      <li>Prior runs archived into <code>runs/</code> — never read again (invariant 3).</li>
+      <li><code>meta.yaml</code> stamps the run; <code>index.md</code> documents every file.</li>
+    </ul>
+    <div class="kv">workspace <code>~/.claude/recon/«TICKET»/</code></div>
+  </div>
+
+  <div id="p-t" data-title="1 · triage — verdict">
+    <p><b>Disposition «FACT:disposition»</b> — derived by <code>verify-triage.sh</code> from the six checks, never declared by hand (invariant 15).</p>
+    <p>Blockers: <b>«FACT:blockers»</b> · conflicts noted: <b>«FACT:conflicts»</b> · class: «FACT:task_class».</p>
+    <div class="kv">checks + typed evidence: <code>triage/triage.yaml</code></div>
+  </div>
+
+  <div id="p-gb" data-title="blocked path — comment + attachments">
+    <p>On BLOCKED / NEEDS_INFO, triage renders the comment mechanically (<code>render-comment.sh</code>, shape-verified), packages attachments, and asks ONE human gate before posting — then the run stops until answers arrive.</p>
+    <p>Status here: <b>«STS:blocked_path»</b>.</p>
+    <div class="kv">exact bytes: <code>triage/jira/comment.txt</code></div>
+  </div>
+
+  <div id="p-c" data-title="2 · behavior contract">
+    <p><b>«FACT:scenarios» scenario(s)</b>, «FACT:open» OPEN decision(s) for the gate — <code>discovery/discovery.md</code>. Regression scenarios pin what must NOT change.</p>
+  </div>
+
+  <div id="p-r" data-title="R · live repro">
+    <p><b>«FACT:exhibits» exhibit(s)</b> captured this run — numbered, human-re-runnable steps in <code>repro/repro.md</code>. Never fabricated; a failed repro is a reported finding (invariant 9).</p>
+    <div class="kv">screenshots: <code>repro/exhibits/</code> — the PR's "before" evidence</div>
+  </div>
+
+  <div id="p-rt" data-title="RT · routing">
+    <p>Route <b>«FACT:route»</b> (rule «FACT:rule»), governance <b>«FACT:governance»</b> — decided by the policy table, first match wins; the not-matched rules are recorded with evidence.</p>
+    <p>Two possible producers: the generic rail or the governance adapter skill. The handoff text is authored here, once, as data.</p>
+    <div class="kv"><code>route/routing.yaml</code></div>
+  </div>
+
+  <div id="p-b" data-title="3 · brief">
+    <p><code>discovery/spec-draft.md</code> — acceptance criteria 1:1 from the scenarios, technical design naming the contract to reuse, and Manual verification steps from the repro.</p>
+  </div>
+
+  <div id="p-g" data-title="4 · approval gate">
+    <p><b>«NEXT»</b></p>
+    <p>The gate resolves each OPEN scenario (options with a recommendation) and takes Approve / Edit / Reject. Nothing proceeds past a Reject; the answer is recorded in <code>discovery/gate.yaml</code>.</p>
+  </div>
+
+  <div id="p-h" data-title="5 · handoff">
+    <p>After approval, discovery prints the handoff <b>verbatim</b> from <code>route/routing.yaml</code> — nothing added, reworded, or executed. The run STOPs.</p>
+  </div>
+
+  <div id="p-i" data-title="implement — new session">
+    <p><b>Recon never implements.</b> A NEW session enters via the printed handoff, builds against the contract scenarios, and uses the repro exhibits as the PR's "before" half.</p>
+  </div>
+
+  <div id="p-d" data-title="D · dossier — on demand">
+    <p>Ask for it after any STOP: <code>recon-report</code> renders the frozen dossier of this run and publishes it privately. The canvas is the living view; the dossier never retro-updates.</p>
+  </div>
+
+  <div id="p-next" data-title="next action — «STOP»">
+    <p><b>«NEXT»</b></p>
+    <div class="kv">state derived «TS» from artifact presence (derive-state.sh)</div>
+  </div>
+
+  <div id="p-history" data-title="ticket history — ledger">
+    <ul class="bare">«TIMELINE»</ul>
+    <div class="kv">source: <code>history.ndjson</code> — output, never evidence (invariant 16)</div>
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('canvas');
+  const svg = document.getElementById('wires');
+  const pop = document.getElementById('pop');
+
+  const EDGES = [
+    ['n-w',  'right',  'n-t',  'left',  false],
+    ['n-t',  'top',    'n-gb', 'bottom', true],
+    ['n-t',  'right',  'n-c',  'left',  false],
+    ['n-c',  'bottom', 'n-r',  'top',   false],
+    ['n-c',  'right',  'n-rt', 'left',  false],
+    ['n-rt', 'right',  'n-b',  'left',  false],
+    ['n-b',  'right',  'n-g',  'left',  false],
+    ['n-r',  'right',  'n-g',  'bottom@0.3', false],
+    ['n-g',  'right',  'n-h',  'left',  false],
+    ['n-h',  'bottom', 'n-i',  'top',   true],
+    ['n-g',  'bottom@0.7', 'n-d', 'right', true],
+  ];
+
+  function anchor(id, side) {
+    const el = document.querySelector('#' + id + ' .card');
+    const c = canvas.getBoundingClientRect(), r = el.getBoundingClientRect();
+    const x = r.left - c.left, y = r.top - c.top, w = r.width, h = r.height;
+    const [base, fs] = side.split('@');
+    const f = fs === undefined ? 0.5 : parseFloat(fs);
+    switch (base) {
+      case 'left':   return { x: x,         y: y + h * f };
+      case 'right':  return { x: x + w,     y: y + h * f };
+      case 'top':    return { x: x + w * f, y: y };
+      case 'bottom': return { x: x + w * f, y: y + h };
+    }
+  }
+  const horiz = s => { const b = s.split('@')[0]; return b === 'left' || b === 'right'; };
+
+  function elbow(a, sa, b, sb) {
+    let pts;
+    if (horiz(sa) && horiz(sb)) {
+      const mx = (a.x + b.x) / 2;
+      pts = [a, { x: mx, y: a.y }, { x: mx, y: b.y }, b];
+    } else if (!horiz(sa) && !horiz(sb)) {
+      const my = (a.y + b.y) / 2;
+      pts = [a, { x: a.x, y: my }, { x: b.x, y: my }, b];
+    } else if (horiz(sa)) {
+      pts = [a, { x: b.x, y: a.y }, b];
+    } else {
+      pts = [a, { x: a.x, y: b.y }, b];
+    }
+    const R = 10;
+    let d = 'M ' + pts[0].x + ' ' + pts[0].y;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const p = pts[i - 1], c = pts[i], n = pts[i + 1];
+      const din = Math.hypot(c.x - p.x, c.y - p.y), dout = Math.hypot(n.x - c.x, n.y - c.y);
+      const r = Math.min(R, din / 2, dout / 2);
+      if (r < 1 || din < 1 || dout < 1) { d += ' L ' + c.x + ' ' + c.y; continue; }
+      const inX = c.x - (c.x - p.x) / din * r, inY = c.y - (c.y - p.y) / din * r;
+      const outX = c.x + (n.x - c.x) / dout * r, outY = c.y + (n.y - c.y) / dout * r;
+      d += ' L ' + inX + ' ' + inY + ' Q ' + c.x + ' ' + c.y + ' ' + outX + ' ' + outY;
+    }
+    d += ' L ' + pts[pts.length - 1].x + ' ' + pts[pts.length - 1].y;
+    return d;
+  }
+
+  function draw() {
+    svg.setAttribute('viewBox', '0 0 ' + canvas.offsetWidth + ' ' + canvas.offsetHeight);
+    svg.innerHTML = '';
+    for (const [f, sf, t, st, dash] of EDGES) {
+      const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('d', elbow(anchor(f, sf), sf, anchor(t, st), st));
+      if (dash) p.classList.add('dash');
+      svg.appendChild(p);
+    }
+  }
+
+  function openPop(id, nearEl) {
+    const tpl = document.getElementById(id);
+    pop.innerHTML = '<h4>' + tpl.dataset.title + '<span class="x" role="button" tabindex="0" aria-label="close">✕</span></h4>' + tpl.innerHTML;
+    pop.classList.add('open');
+    const c = canvas.getBoundingClientRect(), r = nearEl.getBoundingClientRect();
+    let x = r.right - c.left + 14, y = r.top - c.top - 8;
+    const pw = 372, ph = pop.offsetHeight || 300;
+    if (x + pw > canvas.offsetWidth - 8) x = r.left - c.left - pw - 14;
+    if (x < 8) x = 8;
+    y = Math.max(8, Math.min(y, canvas.offsetHeight - ph - 8));
+    pop.style.left = x + 'px'; pop.style.top = y + 'px';
+    pop.querySelector('.x').onclick = closePop;
+  }
+  function closePop() { pop.classList.remove('open'); }
+
+  document.querySelectorAll('[data-pop]').forEach(el => {
+    const near = () => el.closest('.node') ? el.closest('.node').querySelector('.card') : document.querySelector('#n-w .card');
+    const show = e => { e.stopPropagation(); openPop(el.dataset.pop, near()); };
+    el.addEventListener('click', show);
+    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(e); } });
+  });
+  document.addEventListener('click', e => { if (!pop.contains(e.target)) closePop(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); });
+  pop.addEventListener('click', e => e.stopPropagation());
+
+  draw();
+  addEventListener('load', draw);
+
+  const vp = document.getElementById('vp');
+  addEventListener('load', () => {
+    const cur = document.querySelector('.node.now') || document.getElementById('n-g');
+    if (vp.clientWidth < 1400) vp.scrollLeft = Math.max(0, cur.offsetLeft - vp.clientWidth * 0.55);
+  });
+</script>

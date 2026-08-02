@@ -20,6 +20,7 @@
     "./skills/recon-report",
     "./skills/recon-decree",
     "./skills/recon-help",
-    "./skills/recon-publish"
+    "./skills/recon-publish",
+    "./skills/recon-state"
   ]
 }

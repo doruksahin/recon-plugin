@@ -113,3 +113,18 @@
   producer: recon-report
   consumers: humans; attached to the ticket on the posting path
 
+- pattern: "state/state.yaml"
+  token: "state.yaml"
+  producer: derive-state.sh (closed decision table over artifact presence)
+  consumers: render-state-canvas.sh, humans
+
+- pattern: "state/canvas.html"
+  token: "canvas.html"
+  producer: render-state-canvas.sh (fills the recon-state template)
+  consumers: recon-state publish step, humans
+
+- pattern: "state/artifact-url"
+  token: "artifact-url"
+  producer: recon-state (first gated publish)
+  consumers: recon-state republish, the auto-refresh trigger
+

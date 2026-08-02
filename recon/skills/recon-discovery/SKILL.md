@@ -116,6 +116,8 @@ Print `route/routing.yaml`'s `handoff:` block **verbatim** under a `Next:` line.
 
 ## Report
 
+If `~/.claude/recon/<TICKET>/state/artifact-url` exists (mechanical check: `find` it), invoke the `recon:recon-state` skill first — the gate was just answered (or presented), so the ticket's canvas must be refreshed (no gate; the URL already exists).
+
 Print:
 
 ```

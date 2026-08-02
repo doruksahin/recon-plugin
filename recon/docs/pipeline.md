@@ -17,8 +17,9 @@ Design formula (all changes must preserve it): **judgment stays in the model but
 | RT | Routing | `scripts/route-generic.sh` (governance `none`) **or** the adapter skill `recon-<governance>` (e.g. recon-decree) | invoked by stage 2 after the contract; governance resolved by `scripts/detect-governance.sh` | `route/routing.yaml` (route, rule trace, `brief_kind`, `handoff:` as data) |
 | R | Live repro | recon-repro | invoked by stage 1 or 2 per trigger table | `repro.md` + screenshots, or an honest failure finding |
 | D | Dossier | recon-report | on demand after any STOP (current run exists), or auto-invoked render-only by stage 1's `BLOCKED`/`NEEDS_INFO` posting path | on-demand: `report/dossier.html` + one private artifact URL · render-only: `report/dossier.html` only (no artifact URL) |
+| S | State canvas | recon-state | on demand (first publish gated), and auto-refresh at any STOP/gate once `state/artifact-url` exists | `state/state.yaml` (derived) + `state/canvas.html` (rendered) + `state/artifact-url` (stable per-ticket URL) |
 
-**Legend:** numbered stages run in sequence; lettered stages fire on trigger-table conditions, not in order — **R** repro (invocable from stage 1 or 2), **RT** routing (inside stage 2, two possible producers), **D** dossier (after any STOP, or auto on the posting path).
+**Legend:** numbered stages run in sequence; lettered stages fire on trigger-table conditions, not in order — **R** repro (invocable from stage 1 or 2), **RT** routing (inside stage 2, two possible producers), **D** dossier (after any STOP, or auto on the posting path), **S** state canvas (the living view; refreshes wherever the run stops).
 
 **STOP is a real state.** The pipeline never implements, branches, or edits repo code. After stage 2 approval, implementation belongs to a NEW session entered via the printed handoff (`/decree:ddd`). After a BLOCKED stop, re-entry is a fresh `recon-triage <TICKET>` run once answers arrive.
 
@@ -63,6 +64,9 @@ All under `~/.claude/recon/<TICKET>/`. Producer → consumers. **The authoritati
 | `discovery/spec-draft.md` | discovery | implementer session | the brief named by `routing.brief_kind`; ACs 1:1 from Gherkin + Manual verification (or a problem statement) — governance-neutral |
 | `repro/repro.md` + `repro/exhibits/<n>-<slug>.png` | repro | gate questions, spec-draft Manual verification, PR "before" evidence, recon-report exhibits | numbered, human-re-runnable |
 | `report/dossier.html` | recon-report | humans (published as a private artifact on-demand; attached to the Jira ticket by triage on the posting path) | a VIEW over the rows above — no new facts, fixed template |
+| `state/state.yaml` | `derive-state.sh` | `render-state-canvas.sh`, humans | flat derived state: stop label, node statuses, fact counts, next action |
+| `state/canvas.html` | `render-state-canvas.sh` | recon-state publish step, humans | the living node canvas — republished to the same URL as the run moves |
+| `state/artifact-url` | recon-state (first gated publish) | recon-state republish, the auto-refresh trigger | one line: the ticket's stable artifact URL |
 
 ## Trigger table (mechanical — no judgment)
 
@@ -82,6 +86,8 @@ All under `~/.claude/recon/<TICKET>/`. Producer → consumers. **The authoritati
 | Dossier | auto render-only on the `BLOCKED`/`NEEDS_INFO` posting path; on demand otherwise (user asks, or a stage's report mentions it) | recon-report renders the fixed template from current-run artifacts; publishes private (on-demand only — render-only stops after write + lint) |
 | Blocked delivery | disposition ∈ {`BLOCKED`, `NEEDS_INFO`} (requires n ≥ 1 structured blockers) | recon-report render-only → `package-artifacts.sh` → gate → `attach-artifacts.sh` → comment (attach strictly first) |
 | Verdict verification | `triage/triage.yaml` written or edited | `verify-triage.sh` until `verify: clean` before branching on disposition |
+| State canvas refresh | a stage reaches STOP or presents a gate AND `state/artifact-url` exists | invoke recon-state: derive → render → republish to the saved URL (no new gate) |
+| State canvas first publish | recon-state invoked and `state/artifact-url` absent | ONE AskUserQuestion; on Publish, save the URL to `state/artifact-url` and log `canvas_published` |
 | Ledger events | the step happens (closed list) | `log-event.sh <TICKET> <event>`: step 0 → `run_started` (by the script itself) · verify clean → `verdict` · routing producer → `routed` (route-generic.sh logs itself; the adapter skill calls it) · attach rail → `attachments_replaced` · comment POST/edit → `comment_posted` · `gate.yaml` written → `gate_answered` · handoff printed → `handoff_printed` · dossier published → `dossier_published` · canvas published → `canvas_published` |
 | Comment render + shape gate | posting path, `triage.yaml` blockers written or edited | `render-comment.sh` emits `comment.txt`, then `verify-comment-shape.sh` until `shape: clean` before the approval gate — `comment.txt` is never hand-edited |
 
@@ -101,6 +107,8 @@ All under `~/.claude/recon/<TICKET>/`. Producer → consumers. **The authoritati
 | attachment replace + ordering (`attach-artifacts.sh`) | |
 | bundle packaging + manifest (`package-artifacts.sh`) | |
 | ledger append + vocabulary (`log-event.sh`, invariant 16) | |
+| state derivation decision table (`derive-state.sh`) | |
+| canvas rendering from derived state (`render-state-canvas.sh`) | |
 
 ## Consuming the artifacts (implementer sessions)
 

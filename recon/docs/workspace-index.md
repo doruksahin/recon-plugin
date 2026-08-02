@@ -165,6 +165,25 @@ If the dossier and an artifact disagree, the artifact wins.
 
 ---
 
+## `state/` — the living state canvas (present once recon-state ran)
+
+### `state/state.yaml`
+Flat derived state, written by `derive-state.sh` from artifact presence alone:
+the stop label, one status per canvas node, `fact.*` counts, and the fixed
+next-action sentence. Re-derived on every refresh — never hand-edited.
+
+### `state/canvas.html`
+The node-canvas view, rendered mechanically from `state.yaml` (+ the ledger
+timeline) by `render-state-canvas.sh`. Republished to the ticket's stable
+artifact URL as the run moves — the LIVING view, unlike the frozen dossier.
+
+### `state/artifact-url`
+Exactly one line: the ticket's stable canvas artifact URL, written after the
+first (gated) publish. Its presence is what lets stages auto-refresh the
+canvas without asking again.
+
+---
+
 ## `runs/` — archived history (do not read)
 
 ### `runs/<timestamp>/…`

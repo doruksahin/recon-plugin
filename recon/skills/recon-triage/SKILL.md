@@ -193,6 +193,8 @@ bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> verdict disposition=
 
 Print:
 
+If `~/.claude/recon/<TICKET>/state/artifact-url` exists (mechanical check: `find` it), invoke the `recon:recon-state` skill first — the run just stopped or gated, so the ticket's canvas must be refreshed (no gate; the URL already exists).
+
 First run the workspace lint (same scripts dir as step 0) and include its verdict line:
 
 ```bash

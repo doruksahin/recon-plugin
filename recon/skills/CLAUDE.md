@@ -1,4 +1,4 @@
-# recon/skills/ — the five skills
+# recon/skills/ — the skills
 
 One directory per skill; each `SKILL.md` is authoritative for its own stage
 (pipeline.md yields to it on conflict). Skills hold the JUDGMENT steps and
@@ -12,6 +12,7 @@ directory without a role line below fails `tools/check-coherence.sh`.
 | `recon-repro/` | R | On-demand live repro: numbered human-re-runnable steps + annotated screenshots into `repro/`. Never fabricated — a failed repro is a reported finding. |
 | `recon-report/` | D | The dossier: fills its `template.html` from current-run artifacts (a view, NO new facts). Render-only on the posting path; publishes a private artifact on demand. |
 | `recon-decree/` | RT | Governance adapter for decree: same contract as `route-generic.sh` (writes `route/routing.yaml` incl. verbatim `handoff:`). ALL decree vocabulary is quarantined here — a `governance: none` run never loads it. |
+| `recon-state/` | S | The living state canvas: `derive-state.sh` + `render-state-canvas.sh` do everything mechanical; the skill only publishes — first publish per ticket gated, then republished to the stable URL in `state/artifact-url` at every STOP/gate. Timeline from the ticket ledger (view only, invariant 16). |
 | `recon-help/` | utility | Orientation + setup doctor (not a pipeline stage). Presents `doctor.sh` output verbatim — version, skill list, and setup checks are all derived live by the rail, so the help surface cannot drift. Writes nothing. |
 | `recon-publish/` | utility | Release + distribute (not a pipeline stage): gated `release.sh --yes`, cache activation via `activate-plugin.sh`, marketplace-clone sync, republish of changed artifact mirrors, smoke test from the activated path. Parked here for later extraction to a shared devkit. |
 

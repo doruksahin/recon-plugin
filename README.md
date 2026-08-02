@@ -122,6 +122,7 @@ brew install uv       # optional; without it, commit messages go unchecked
 | `/recon:recon-discovery` | 1 | Code surface with `file:line` evidence, Gherkin behavior contract, routing via the governance adapter or generic rail, approval gate |
 | `/recon:recon-repro` | on demand | Live-reproduces observable behavior: numbered steps + one screenshot per state; honest about failed repros |
 | `/recon:recon-report` | on demand / render-only | Renders the run's artifacts into a designed HTML dossier (fixed template, no new facts) — published as a private artifact on demand, or rendered render-only for triage to attach to the ticket on the BLOCKED/NEEDS_INFO path |
+| `/recon:recon-state` | on demand / auto-refresh | The ticket's living state canvas: stop + node statuses derived from artifact presence by `derive-state.sh`, rendered by `render-state-canvas.sh`, republished to one stable private URL at every STOP/gate; timeline from the ticket ledger |
 | `recon-decree` | adapter | Decree governance adapter — invoked by discovery only when governance resolves to `decree`; ALL decree vocabulary lives here |
 
 ## I/O contract
