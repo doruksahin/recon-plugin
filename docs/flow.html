@@ -189,7 +189,7 @@
       <span class="chip rail">RAIL</span>
       <span class="chip judge">JUDGMENT</span>
       <span class="chip human">HUMAN GATE</span>
-      <span class="chip ver">recon v0.7.0</span>
+      <!-- coherence:version --><span class="chip ver">recon v0.8.0</span>
     </div>
   </header>
 
@@ -221,19 +221,30 @@
   </div>
 
   <div class="step judge">
-    <div class="step-h"><span class="step-no">STEP 2</span><h3>Six checks → disposition</h3>
+    <div class="step-h"><span class="step-no">STEP 2</span><h3>Six checks, typed evidence</h3>
       <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">SKILL.md §2–3</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-judge">judgment</span></dd>
       <dt>in</dt><dd>ticket.json + git/gh + fetched links</dd>
-      <dt>out</dt><dd><code>triage/triage.yaml</code> → <strong>READY</strong> | <strong>BLOCKED</strong> | <strong>NEEDS_INFO</strong></dd>
-      <dt>rule</dt><dd>every answer carries evidence <span class="sep">·</span> READY → auto-chain to discovery <span class="sep">·</span> BLOCKED/NEEDS_INFO → posting path, needs ≥1 structured blocker</dd>
+      <dt>out</dt><dd><code>triage/triage.yaml</code> — six check values, blockers, TYPED evidence (<code>kind: quote|http|git|file|note</code>)</dd>
+      <dt>rule</dt><dd>every answer carries evidence <span class="sep">·</span> the model fills checks and blockers — it does NOT pick the verdict</dd>
+    </dl>
+  </div>
+
+  <div class="step rail">
+    <div class="step-h"><span class="step-no">STEP 3</span><h3>Verify the verdict</h3>
+      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-triage.sh">verify-triage.sh</a></span></div>
+    <dl class="fields">
+      <dt>who</dt><dd><span class="w-rail">rail</span> (new in v0.8.0)</dd>
+      <dt>in</dt><dd><code>triage.yaml</code> + <code>ticket.json</code></dd>
+      <dt>out</dt><dd><strong>READY</strong> | <strong>BLOCKED</strong> | <strong>NEEDS_INFO</strong> — derived from the checks; <code>verify: clean</code> or failures</dd>
+      <dt>rule</dt><dd>disposition is DERIVED (invariant 15) — mismatch ⇒ fix the checks, never the verdict <span class="sep">·</span> every <code>kind: quote</code> must appear verbatim in the ticket's human content <span class="sep">·</span> READY → auto-chain to discovery <span class="sep">·</span> BLOCKED/NEEDS_INFO → posting path, needs ≥1 structured blocker</dd>
     </dl>
   </div>
 
   <div class="stage blocked">
     <h2>Posting path · Blocked / Needs_info</h2>
-    <small>new in v0.7.0 · short comment on the ticket, depth as attachments · invariants 13–14 in <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/docs/pipeline.md">pipeline.md</a></small>
+    <small>v0.7.0, render rail v0.8.0 · short comment on the ticket, depth as attachments · invariants 13–15 in <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/docs/pipeline.md">pipeline.md</a></small>
   </div>
 
   <div class="step judge">
@@ -242,8 +253,8 @@
     <dl class="fields">
       <dt>who</dt><dd><span class="w-judge">judgment</span></dd>
       <dt>in</dt><dd>the failed checks</dd>
-      <dt>out</dt><dd><code>blockers[]</code>: title · owner · ask · detail <span class="sep">·</span> <code>aux-user-&lt;slug&gt;.json</code> (accountId lookups)</dd>
-      <dt>rule</dt><dd>ask = ONE sentence ending "?" <span class="sep">·</span> depth goes in <code>detail</code> <span class="sep">·</span> UI blocker → <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-repro/SKILL.md">recon-repro</a> first <span class="sep">·</span> accountIds from user-search, never guessed</dd>
+      <dt>out</dt><dd><code>blockers[]</code>: title · owner · <strong>owner_account_id</strong> · ask · detail <span class="sep">·</span> <code>aux-user-&lt;slug&gt;.json</code> (accountId lookups)</dd>
+      <dt>rule</dt><dd>ask = ONE sentence ending "?" <span class="sep">·</span> depth goes in <code>detail</code> <span class="sep">·</span> UI blocker → <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-repro/SKILL.md">recon-repro</a> first <span class="sep">·</span> accountIds from user-search, never guessed — on duplicate names, prefer the account already on the ticket <span class="sep">·</span> re-run <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-triage.sh">verify-triage.sh</a> until clean</dd>
     </dl>
   </div>
 
@@ -258,23 +269,23 @@
     </dl>
   </div>
 
-  <div class="step judge">
-    <div class="step-h"><span class="step-no">P3</span><h3>Draft the comment — n+4 lines</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-comment-shape.sh">verify-comment-shape.sh</a></span></div>
+  <div class="step rail">
+    <div class="step-h"><span class="step-no">P3</span><h3>Render the comment — n+4 lines</h3>
+      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-comment.sh">render-comment.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-comment-shape.sh">verify-comment-shape.sh</a></span></div>
     <dl class="fields">
-      <dt>who</dt><dd><span class="w-judge">judgment</span> writes the asks <span class="sep">·</span> <span class="w-rail">rail</span> enforces the shape</dd>
-      <dt>in</dt><dd><code>triage.yaml</code> only</dd>
+      <dt>who</dt><dd><span class="w-rail">rail</span> renders (new in v0.8.0) — the asks were <span class="w-judge">judgment</span> upstream, in <code>triage.yaml</code></dd>
+      <dt>in</dt><dd><code>triage.yaml</code> + <code>meta.yaml</code> only</dd>
       <dt>out</dt><dd><code>triage/jira/comment.txt</code> — the exact posted bytes</dd>
-      <dt>rule</dt><dd>exactly n+4 non-empty lines <span class="sep">·</span> loop until <code>shape: clean</code></dd>
+      <dt>rule</dt><dd>the model NEVER writes <code>comment.txt</code> — edits go to <code>triage.yaml</code>, then re-render <span class="sep">·</span> exactly n+4 non-empty lines, independently checked until <code>shape: clean</code></dd>
     </dl>
     <div class="comment-mock" role="img" aria-label="Example of the posted Jira comment">
-      <div class="cm">h2. Recon triage: BLOCKED — 3 blocker(s) (31 Jul)</div>
+      <div class="cm">h2. Recon triage: BLOCKED — 3 blocker(s) (1 Aug)</div>
       <div class="cm"><b>*1. Updated design*</b> — <span class="m">@Osman</span>: deliver the updated design, or do I build to the attached PNG?</div>
       <div class="cm"><b>*2. Video hosting*</b> — <span class="m">@Barım</span>: who uploads the video, and what are the resulting id and hash?</div>
       <div class="cm"><b>*3. AC #5 events*</b> — <span class="m">@Osman</span>: exact event names and properties — or split AC #5 to a follow-up?</div>
       <div class="cm">Full detail, options, and evidence: <span class="att">recon-dossier-ATT-5107.html</span> · <span class="att">recon-artifacts-ATT-5107.zip</span></div>
       <div class="cm">Reply here — answers on this ticket un-block the pipeline.</div>
-      <div class="cm dim">~recon-triage v0.7.0~</div>
+      <div class="cm dim">~recon-triage v0.8.0~</div>
     </div>
     <p class="cm-caption">header · one line per blocker · links · reply · marker</p>
   </div>
@@ -297,7 +308,7 @@
       <dt>who</dt><dd><span class="w-human">human</span></dd>
       <dt>in</dt><dd>exact comment bytes + attachment manifest (2 filenames, sizes, bundle count)</dd>
       <dt>out</dt><dd><strong>Post</strong> / <strong>Edit first</strong> / <strong>Don't post</strong></dd>
-      <dt>rule</dt><dd>one "post" = comment AND both attachments <span class="sep">·</span> any edit → re-verify shape, re-show gate <span class="sep">·</span> nothing touches Jira before this</dd>
+      <dt>rule</dt><dd>one "post" = comment AND both attachments <span class="sep">·</span> any edit lands in <code>triage.yaml</code> → verify → re-render → re-package → re-show gate <span class="sep">·</span> nothing touches Jira before this</dd>
     </dl>
   </div>
 
@@ -401,8 +412,8 @@
           <tr><td class="mono">meta.yaml · index.md</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/fresh-workspace.sh">fresh-workspace.sh</a></td><td>current-run check, dossier footer, humans</td></tr>
           <tr><td class="mono">runs/&lt;ts&gt;/…</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/fresh-workspace.sh">fresh-workspace.sh</a></td><td><strong>nobody</strong> — reading archived runs is banned</td></tr>
           <tr><td class="mono">triage/{ticket.json, aux-*.json}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">triage</a></td><td>the six checks; aux-user-*.json backs the @mentions</td></tr>
-          <tr><td class="mono">triage/triage.yaml</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">triage</a></td><td>discovery precondition; comment AND dossier both render from it</td></tr>
-          <tr><td class="mono">triage/jira/{comment.txt, bundle-manifest.txt}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">triage posting path</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/package-artifacts.sh">package-artifacts.sh</a></td><td>the gate (exact bytes + what ships), audit</td></tr>
+          <tr><td class="mono">triage/triage.yaml</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">triage</a>, verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-triage.sh">verify-triage.sh</a></td><td>discovery precondition; disposition derived + quotes verified from it; comment AND dossier both render from it</td></tr>
+          <tr><td class="mono">triage/jira/{comment.txt, bundle-manifest.txt}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-comment.sh">render-comment.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/package-artifacts.sh">package-artifacts.sh</a></td><td>the gate (exact bytes + what ships), audit</td></tr>
           <tr><td class="mono">triage/jira/{attach-result.json, post-result.json}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/attach-artifacts.sh">attach-artifacts.sh</a> · comment rail (after "post")</td><td>audit — attach-result absent ⇒ attach never completed</td></tr>
           <tr><td class="mono">discovery/{discovery.md, gate.yaml, spec-draft.md}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-discovery/SKILL.md">discovery</a></td><td>gate, dossier decision cards, the implementing session</td></tr>
           <tr><td class="mono">route/{routing.yaml, aux-intent-check.txt}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/route-generic.sh">route-generic.sh</a> | <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-decree/SKILL.md">recon-decree</a></td><td>discovery (route, brief_kind, verbatim handoff), dossier</td></tr>
@@ -414,13 +425,14 @@
   </section>
 
   <footer>
-    recon <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/.claude-plugin/plugin.json">v0.7.0</a> ·
+    <!-- coherence:version -->recon <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/.claude-plugin/plugin.json">v0.8.0</a> ·
     repo: <a href="https://github.com/doruksahin/recon-plugin">doruksahin/recon-plugin</a> ·
     machine spec: <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/docs/pipeline.md">pipeline.md</a> ·
     ADR: <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/docs/decisions/0001-jira-rest-api-over-mcp.md">0001 — REST API over MCP</a><br>
     v0.7.0 design: <a href="https://github.com/doruksahin/recon-plugin/blob/master/docs/plans/2026-07-31-recon-triage-comment-and-delivery-design.md">design doc</a> ·
     <a href="https://github.com/doruksahin/recon-plugin/blob/master/docs/plans/2026-07-31-recon-triage-comment-and-delivery.md">implementation plan</a> ·
-    <a href="https://github.com/doruksahin/recon-plugin/blob/master/docs/plans/2026-07-31-spike-notes.md">spike evidence</a> ·
+    <a href="https://github.com/doruksahin/recon-plugin/blob/master/docs/plans/2026-07-31-spike-notes.md">spike evidence</a><br>
+    improvement backlog: <a href="https://github.com/doruksahin/recon-plugin/blob/master/docs/improvements/README.md">docs/improvements</a> ·
     links checked with <a href="https://github.com/lycheeverse/lychee">lychee</a>
   </footer>
 

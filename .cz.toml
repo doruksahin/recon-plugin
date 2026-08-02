@@ -7,7 +7,14 @@
 # next one from the commits since it, and writes that number into version_files.
 name = "cz_conventional_commits"
 version_provider = "scm"
-version_files = ["recon/.claude-plugin/plugin.json:version"]
+version_files = [
+  "recon/.claude-plugin/plugin.json:version",
+  # docs/flow.html mirrors the current version (chip + footer, marked
+  # `coherence:version`, plus the comment-mock marker line). Bumping them here
+  # keeps tools/check-coherence.sh green DURING the bump commit itself.
+  "docs/flow.html:coherence:version",
+  "docs/flow.html:~recon-triage v",
+]
 tag_format = "v$version"
 
 # Pre-1.0: a breaking change bumps the minor, never to 1.0.0. Drop this line on

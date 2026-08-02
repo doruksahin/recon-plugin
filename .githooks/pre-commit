@@ -1,5 +1,8 @@
 #!/bin/bash
-# Blocks a commit whose docs point at files that don't exist.
+# Blocks a commit whose docs point at files that don't exist (check-links.sh)
+# or whose mirrored facts disagree with their owner file (check-coherence.sh).
 # Enable in a fresh clone:  git config core.hooksPath .githooks
 # Bypass once:              git commit --no-verify
-exec "$(git rev-parse --show-toplevel)/tools/check-links.sh"
+ROOT="$(git rev-parse --show-toplevel)" || exit 2
+"$ROOT/tools/check-links.sh" || exit 1
+"$ROOT/tools/check-coherence.sh" || exit 1

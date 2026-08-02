@@ -1,0 +1,110 @@
+# registry.yaml — THE artifact registry. Single source of truth for what a
+# recon run may write into ~/.claude/recon/<TICKET>/.
+#
+# Consumers:
+#   - recon/scripts/lint-workspace.sh matches every workspace file against the
+#     `pattern` globs (invariant 10) — add an artifact HERE, never in the script.
+#   - tools/check-coherence.sh asserts every `token` appears in each doc that
+#     mirrors this registry: recon/docs/pipeline.md (registry table),
+#     recon/docs/workspace-index.md, docs/flow.html (workspace table).
+#
+# Entry fields (flat, sed-parseable — keep the exact `- pattern:` shape):
+#   pattern   shell glob relative to the workspace root; lint match input
+#   token     the literal string the mirror docs must contain (no globs)
+#   producer  who writes it
+#   consumers who reads it
+#
+# runs/ is special: fresh-workspace.sh produces it, lint skips it entirely
+# (archived prior runs are unreadable, invariant 3) — its entry exists so the
+# mirror docs are checked for it too.
+
+- pattern: "meta.yaml"
+  token: "meta.yaml"
+  producer: fresh-workspace.sh (step 0)
+  consumers: discovery current-run check, dossier footer, humans
+
+- pattern: "index.md"
+  token: "index.md"
+  producer: fresh-workspace.sh (copied from docs/workspace-index.md)
+  consumers: anyone opening the workspace
+
+- pattern: "runs/*"
+  token: "runs/"
+  producer: fresh-workspace.sh (archive of prior runs)
+  consumers: nobody — reading archived runs is banned (invariant 3)
+
+- pattern: "triage/ticket.json"
+  token: "ticket.json"
+  producer: triage (step 1 fetch)
+  consumers: the six checks, verify-triage.sh quote verification
+
+- pattern: "triage/triage.yaml"
+  token: "triage.yaml"
+  producer: triage (verified by verify-triage.sh)
+  consumers: discovery precondition, render-comment.sh, dossier, humans
+
+- pattern: "triage/aux-*.json"
+  token: "aux-"
+  producer: triage (auxiliary GETs, user search)
+  consumers: the six checks, accountId resolution audit
+
+- pattern: "triage/jira/comment.txt"
+  token: "comment.txt"
+  producer: render-comment.sh
+  consumers: the gate (exact posted bytes), verify-comment-shape.sh, audit
+
+- pattern: "triage/jira/post-result.json"
+  token: "post-result.json"
+  producer: triage posting path (after an approved post)
+  consumers: audit
+
+- pattern: "triage/jira/attach-result.json"
+  token: "attach-result.json"
+  producer: attach-artifacts.sh
+  consumers: audit — absent means attach never completed
+
+- pattern: "triage/jira/bundle-manifest.txt"
+  token: "bundle-manifest.txt"
+  producer: package-artifacts.sh
+  consumers: gate display, audit
+
+- pattern: "discovery/discovery.md"
+  token: "discovery.md"
+  producer: discovery
+  consumers: gate, implementer verification
+
+- pattern: "discovery/spec-draft.md"
+  token: "spec-draft.md"
+  producer: discovery
+  consumers: implementer session
+
+- pattern: "discovery/gate.yaml"
+  token: "gate.yaml"
+  producer: discovery (the gate is discovery's act)
+  consumers: recon-report decision cards, humans
+
+- pattern: "route/routing.yaml"
+  token: "routing.yaml"
+  producer: route-generic.sh or the governance adapter
+  consumers: discovery (route, brief_kind, verbatim handoff), recon-report
+
+- pattern: "route/aux-intent-check.txt"
+  token: "aux-intent-check.txt"
+  producer: governance adapter only
+  consumers: audit, recon-report
+
+- pattern: "repro/repro.md"
+  token: "repro.md"
+  producer: repro
+  consumers: gate questions, spec-draft Manual verification, PR before-evidence
+
+- pattern: "repro/exhibits/*.png"
+  token: "exhibits"
+  producer: repro
+  consumers: blocker detail packs, dossier exhibits, PR before-evidence
+
+- pattern: "report/dossier.html"
+  token: "dossier.html"
+  producer: recon-report
+  consumers: humans; attached to the ticket on the posting path
+
