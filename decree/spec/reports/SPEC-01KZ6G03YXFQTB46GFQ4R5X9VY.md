@@ -2,7 +2,7 @@
 
 **Document**: `decree/spec/reliability/evidence/spec-01kz6g03yxfqtb46gfq4r5x9vy-fail-closed-commit-guardrail.md`
 **Transitioned to `implemented` on**: 2026-08-04
-**Generated**: 2026-08-04T16:07:11Z
+**Generated**: 2026-08-04T21:15:52Z
 **Total documents in chain**: 2
 
 ## Document chain
@@ -12,9 +12,9 @@
 | ADR | ADR-01KZ0ZK4WYVWRY0WJM2CZ7ZS8C | accepted | Portable Multi-Harness Recon Plugin Architecture |
 | SPEC | SPEC-01KZ6G03YXFQTB46GFQ4R5X9VY | implemented | Fail-Closed Commit Guardrail |
 
-## Acceptance Criteria — primary (6/6)
+## Acceptance Criteria — primary (7/7)
 
-### Acceptance Criteria (6/6)
+### Acceptance Criteria (7/7)
 
 - [x] The versioned pre-commit hook delegates to one fail-closed guardrail rail.
 - [x] An isolated Git-index control proves that staged whitespace is rejected
@@ -22,6 +22,7 @@
 - [x] Comment-rendering and improvement-loop controls are included in
 - [x] Root and hook-local AGENTS documents provide progressive disclosure and
 - [x] The configured local hook path and full gate are demonstrated clean.
+- [x] Decree report checks regenerate the exact tracked set in isolation and reject complete-content, set, status, acceptance-body, and portable-identity drift while ignoring only the Generated timestamp.
 
 ---
 

@@ -1,8 +1,8 @@
 # SPEC-01KZ1BD2V986MYTYD6PCB02BGX Completion Report
 
 **Document**: `decree/spec/reliability/evidence/spec-01kz1bd2v986mytyd6pcb02bgx-recon-0-16-0-recorded-repro-runtime.md`
-**Transitioned to `implemented` on**: 2026-08-04
-**Generated**: 2026-08-04T16:07:11Z
+**Transitioned to `implemented` on**: 2026-08-02
+**Generated**: 2026-08-04T21:15:52Z
 **Total documents in chain**: 2
 
 ## Document chain

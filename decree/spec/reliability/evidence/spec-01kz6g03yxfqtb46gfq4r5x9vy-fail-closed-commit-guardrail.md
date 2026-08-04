@@ -12,6 +12,8 @@ governs:
 - tools/check-commit-msg.sh
 - tools/check-links.sh
 - tools/pre-commit-check.sh
+- tools/render-decree-reports.py
+- tools/test-decree-reports.sh
 - tools/test-pre-commit-check.sh
 id: SPEC-01KZ6G03YXFQTB46GFQ4R5X9VY
 references:
@@ -55,6 +57,14 @@ coverage. It runs adapter and report drift checks plus every isolated
 repository-wide contract suite, including comment rendering and the persistent
 improvement loop. The pre-commit rail does not duplicate those commands.
 
+The Decree completion-report owner invokes the Decree regeneration rail for
+the exact tracked report set. Check mode copies source documents into an
+isolated temporary project, regenerates the same report IDs without touching
+tracked files, canonicalizes repository-relative Document identities and
+source-date transition identities exactly as write mode does, then compares
+the complete content while ignoring only the explicitly volatile Generated
+timestamp. Missing, extra, malformed, host-bound, or body-drifted reports fail.
+
 The root `AGENTS.md` contains only the entry rule and one command. The detailed
 failure, ownership, and extension policy lives in `.githooks/AGENTS.md` and is
 loaded only when changing commit guardrails. A new universal deterministic
@@ -68,6 +78,11 @@ and invokes every required child command. Validate the hook is locally enabled
 only through the explicit `git config core.hooksPath .githooks` command after
 the repository checks are clean.
 
+Generated-report controls mutate only the acceptance body, only the Document
+identity, and only the Generated timestamp. Body and identity mutations must
+fail; timestamp-only variation must pass; clean regeneration must remain
+byte-equivalent modulo that one declared volatile field.
+
 ## Acceptance Criteria
 
 - [x] The versioned pre-commit hook delegates to one fail-closed guardrail rail.
@@ -80,3 +95,4 @@ the repository checks are clean.
 - [x] Root and hook-local AGENTS documents provide progressive disclosure and
   forbid normal bypasses while naming the CI/remote boundary.
 - [x] The configured local hook path and full gate are demonstrated clean.
+- [x] Decree report checks regenerate the exact tracked set in isolation and reject complete-content, set, status, acceptance-body, and portable-identity drift while ignoring only the Generated timestamp.

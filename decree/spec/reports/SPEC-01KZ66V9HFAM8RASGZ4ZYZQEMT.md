@@ -2,7 +2,7 @@
 
 **Document**: `decree/spec/reliability/evidence/spec-01kz66v9hfam8rasgz4zyzqemt-recon-0-21-0-decision-closure-triage.md`
 **Transitioned to `implemented` on**: 2026-08-04
-**Generated**: 2026-08-04T16:07:11Z
+**Generated**: 2026-08-04T21:15:52Z
 **Total documents in chain**: 2
 
 ## Document chain
