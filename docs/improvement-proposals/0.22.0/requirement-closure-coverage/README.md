@@ -2,8 +2,8 @@
 
 > Retain and resume bounded requirement-closure evidence by durable ID.
 
-- **Status:** release candidate (v0.19.0)
-- **Release candidate:** [PR #2](https://github.com/doruksahin/recon-plugin/pull/2), merged as [`321514d`](https://github.com/doruksahin/recon-plugin/commit/321514df18e487c64ef17cbcaea974c99722e89c)
+- **Status:** shipped (v0.19.0)
+- **Shipped:** [v0.19.0](https://github.com/doruksahin/recon-plugin/releases/tag/v0.19.0) from [PR #2](https://github.com/doruksahin/recon-plugin/pull/2), merged as [`321514d`](https://github.com/doruksahin/recon-plugin/commit/321514df18e487c64ef17cbcaea974c99722e89c)
 - **Priority:** P1
 - **Theme:** determinism rail
 - **Origin:** ATT-4845 scored replays, 2026-08-04 — three production-valid
@@ -72,5 +72,5 @@ blockers. This does not establish broader triage quality or release quality.
 
 None for the evidence-process rail. Acceptance required and retained three
 fresh candidate runs, three fresh READY-control runs, a passing mechanical
-matrix, and an explicit semantic review. Release readiness remains a separate
-repository guardrail decision.
+matrix, and an explicit semantic review. The bounded experiment did not itself
+establish release quality; v0.19.0 release readiness was assessed separately.
