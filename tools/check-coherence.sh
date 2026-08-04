@@ -65,6 +65,10 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 2
 fi
 python3 tools/generate-adapters.py --check || say_fail "generated native adapters drifted"
+python3 tools/render-decree-reports.py --check || say_fail "generated Decree reports contain non-portable document identities"
+if ! bash tools/test-decree-reports.sh; then
+  say_fail "tools/test-decree-reports.sh failed"
+fi
 
 # --------------------------------------------------------- 3. local contracts
 echo "[3/6] local contracts → runtime + artifacts + activation"

@@ -1,8 +1,8 @@
 # SPEC-01KZ14Q6A2WB6J6TTX3XWQC5QJ Completion Report
 
-**Document**: `/Users/doruk/Documents/recon-plugin/decree/spec/reliability/evidence/spec-01kz14q6a2wb6j6ttx3xwqc5qj-recon-0-15-0-verified-handoff-chain.md`
-**Transitioned to `implemented` on**: 2026-08-02
-**Generated**: 2026-08-02T13:15:04Z
+**Document**: `decree/spec/reliability/evidence/spec-01kz14q6a2wb6j6ttx3xwqc5qj-recon-0-15-0-verified-handoff-chain.md`
+**Transitioned to `implemented` on**: 2026-08-04
+**Generated**: 2026-08-04T15:57:50Z
 **Total documents in chain**: 2
 
 ## Document chain
