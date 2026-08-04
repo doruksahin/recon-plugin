@@ -1,3 +1,21 @@
+## v0.19.0 (2026-08-05)
+
+### BREAKING CHANGE
+
+- triage.yaml now requires requirement_coverage and decision_audit closure records before verification.
+
+### Features
+
+- **improvements**: retain requirement closure lifecycle
+- **triage**: enforce closure with replay verification
+
+### Bug Fixes
+
+- **governance**: close Decree report verification gaps
+- **governance**: verify complete Decree reports
+- **triage**: bind file evidence to descriptors
+- **governance**: make Decree reports portable
+
 ## v0.18.0 (2026-08-03)
 
 ### Features
