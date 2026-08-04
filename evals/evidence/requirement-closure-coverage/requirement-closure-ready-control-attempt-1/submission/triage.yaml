@@ -1,0 +1,199 @@
+recon: triage
+ticket: RCTRL-1
+title: "Add a reset action to Stock Image search filters"
+task_class: capability-change
+disposition: READY
+outcome_decidable: true
+evidence_ok: true
+product_decision_open: false
+design_dependency: false
+backend_dependency: false
+blockers: []
+conflicts: []
+requirement_coverage:
+  normative_requirements: true
+  identity_mapping: true
+  ownership_update_path: true
+  threshold_completeness: true
+  ordering_completeness: true
+decision_audit:
+  - id: DEC-1
+    requirement: "Add a Reset filters text button to the right side of the Stock Image search filter row."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "Add a Reset filters text button to the right side of the Stock Image search filter row."
+        source: description
+  - id: DEC-2
+    requirement: "Show it only when at least one filter chip is active."
+    requirement_source: description
+    surface: identity_mapping
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "Show it only when at least one filter chip is active."
+        source: description
+      - kind: quote
+        text: "Keep the button hidden when no filter chip is active."
+        source: description
+  - id: DEC-3
+    requirement: "Show it only when at least one filter chip is active."
+    requirement_source: description
+    surface: threshold_completeness
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "Show it only when at least one filter chip is active."
+        source: description
+      - kind: quote
+        text: "Keep the button hidden when no filter chip is active."
+        source: description
+  - id: DEC-4
+    requirement: 'Use the exact label "Reset filters".'
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: 'Use the exact label "Reset filters".'
+        source: description
+  - id: DEC-5
+    requirement: "Activating it removes every active filter chip in one action, preserves the current free-text query, immediately reruns search with that query, and returns keyboard focus to the first filter control."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "Activating it removes every active filter chip in one action, preserves the current free-text query, immediately reruns search with that query, and returns keyboard focus to the first filter control."
+        source: description
+  - id: DEC-6
+    requirement: "Activating it removes every active filter chip in one action, preserves the current free-text query, immediately reruns search with that query, and returns keyboard focus to the first filter control."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "Activating it removes every active filter chip in one action, preserves the current free-text query, immediately reruns search with that query, and returns keyboard focus to the first filter control."
+        source: description
+  - id: DEC-7
+    requirement: "Activating it removes every active filter chip in one action, preserves the current free-text query, immediately reruns search with that query, and returns keyboard focus to the first filter control."
+    requirement_source: description
+    surface: ordering_completeness
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "Activating it removes every active filter chip in one action, preserves the current free-text query, immediately reruns search with that query, and returns keyboard focus to the first filter control."
+        source: description
+  - id: DEC-8
+    requirement: "Activating it removes every active filter chip in one action, preserves the current free-text query, immediately reruns search with that query, and returns keyboard focus to the first filter control."
+    requirement_source: description
+    surface: identity_mapping
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "Activating it removes every active filter chip in one action, preserves the current free-text query, immediately reruns search with that query, and returns keyboard focus to the first filter control."
+        source: description
+  - id: DEC-9
+    requirement: "Activating it removes every active filter chip in one action, preserves the current free-text query, immediately reruns search with that query, and returns keyboard focus to the first filter control."
+    requirement_source: description
+    surface: ownership_update_path
+    status: IMPLEMENTATION_FREEDOM
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "Activating it removes every active filter chip in one action, preserves the current free-text query, immediately reruns search with that query, and returns keyboard focus to the first filter control."
+        source: description
+  - id: DEC-10
+    requirement: "Activating it removes every active filter chip in one action, preserves the current free-text query, immediately reruns search with that query, and returns keyboard focus to the first filter control."
+    requirement_source: description
+    surface: ordering_completeness
+    status: IMPLEMENTATION_FREEDOM
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "Activating it removes every active filter chip in one action, preserves the current free-text query, immediately reruns search with that query, and returns keyboard focus to the first filter control."
+        source: description
+  - id: DEC-11
+    requirement: "This ticket does not change the provider, result ordering, empty state, or analytics."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: backend_dependency
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "This ticket does not change the provider, result ordering, empty state, or analytics."
+        source: description
+  - id: DEC-12
+    requirement: "This ticket does not change the provider, result ordering, empty state, or analytics."
+    requirement_source: description
+    surface: ordering_completeness
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "This ticket does not change the provider, result ordering, empty state, or analytics."
+        source: description
+  - id: DEC-13
+    requirement: "This ticket does not change the provider, result ordering, empty state, or analytics."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "This ticket does not change the provider, result ordering, empty state, or analytics."
+        source: description
+  - id: DEC-14
+    requirement: "This ticket does not change the provider, result ordering, empty state, or analytics."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "This ticket does not change the provider, result ordering, empty state, or analytics."
+        source: description
+evidence:
+  - kind: quote
+    text: "Add a Reset filters text button to the right side of the Stock Image search filter row."
+    source: description
+  - kind: note
+    text: "The frozen ticket has no attachments, links, or comments requiring external evidence."
+  - kind: file
+    path: "src/app/components/polotno-builder/components/images-panel/images-panel.tsx"
+    line: 26
+    text: "  const [selectedChips, setSelectedChips] = useState<Set<string>>(() => new Set())"
+  - kind: file
+    path: "src/app/components/polotno-builder/components/images-panel/images-panel.tsx"
+    line: 30
+    text: "    return [search, chips].filter(Boolean).join(' ').trim()"
+  - kind: file
+    path: "src/app/components/polotno-builder/components/images-panel/images-panel.tsx"
+    line: 66
+    text: "        {tab === 'stock' && <StockImagesGrid search={effectiveQuery} store={store} onPick={onPick} />}"
+  - kind: note
+    text: "The replay contains a frozen repository export at the receipt commit and no live branch or pull-request source; no conflict is evidenced in the prepared input."

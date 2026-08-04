@@ -46,7 +46,7 @@
 - pattern: "triage/triage.yaml"
   token: "triage.yaml"
   producer: triage (verified by verify-triage.sh)
-  consumers: discovery precondition, render-comment.sh, dossier, humans
+  consumers: discovery precondition, render-comment.sh, dossier, humans (decision audit + atomic blockers)
 
 - pattern: "triage/aux-*.json"
   token: "aux-"

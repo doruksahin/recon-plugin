@@ -59,13 +59,16 @@ owner's handle to an accountId. Their role: every evidence line in
 verdict is auditable without re-fetching anything.
 
 ### `triage/triage.yaml`
-**The stage-1 verdict.** Disposition (`READY | BLOCKED | NEEDS_INFO`), the six
-check results, cross-checks (status drift, stale blockers), blockers with named
-owners (handles + resolved accountIds), ride-along PR conflicts, and one TYPED
-evidence entry per claim (`kind: quote | http | git | file | note`). The
-disposition is derived from the checks, and every quote is verified verbatim
-against `ticket.json`, by `verify-triage.sh`. Discovery's precondition: it will
-not start unless this says `READY`.
+**The stage-1 verdict.** A generic `decision_audit` records each discovered
+observable decision as OPEN, ticket-closed, repository-closed, optional, or
+implementation freedom, with typed evidence and stable IDs. Blocking OPEN
+decisions join one-to-one to independently answerable blockers with named
+owners (handles + resolved accountIds). The file also retains the six check
+results, cross-checks (status drift, stale blockers), ride-along PR conflicts,
+and typed evidence (`kind: quote | http | git | file | note`).
+`verify-triage.sh` verifies ticket quotes verbatim, supplied repository file
+lines, audit/blocker joins, check agreement, and derived disposition. Discovery
+does not start unless the verified result is `READY`.
 
 ### `triage/jira/` — present only if a Jira delivery path ran
 - **`comment.txt`** — the exact comment body for Jira, RENDERED from

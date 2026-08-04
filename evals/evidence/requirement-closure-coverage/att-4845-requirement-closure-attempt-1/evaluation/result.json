@@ -1,0 +1,28 @@
+{
+  "artifact": {
+    "status": "PASS",
+    "verifier_exit": 0
+  },
+  "candidate_sha256": "07c23af89732fec6126ed86954e85bf435b04d88caa004a909bbcb6d83234b45",
+  "case_id": "att-4845-pre-comment",
+  "decision_coverage": {
+    "matched": 2,
+    "missed": [
+      "feature-context-mapping"
+    ],
+    "overloaded": [],
+    "status": "FAIL",
+    "total": 3
+  },
+  "disposition": {
+    "actual": "BLOCKED",
+    "expected": "BLOCKED",
+    "status": "PASS"
+  },
+  "schema_version": 1,
+  "score": "FAIL",
+  "score_exit": 1,
+  "score_sha256": "44e72888257be73fd0262e4e92a88891700cf9493c7c2cc93cbc6999db829695",
+  "submission": "submission/triage.yaml",
+  "ticket": "ATT-4845"
+}

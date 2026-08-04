@@ -1,0 +1,22 @@
+{
+  "id": "RCTRL-1",
+  "key": "RCTRL-1",
+  "fields": {
+    "summary": "Add a reset action to Stock Image search filters",
+    "status": {
+      "name": "To Do"
+    },
+    "issuetype": {
+      "name": "Task"
+    },
+    "labels": [
+      "recon-control"
+    ],
+    "description": "Add a Reset filters text button to the right side of the Stock Image search filter row. Show it only when at least one filter chip is active. Use the exact label \"Reset filters\". Activating it removes every active filter chip in one action, preserves the current free-text query, immediately reruns search with that query, and returns keyboard focus to the first filter control. Keep the button hidden when no filter chip is active. This ticket does not change the provider, result ordering, empty state, or analytics.",
+    "attachment": [],
+    "comment": {
+      "total": 0,
+      "comments": []
+    }
+  }
+}

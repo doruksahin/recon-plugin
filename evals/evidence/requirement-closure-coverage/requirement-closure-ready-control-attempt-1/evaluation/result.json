@@ -1,0 +1,26 @@
+{
+  "artifact": {
+    "status": "PASS",
+    "verifier_exit": 0
+  },
+  "candidate_sha256": "a29fe9114f898381e74ffed2b9094e0eea3976dfd672f2efbdb15ef211b6a135",
+  "case_id": "requirement-closure-ready-control",
+  "decision_coverage": {
+    "matched": 0,
+    "missed": [],
+    "overloaded": [],
+    "status": "PASS",
+    "total": 0
+  },
+  "disposition": {
+    "actual": "READY",
+    "expected": "READY",
+    "status": "PASS"
+  },
+  "schema_version": 1,
+  "score": "PASS",
+  "score_exit": 0,
+  "score_sha256": "53b9ac2a1245b9fa882d33fb0fd9e63ab0b46ce864ad656a8fac57b474b5e75b",
+  "submission": "submission/triage.yaml",
+  "ticket": "RCTRL-1"
+}

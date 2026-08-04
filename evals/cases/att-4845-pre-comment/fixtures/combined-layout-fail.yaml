@@ -1,0 +1,72 @@
+recon: triage
+ticket: ATT-4845
+title: "Frozen ambiguous capability change"
+task_class: capability-change
+disposition: BLOCKED
+outcome_decidable: true
+evidence_ok: true
+product_decision_open: true
+design_dependency: false
+backend_dependency: true
+blockers:
+  - title: "Feature context mapping"
+    id: BLK-1
+    decision_id: DEC-1
+    owner: product
+    owner_account_id: "replay-owner:product"
+    ask: "Which existing generator or feature context should map to Product Photo Ads?"
+  - title: "Fallback configuration policy"
+    id: BLK-2
+    decision_id: DEC-2
+    owner: product-backend
+    owner_account_id: "replay-owner:product-backend"
+    ask: "What fallback threshold and configuration delivery outcome should be used?"
+conflicts: []
+requirement_coverage:
+  normative_requirements: true
+  identity_mapping: true
+  context_mapping_exhaustive: true
+  ownership_update_path: true
+  threshold_completeness: true
+  ordering_completeness: true
+decision_audit:
+  - id: DEC-1
+    surface: direct_obligation
+    requirement: "Product Photo Ads"
+    requirement_source: description
+    status: OPEN
+    check: product_decision_open
+    blocking: true
+    blocker_id: BLK-1
+    evidence:
+      - kind: quote
+        text: "Product Photo Ads"
+        source: description
+  - id: DEC-2
+    surface: direct_obligation
+    requirement: "If a seeded query returns no or very few results"
+    requirement_source: description
+    status: OPEN
+    check: product_decision_open
+    blocking: true
+    blocker_id: BLK-2
+    evidence:
+      - kind: quote
+        text: "If a seeded query returns no or very few results"
+        source: description
+  - id: DEC-3
+    surface: direct_obligation
+    requirement: "tuned without a code change"
+    requirement_source: description
+    status: OPEN
+    check: backend_dependency
+    blocking: true
+    blocker_id: BLK-2
+    evidence:
+      - kind: quote
+        text: "tuned without a code change"
+        source: description
+evidence:
+  - kind: quote
+    text: "Final wording to be confirmed with Product/Design"
+    source: description

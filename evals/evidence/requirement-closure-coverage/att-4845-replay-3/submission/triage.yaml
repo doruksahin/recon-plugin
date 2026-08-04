@@ -1,0 +1,113 @@
+recon: triage
+ticket: ATT-4845
+title: "AA v2 | [FE] - Stock Image search should have pre-filtered results according to feature"
+task_class: capability-change
+disposition: BLOCKED
+outcome_decidable: true
+evidence_ok: true
+product_decision_open: true
+design_dependency: false
+backend_dependency: false
+blockers:
+  - title: "Fallback threshold"
+    id: BLK-1
+    decision_id: DEC-1
+    owner: product
+    owner_account_id: "replay-owner:product"
+    ask: "At what result count should the search broaden its initial keyword set?"
+    detail:
+      state: "The ticket requires broadening for no or very few results but does not define the result count."
+      options:
+        - "Broaden only when no results appear."
+        - "Broaden when fewer than five results appear."
+        - "Broaden when fewer than ten results appear."
+      evidence:
+        - kind: quote
+          text: "If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen."
+          source: description
+  - title: "Fallback keyword order"
+    id: BLK-2
+    decision_id: DEC-2
+    owner: product
+    owner_account_id: "replay-owner:product"
+    ask: "Which initial keywords should be removed first when the search broadens?"
+    detail:
+      state: "The ticket says to drop the narrowest keywords but does not define an order for each feature."
+      options:
+        - "Keep all initial keywords until the Default results are shown."
+        - "Remove the last-listed initial keyword first, then continue in reverse order."
+        - "Provide a priority order for each feature's initial keywords."
+      evidence:
+        - kind: quote
+          text: "If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen."
+          source: description
+conflicts: []
+decision_audit:
+  - id: DEC-1
+    status: OPEN
+    check: product_decision_open
+    blocking: true
+    blocker_id: BLK-1
+    evidence:
+      - kind: quote
+        text: "If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen."
+        source: description
+  - id: DEC-2
+    status: OPEN
+    check: product_decision_open
+    blocking: true
+    blocker_id: BLK-2
+    evidence:
+      - kind: quote
+        text: "If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen."
+        source: description
+  - id: DEC-3
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "Every feature, *including default mode, must ship with an explicit keyword set*."
+        source: description
+  - id: DEC-4
+    status: IMPLEMENTATION_FREEDOM
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "with the seed keywords visibly shown in the search field or as removable filter chips, so the user understands why these results appear."
+        source: description
+  - id: DEC-5
+    status: OPTIONAL_OUT_OF_SCOPE
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "If brand or product context is available (e.g. product category), it may refine or append to the seed keywords (optional enhancement, behind the same mapping)."
+        source: description
+  - id: DEC-6
+    status: CLOSED_BY_TICKET
+    check: backend_dependency
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "This is a UX-relevance improvement, not a change to the underlying stock provider or search API."
+        source: description
+  - id: DEC-7
+    status: OPEN
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "final wording should be confirmed with Product/Design before release"
+        source: description
+evidence:
+  - kind: quote
+    text: "The keyword lists above are the initial values to implement; final wording should be confirmed with Product/Design before release, but the mechanism and a populated set (including Default) must ship."
+    source: description
+  - kind: file
+    path: "src/api/services/ImageHubApi.ts"
+    line: 25
+    text: "            url: '/image-hub/search',"
+  - kind: note
+    text: "The exported repository contains no Git metadata, so no branch or pull-request conflict evidence is available in this frozen replay."

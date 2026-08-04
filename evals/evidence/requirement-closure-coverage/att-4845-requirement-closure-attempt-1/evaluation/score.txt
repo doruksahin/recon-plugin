@@ -1,0 +1,5 @@
+artifact: PASS — production triage verifier clean
+disposition: PASS — BLOCKED
+decision coverage: FAIL — 2/3 distinct decisions
+missed: feature-context-mapping — Unmapped feature context
+score: FAIL

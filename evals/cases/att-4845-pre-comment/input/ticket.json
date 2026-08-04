@@ -1,0 +1,34 @@
+{
+  "id": "ATT-4845",
+  "key": "ATT-4845",
+  "fields": {
+    "summary": "AA v2 | [FE] - Stock Image search should have pre-filtered results according to feature",
+    "status": {
+      "name": "To Do"
+    },
+    "issuetype": {
+      "name": "Task"
+    },
+    "labels": [
+      "adc-v2"
+    ],
+    "description": "h2. Context\n\nWhen a user opens the *Stock Image search inside a generation feature* (Product Photoshoot, Fashion Photoshoot, etc.), the results should not start empty or generic. They should be *pre-filtered with visuals relevant to that feature*, so the user immediately sees stock items that can realistically be composed into or used alongside their generation (for example, scene props, backgrounds, and surfaces for a Product Photoshoot; models, garments, and settings for Fashion).\n\nThe goal is to shorten the path from \"open stock search\" to \"pick a useful asset for this specific creative\" by seeding the search with feature-appropriate keywords, while still letting the user override and search freely.\n\nh2. Keyword sets to pre-filter (per feature)\n\nEvery feature, *including default mode, must ship with an explicit keyword set*. On open, the search is seeded with these keywords. Final wording to be confirmed with Product/Design, but the ticket must implement at least the following:\n\n||Feature (context)||Pre-filter keywords||\n|*Product Photoshoot*|background, studio backdrop, tabletop, surface, marble, wood, podium, props, texture, gradient background, minimal scene|\n|*Fashion Photoshoot*|fashion model, model, apparel, studio, runway, street style, backdrop, accessories, editorial, pose|\n|*Fashion Video*|fashion model, runway, catwalk, studio, street style, motion, editorial, backdrop|\n|*UGC*|lifestyle, real people, home, hands, everyday scene, candid, casual, selfie|\n|*Product Photo Ads*|lifestyle scene, environment, context background, surface, in-use, real setting|\n|*Stock Video*|b-roll, motion background, background loop, cityscape, nature, abstract, lifestyle|\n|*Default (no specific mapping)*|background, studio, lifestyle, texture, abstract, minimal, nature, people|\n\nh2. Acceptance Criteria\n\nh3. 1. Feature-aware pre-filtering\n\n* *AC1.1* When Stock Image search is opened *from within a feature*, results are pre-filtered using that feature's keyword set from the table above (no manual typing required to see relevant results).\n* *AC1.2* The keyword sets are *config-driven* (a central mapping/table), not hardcoded per screen, so they can be tuned without a code change.\n* *AC1.3* The pre-filtered results load automatically on open, with the seed keywords visibly shown in the search field or as removable filter chips, so the user understands why these results appear.\n\nh3. 2. Default mode always has keywords\n\n* *AC2.1* *Default mode is never empty and never keyword-less.* If the feature has no specific mapping, the search is seeded with the *Default keyword set* listed above.\n* *AC2.2* Every context that can open Stock Image search resolves to a keyword set: either the feature-specific set or the Default set. There is no path that opens with zero seed keywords.\n\nh3. 3. User can override\n\n* *AC3.1* The user can clear or edit the seeded keywords and run a free-text search at any time (the pre-filter is a starting point, not a lock).\n* *AC3.2* Removing all seeds returns the standard unfiltered stock search.\n* *AC3.3* The seeded keywords/chips persist for the session within that feature, and reset when the feature/context changes.\n\nh3. 4. Relevance & context\n\n* *AC4.1* Results should surface visuals that are *composable with the user's own asset* (e.g. props/backgrounds for a product), not just literal matches of the feature name.\n* *AC4.2* If brand or product context is available (e.g. product category), it may refine or append to the seed keywords (optional enhancement, behind the same mapping).\n* *AC4.3* Sensible ordering: most relevant / most usable results first.\n\nh3. 5. Fallbacks & edge cases\n\n* *AC5.1* If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen.\n* *AC5.2* Opening Stock Image search *outside* any feature (standalone) uses the Default keyword set (per AC2.1), so it is still seeded, not blank.\n\nh3. 6. Configuration & maintainability\n\n* *AC6.1* The feature-to-keyword mapping (including Default) is centrally defined and easy to update, covering at least: Product Photoshoot, Fashion Photoshoot, Fashion Video, UGC, Product Photo Ads, Stock Video, and Default.\n* *AC6.2* Adding or editing a feature's keyword set does not require touching the search UI code.\n\nh2. Notes\n\n* The keyword lists above are the initial values to implement; final wording should be confirmed with Product/Design before release, but the mechanism and a populated set (including Default) must ship.\n* This is a UX-relevance improvement, not a change to the underlying stock provider or search API.",
+    "attachment": [
+      {
+        "filename": "repro-2-image-search-on-open.png",
+        "mimeType": "image/png",
+        "size": 70327
+      },
+      {
+        "filename": "repro-3-after-one-keyword-selected.png",
+        "mimeType": "image/png",
+        "size": 63055
+      }
+    ],
+    "comment": {
+      "total": 0,
+      "comments": []
+    }
+  }
+}
+

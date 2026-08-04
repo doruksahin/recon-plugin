@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "att-4845-pre-comment",
+  "task_class": "ambiguous-capability-change",
+  "source": {
+    "ticket": "ATT-4845",
+    "snapshot_at": "2026-07-30T13:40:51Z",
+    "cutoff": "Immediately before the first human analysis comment",
+    "human_comments": 0
+  },
+  "input": {
+    "ticket": "input/ticket.json",
+    "sha256": "6e073fc4fb282f49a671f3518ee6c2917893539dac530f9e93cdc9abfccf1d32"
+  },
+  "repository": {
+    "name": "AdCreative-Frontend-V2",
+    "commit": "fa6f2234128fee6a357e8086da385cc11794eb76"
+  },
+  "oracle": "oracle/decisions.json"
+}

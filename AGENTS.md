@@ -6,8 +6,42 @@ historical name, it is the repository-wide editor contract. Also read the
 nearest directory-level `CLAUDE.md` before changing files in `recon/skills/`,
 `recon/scripts/`, `recon/docs/`, `tools/`, or `docs/`.
 
+Read [`docs/agent-behavior/README.md`](docs/agent-behavior/README.md) before
+proposing or changing Recon behavior. It is the binding operating mentality for
+agent work in this repository: start from an observed task outcome, prefer
+deterministic rails, separate claims from evidence, and do not call an idea an
+improvement until a rerunnable demonstration proves it. Apply it without waiting
+for the user to repeat these expectations. Follow its progressive-disclosure
+router and load only the principle, playbook, or example relevant to the work.
+
+For repository replay-laboratory work—starting, resuming, checking, evaluating,
+comparing, or explaining a frozen ticket run—read
+[`evals/skills/recon-replay-lab/SKILL.md`](evals/skills/recon-replay-lab/SKILL.md)
+and follow its fresh-context handoff boundary. This skill is repository-local
+evaluation guidance; it is intentionally not part of the shipped plugin.
+
+For a plugin-improvement or improvement-resume request, start with
+[`evals/skills/recon-improvement-loop/SKILL.md`](evals/skills/recon-improvement-loop/SKILL.md).
+It derives the durable improvement state from retained evidence before any
+interpretation; it is repository-local and never ships in the Recon plugin.
+
 The architectural decision is
 `ADR-01KZ0ZK4WYVWRY0WJM2CZ7ZS8C` under `decree/adr/architecture/`.
+
+## Commit guardrails
+
+Before committing, run the one owner command:
+
+```bash
+bash tools/pre-commit-check.sh
+```
+
+Enable the committed hooks once per clone with
+`git config core.hooksPath .githooks`. The rail fails closed on staged-diff,
+reference, generated-view, universal-control, and Decree drift. Read
+`.githooks/AGENTS.md` only when changing this gate or adding a universal check.
+Do not use `--no-verify` for normal work; remote CI/branch protection remains
+necessary to prevent intentional local bypasses.
 
 Portable-source rules:
 

@@ -1,0 +1,120 @@
+recon: triage
+ticket: ATT-4845
+title: "AA v2 | [FE] - Stock Image search should have pre-filtered results according to feature"
+task_class: capability-change
+disposition: BLOCKED
+outcome_decidable: true
+evidence_ok: true
+product_decision_open: true
+design_dependency: false
+backend_dependency: false
+blockers:
+  - title: "Fallback trigger"
+    id: BLK-1
+    decision_id: DEC-4
+    owner: product
+    owner_account_id: "replay-owner:product"
+    ask: "How many returned results should trigger the broadened search?"
+    detail:
+      state: "The empty-result case is specified, but the count that is considered too few is not."
+      options:
+        - "Broaden only when no results are returned."
+        - "Broaden when fewer than a specified number of results are returned."
+      evidence:
+        - kind: quote
+          text: "If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen."
+          source: description
+  - title: "Fallback sequence"
+    id: BLK-2
+    decision_id: DEC-5
+    owner: product
+    owner_account_id: "replay-owner:product"
+    ask: "Which visible keyword should be removed first when a seeded search is broadened?"
+    detail:
+      state: "The ticket requires narrowing the seed set but does not define the removal order for each feature."
+      options:
+        - "Use a product-defined removal order for each feature's visible keywords."
+        - "Skip incremental removal and switch directly to the Default keyword set."
+      evidence:
+        - kind: quote
+          text: "If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen."
+          source: description
+conflicts: []
+decision_audit:
+  - id: DEC-1
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "Every feature, *including default mode, must ship with an explicit keyword set*."
+        source: description
+  - id: DEC-2
+    status: IMPLEMENTATION_FREEDOM
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "The pre-filtered results load automatically on open, with the seed keywords visibly shown in the search field or as removable filter chips, so the user understands why these results appear."
+        source: description
+  - id: DEC-3
+    status: OPTIONAL_OUT_OF_SCOPE
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "If brand or product context is available (e.g. product category), it may refine or append to the seed keywords (optional enhancement, behind the same mapping)."
+        source: description
+  - id: DEC-4
+    status: OPEN
+    check: product_decision_open
+    blocking: true
+    blocker_id: BLK-1
+    evidence:
+      - kind: quote
+        text: "If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen."
+        source: description
+  - id: DEC-5
+    status: OPEN
+    check: product_decision_open
+    blocking: true
+    blocker_id: BLK-2
+    evidence:
+      - kind: quote
+        text: "If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen."
+        source: description
+  - id: DEC-6
+    status: CLOSED_BY_REPOSITORY
+    check: backend_dependency
+    blocking: false
+    evidence:
+      - kind: file
+        path: "src/api/services/ImageHubApi.ts"
+        line: 27
+        text: "                'query': query,"
+  - id: DEC-7
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "The seeded keywords/chips persist for the session within that feature, and reset when the feature/context changes."
+        source: description
+  - id: DEC-8
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "This is a UX-relevance improvement, not a change to the underlying stock provider or search API."
+        source: description
+evidence:
+  - kind: quote
+    text: "The keyword lists above are the initial values to implement; final wording should be confirmed with Product/Design before release, but the mechanism and a populated set (including Default) must ship."
+    source: description
+  - kind: file
+    path: "src/api/services/ImageHubApi.ts"
+    line: 25
+    text: "            url: '/image-hub/search',"
+  - kind: note
+    text: "Frozen target repository export has no .git directory, so branch and pull-request conflict checks are unavailable in this replay."

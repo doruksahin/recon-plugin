@@ -1,0 +1,551 @@
+recon: triage
+ticket: ATT-4845
+title: "AA v2 | [FE] - Stock Image search should have pre-filtered results according to feature"
+task_class: capability-change
+disposition: BLOCKED
+outcome_decidable: partial
+evidence_ok: true
+product_decision_open: true
+design_dependency: false
+backend_dependency: true
+blockers:
+  - title: "Product Ads identity"
+    id: BLK-1
+    decision_id: DEC-10
+    owner: product
+    owner_account_id: "replay-owner:product"
+    ask: "Which current feature should receive the Product Photo Ads keyword set?"
+    detail:
+      state: "The ticket names Product Photo Ads, while the current product presents differently named advertising features."
+      options:
+        - "High Impact CTA Layout receives the Product Photo Ads keywords."
+        - "AI Driven Ads/Posts receives the Product Photo Ads keywords."
+        - "A separately named current feature receives the Product Photo Ads keywords."
+      evidence:
+        - kind: quote
+          text: "|*Product Photo Ads*|lifestyle scene, environment, context background, surface, in-use, real setting|"
+          source: description
+  - title: "Configuration update path"
+    id: BLK-2
+    decision_id: DEC-14
+    owner: product-backend
+    owner_account_id: "replay-owner:product-backend"
+    ask: "Where should authorized teams update keyword sets without releasing new application code?"
+    detail:
+      state: "The ticket requires a central mapping that can be tuned without a code release but does not name its owner or delivery mechanism."
+      options:
+        - "Authorized users edit the sets in an administrative product setting."
+        - "A remotely delivered configuration supplies the sets to the application."
+        - "Another named owner and delivery mechanism supplies the sets."
+      evidence:
+        - kind: quote
+          text: "* *AC1.2* The keyword sets are *config-driven* (a central mapping/table), not hardcoded per screen, so they can be tuned without a code change."
+          source: description
+  - title: "Relevance acceptance rule"
+    id: BLK-3
+    decision_id: DEC-21
+    owner: product-design
+    owner_account_id: "replay-owner:product-design"
+    ask: "What observable result set will qualify each feature's pre-filter as composable and relevant?"
+    detail:
+      state: "Composable and relevant are required outcomes, but the ticket gives examples rather than a pass/fail boundary."
+      options:
+        - "Approve a fixed example result set for each named feature."
+        - "Define required visual categories and the minimum share of returned results that must match them."
+        - "Limit acceptance to showing and sending the specified seed keywords."
+      evidence:
+        - kind: quote
+          text: "* *AC4.1* Results should surface visuals that are *composable with the user's own asset* (e.g. props/backgrounds for a product), not just literal matches of the feature name."
+          source: description
+  - title: "Result ranking rule"
+    id: BLK-4
+    decision_id: DEC-23
+    owner: product-backend
+    owner_account_id: "replay-owner:product-backend"
+    ask: "Should results keep the stock provider's order or follow a product-defined ranking with stated tie behavior?"
+    detail:
+      state: "The ticket requires most relevant and most usable results first but does not select a ranking, precedence, or tie rule."
+      options:
+        - "Keep the stock provider's returned order, including its tie behavior."
+        - "Define a product ranking and a deterministic tie rule."
+      evidence:
+        - kind: quote
+          text: "* *AC4.3* Sensible ordering: most relevant / most usable results first."
+          source: description
+  - title: "Few results boundary"
+    id: BLK-5
+    decision_id: DEC-24
+    owner: product
+    owner_account_id: "replay-owner:product"
+    ask: "At what returned-result count should the search broaden, and does that boundary count as few?"
+    detail:
+      state: "The broadening trigger says very few results without a count or inclusive boundary."
+      options:
+        - "Broaden below a specified count but not at that count."
+        - "Broaden at or below a specified count."
+      evidence:
+        - kind: quote
+          text: "* *AC5.1* If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen."
+          source: description
+  - title: "Keyword removal order"
+    id: BLK-6
+    decision_id: DEC-25
+    owner: product-design
+    owner_account_id: "replay-owner:product-design"
+    ask: "For each keyword set, which keyword is removed first, next, and on ties before Default is used?"
+    detail:
+      state: "The fallback requires dropping the narrowest keywords but supplies no total removal order or tie behavior."
+      options:
+        - "Provide an ordered removal list for every named keyword set."
+        - "Remove all feature-specific keywords together and use Default on the next attempt."
+      evidence:
+        - kind: quote
+          text: "* *AC5.1* If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen."
+          source: description
+conflicts: []
+requirement_coverage:
+  normative_requirements: true
+  identity_mapping: true
+  context_mapping_exhaustive: true
+  ownership_update_path: true
+  threshold_completeness: true
+  ordering_completeness: true
+decision_audit:
+  - id: DEC-1
+    requirement: "|*Product Photoshoot*|background, studio backdrop, tabletop, surface, marble, wood, podium, props, texture, gradient background, minimal scene|"
+    requirement_source: description
+    surface: identity_mapping
+    context_kind: named
+    context_identity: "Product Photoshoot"
+    observable_result: "background, studio backdrop, tabletop, surface, marble, wood, podium, props, texture, gradient background, minimal scene"
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "|*Product Photoshoot*|background, studio backdrop, tabletop, surface, marble, wood, podium, props, texture, gradient background, minimal scene|"
+        source: description
+  - id: DEC-2
+    requirement: "|*Fashion Photoshoot*|fashion model, model, apparel, studio, runway, street style, backdrop, accessories, editorial, pose|"
+    requirement_source: description
+    surface: identity_mapping
+    context_kind: named
+    context_identity: "Fashion Photoshoot"
+    observable_result: "fashion model, model, apparel, studio, runway, street style, backdrop, accessories, editorial, pose"
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "|*Fashion Photoshoot*|fashion model, model, apparel, studio, runway, street style, backdrop, accessories, editorial, pose|"
+        source: description
+  - id: DEC-3
+    requirement: "|*Fashion Video*|fashion model, runway, catwalk, studio, street style, motion, editorial, backdrop|"
+    requirement_source: description
+    surface: identity_mapping
+    context_kind: named
+    context_identity: "Fashion Video"
+    observable_result: "fashion model, runway, catwalk, studio, street style, motion, editorial, backdrop"
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "|*Fashion Video*|fashion model, runway, catwalk, studio, street style, motion, editorial, backdrop|"
+        source: description
+  - id: DEC-4
+    requirement: "|*UGC*|lifestyle, real people, home, hands, everyday scene, candid, casual, selfie|"
+    requirement_source: description
+    surface: identity_mapping
+    context_kind: named
+    context_identity: "UGC"
+    observable_result: "lifestyle, real people, home, hands, everyday scene, candid, casual, selfie"
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "|*UGC*|lifestyle, real people, home, hands, everyday scene, candid, casual, selfie|"
+        source: description
+  - id: DEC-5
+    requirement: "|*Product Photo Ads*|lifestyle scene, environment, context background, surface, in-use, real setting|"
+    requirement_source: description
+    surface: identity_mapping
+    context_kind: named
+    context_identity: "Product Photo Ads"
+    observable_result: "lifestyle scene, environment, context background, surface, in-use, real setting"
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "|*Product Photo Ads*|lifestyle scene, environment, context background, surface, in-use, real setting|"
+        source: description
+  - id: DEC-6
+    requirement: "|*Stock Video*|b-roll, motion background, background loop, cityscape, nature, abstract, lifestyle|"
+    requirement_source: description
+    surface: identity_mapping
+    context_kind: named
+    context_identity: "Stock Video"
+    observable_result: "b-roll, motion background, background loop, cityscape, nature, abstract, lifestyle"
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "|*Stock Video*|b-roll, motion background, background loop, cityscape, nature, abstract, lifestyle|"
+        source: description
+  - id: DEC-7
+    requirement: "|*Default (no specific mapping)*|background, studio, lifestyle, texture, abstract, minimal, nature, people|"
+    requirement_source: description
+    surface: identity_mapping
+    context_kind: default
+    context_identity: "Default"
+    observable_result: "background, studio, lifestyle, texture, abstract, minimal, nature, people"
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "|*Default (no specific mapping)*|background, studio, lifestyle, texture, abstract, minimal, nature, people|"
+        source: description
+  - id: DEC-8
+    requirement: "* *AC2.1* *Default mode is never empty and never keyword-less.* If the feature has no specific mapping, the search is seeded with the *Default keyword set* listed above."
+    requirement_source: description
+    surface: identity_mapping
+    context_kind: omitted
+    context_identity: "Any feature with no specific mapping"
+    observable_result: "background, studio, lifestyle, texture, abstract, minimal, nature, people"
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* *AC2.1* *Default mode is never empty and never keyword-less.* If the feature has no specific mapping, the search is seeded with the *Default keyword set* listed above."
+        source: description
+  - id: DEC-9
+    requirement: "* *AC5.2* Opening Stock Image search *outside* any feature (standalone) uses the Default keyword set (per AC2.1), so it is still seeded, not blank."
+    requirement_source: description
+    surface: identity_mapping
+    context_kind: default
+    context_identity: "Standalone outside any feature"
+    observable_result: "background, studio, lifestyle, texture, abstract, minimal, nature, people"
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* *AC5.2* Opening Stock Image search *outside* any feature (standalone) uses the Default keyword set (per AC2.1), so it is still seeded, not blank."
+        source: description
+  - id: DEC-10
+    requirement: "|*Product Photo Ads*|lifestyle scene, environment, context background, surface, in-use, real setting|"
+    requirement_source: description
+    surface: identity_mapping
+    context_kind: alias
+    context_identity: "Repository feature corresponding to Product Photo Ads"
+    observable_result: UNRESOLVED
+    status: OPEN
+    check: product_decision_open
+    blocking: true
+    blocker_id: BLK-1
+    evidence:
+      - kind: quote
+        text: "|*Product Photo Ads*|lifestyle scene, environment, context background, surface, in-use, real setting|"
+        source: description
+      - kind: file
+        path: "src/app/constants/feature-meta.ts"
+        line: 11
+        text: "  CtaLayout = 'cta-layout',"
+      - kind: file
+        path: "src/app/constants/feature-meta.ts"
+        line: 14
+        text: "  AiDrivenAdsPosts = 'ai-social-posts',"
+  - id: DEC-11
+    requirement: "|*Fashion Video*|fashion model, runway, catwalk, studio, street style, motion, editorial, backdrop|"
+    requirement_source: description
+    surface: identity_mapping
+    context_kind: alias
+    context_identity: "Fashion Video ticket name to Fashion Videoshoot product name"
+    observable_result: "fashion model, runway, catwalk, studio, street style, motion, editorial, backdrop"
+    status: CLOSED_BY_REPOSITORY
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: file
+        path: "src/app/constants/feature-meta.ts"
+        line: 40
+        text: "    title: 'Fashion Videoshoot',"
+  - id: DEC-12
+    requirement: "|*UGC*|lifestyle, real people, home, hands, everyday scene, candid, casual, selfie|"
+    requirement_source: description
+    surface: identity_mapping
+    context_kind: alias
+    context_identity: "UGC ticket name to UGC Video product name"
+    observable_result: "lifestyle, real people, home, hands, everyday scene, candid, casual, selfie"
+    status: CLOSED_BY_REPOSITORY
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: file
+        path: "src/app/constants/feature-meta.ts"
+        line: 55
+        text: "    title: 'UGC Video',"
+  - id: DEC-13
+    requirement: "* *AC1.1* When Stock Image search is opened *from within a feature*, results are pre-filtered using that feature's keyword set from the table above (no manual typing required to see relevant results)."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* *AC1.1* When Stock Image search is opened *from within a feature*, results are pre-filtered using that feature's keyword set from the table above (no manual typing required to see relevant results)."
+        source: description
+  - id: DEC-14
+    requirement: "* *AC1.2* The keyword sets are *config-driven* (a central mapping/table), not hardcoded per screen, so they can be tuned without a code change."
+    requirement_source: description
+    surface: ownership_update_path
+    status: OPEN
+    check: backend_dependency
+    blocking: true
+    blocker_id: BLK-2
+    evidence:
+      - kind: quote
+        text: "* *AC1.2* The keyword sets are *config-driven* (a central mapping/table), not hardcoded per screen, so they can be tuned without a code change."
+        source: description
+      - kind: file
+        path: "src/api/services/ImageHubApi.ts"
+        line: 18
+        text: "    public static getImageHubSearch("
+  - id: DEC-15
+    requirement: "* *AC1.3* The pre-filtered results load automatically on open, with the seed keywords visibly shown in the search field or as removable filter chips, so the user understands why these results appear."
+    requirement_source: description
+    surface: direct_obligation
+    status: IMPLEMENTATION_FREEDOM
+    check: design_dependency
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* *AC1.3* The pre-filtered results load automatically on open, with the seed keywords visibly shown in the search field or as removable filter chips, so the user understands why these results appear."
+        source: description
+  - id: DEC-16
+    requirement: "* *AC2.1* *Default mode is never empty and never keyword-less.* If the feature has no specific mapping, the search is seeded with the *Default keyword set* listed above."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* *AC2.1* *Default mode is never empty and never keyword-less.* If the feature has no specific mapping, the search is seeded with the *Default keyword set* listed above."
+        source: description
+  - id: DEC-17
+    requirement: "* *AC2.2* Every context that can open Stock Image search resolves to a keyword set: either the feature-specific set or the Default set. There is no path that opens with zero seed keywords."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* *AC2.2* Every context that can open Stock Image search resolves to a keyword set: either the feature-specific set or the Default set. There is no path that opens with zero seed keywords."
+        source: description
+  - id: DEC-18
+    requirement: "* *AC3.1* The user can clear or edit the seeded keywords and run a free-text search at any time (the pre-filter is a starting point, not a lock)."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* *AC3.1* The user can clear or edit the seeded keywords and run a free-text search at any time (the pre-filter is a starting point, not a lock)."
+        source: description
+  - id: DEC-19
+    requirement: "* *AC3.2* Removing all seeds returns the standard unfiltered stock search."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* *AC3.2* Removing all seeds returns the standard unfiltered stock search."
+        source: description
+  - id: DEC-20
+    requirement: "* *AC3.3* The seeded keywords/chips persist for the session within that feature, and reset when the feature/context changes."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* *AC3.3* The seeded keywords/chips persist for the session within that feature, and reset when the feature/context changes."
+        source: description
+  - id: DEC-21
+    requirement: "* *AC4.1* Results should surface visuals that are *composable with the user's own asset* (e.g. props/backgrounds for a product), not just literal matches of the feature name."
+    requirement_source: description
+    surface: threshold_completeness
+    status: OPEN
+    check: product_decision_open
+    blocking: true
+    blocker_id: BLK-3
+    evidence:
+      - kind: quote
+        text: "* *AC4.1* Results should surface visuals that are *composable with the user's own asset* (e.g. props/backgrounds for a product), not just literal matches of the feature name."
+        source: description
+  - id: DEC-22
+    requirement: "* *AC4.2* If brand or product context is available (e.g. product category), it may refine or append to the seed keywords (optional enhancement, behind the same mapping)."
+    requirement_source: description
+    surface: direct_obligation
+    status: OPTIONAL_OUT_OF_SCOPE
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* *AC4.2* If brand or product context is available (e.g. product category), it may refine or append to the seed keywords (optional enhancement, behind the same mapping)."
+        source: description
+  - id: DEC-23
+    requirement: "* *AC4.3* Sensible ordering: most relevant / most usable results first."
+    requirement_source: description
+    surface: ordering_completeness
+    status: OPEN
+    check: product_decision_open
+    blocking: true
+    blocker_id: BLK-4
+    evidence:
+      - kind: quote
+        text: "* *AC4.3* Sensible ordering: most relevant / most usable results first."
+        source: description
+      - kind: file
+        path: "src/api/services/ImageHubApi.ts"
+        line: 27
+        text: "                'query': query,"
+  - id: DEC-24
+    requirement: "* *AC5.1* If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen."
+    requirement_source: description
+    surface: threshold_completeness
+    status: OPEN
+    check: product_decision_open
+    blocking: true
+    blocker_id: BLK-5
+    evidence:
+      - kind: quote
+        text: "* *AC5.1* If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen."
+        source: description
+  - id: DEC-25
+    requirement: "* *AC5.1* If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen."
+    requirement_source: description
+    surface: ordering_completeness
+    status: OPEN
+    check: product_decision_open
+    blocking: true
+    blocker_id: BLK-6
+    evidence:
+      - kind: quote
+        text: "* *AC5.1* If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen."
+        source: description
+  - id: DEC-26
+    requirement: "* *AC5.1* If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* *AC5.1* If a seeded query returns no or very few results, gracefully broaden (drop the narrowest keywords, then fall back to the Default set) rather than showing an empty screen."
+        source: description
+  - id: DEC-27
+    requirement: "* *AC5.2* Opening Stock Image search *outside* any feature (standalone) uses the Default keyword set (per AC2.1), so it is still seeded, not blank."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* *AC5.2* Opening Stock Image search *outside* any feature (standalone) uses the Default keyword set (per AC2.1), so it is still seeded, not blank."
+        source: description
+  - id: DEC-28
+    requirement: "* *AC6.1* The feature-to-keyword mapping (including Default) is centrally defined and easy to update, covering at least: Product Photoshoot, Fashion Photoshoot, Fashion Video, UGC, Product Photo Ads, Stock Video, and Default."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* *AC6.1* The feature-to-keyword mapping (including Default) is centrally defined and easy to update, covering at least: Product Photoshoot, Fashion Photoshoot, Fashion Video, UGC, Product Photo Ads, Stock Video, and Default."
+        source: description
+  - id: DEC-29
+    requirement: "* *AC6.2* Adding or editing a feature's keyword set does not require touching the search UI code."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* *AC6.2* Adding or editing a feature's keyword set does not require touching the search UI code."
+        source: description
+  - id: DEC-30
+    requirement: "* The keyword lists above are the initial values to implement; final wording should be confirmed with Product/Design before release, but the mechanism and a populated set (including Default) must ship."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: product_decision_open
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* The keyword lists above are the initial values to implement; final wording should be confirmed with Product/Design before release, but the mechanism and a populated set (including Default) must ship."
+        source: description
+  - id: DEC-31
+    requirement: "* The keyword lists above are the initial values to implement; final wording should be confirmed with Product/Design before release, but the mechanism and a populated set (including Default) must ship."
+    requirement_source: description
+    surface: direct_obligation
+    status: OPEN
+    check: design_dependency
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* The keyword lists above are the initial values to implement; final wording should be confirmed with Product/Design before release, but the mechanism and a populated set (including Default) must ship."
+        source: description
+  - id: DEC-32
+    requirement: "* This is a UX-relevance improvement, not a change to the underlying stock provider or search API."
+    requirement_source: description
+    surface: direct_obligation
+    status: CLOSED_BY_TICKET
+    check: backend_dependency
+    blocking: false
+    evidence:
+      - kind: quote
+        text: "* This is a UX-relevance improvement, not a change to the underlying stock provider or search API."
+        source: description
+evidence:
+  - kind: quote
+    text: "AA v2 | [FE] - Stock Image search should have pre-filtered results according to feature"
+    source: summary
+  - kind: quote
+    text: "Every feature, *including default mode, must ship with an explicit keyword set*."
+    source: description
+  - kind: quote
+    text: 'The goal is to shorten the path from "open stock search" to "pick a useful asset for this specific creative" by seeding the search with feature-appropriate keywords, while still letting the user override and search freely.'
+    source: description
+  - kind: file
+    path: "src/app/components/search-modal/components/search-modal/use-search-input.ts"
+    line: 38
+    text: "  const [selectedLabels, setSelectedLabels] = useState<string[]>([])"
+  - kind: file
+    path: "src/app/components/search-modal/components/search-modal/use-search-input.ts"
+    line: 65
+    text: "  const query = selectedLabels.length ? selectedLabels.join(',') : brandName"
+  - kind: file
+    path: "src/api/services/ImageHubApi.ts"
+    line: 18
+    text: "    public static getImageHubSearch("
+  - kind: note
+    text: "The frozen ticket contains no external links or human comments; its two attachment records are supplementary screenshots, while the normative behavior is stated in the description."
+  - kind: note
+    text: "The exported target repository is fixed by receipt.json and contains no Git metadata, so no local branch or pull-request conflict can be established from this replay input."

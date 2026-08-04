@@ -1,0 +1,4 @@
+# These frozen or source-linked records preserve their original terminal blank lines.
+docs/improvement-proposals/0.19.0/README.md whitespace=-blank-at-eof
+docs/improvement-proposals/0.19.0/real-ticket-replay-lab/README.md whitespace=-blank-at-eof
+evals/cases/att-4845-pre-comment/input/ticket.json whitespace=-blank-at-eof

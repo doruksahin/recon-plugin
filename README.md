@@ -137,15 +137,21 @@ partially supported.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) first: `CHANGELOG.md` is generated from commit subjects, so the commit convention is not cosmetic — an unparseable subject is dropped from the release notes rather than rendered badly. It also covers what earns a breaking-change marker, and how to cut a release (`tools/release.sh`).
 
-Enable the hooks once per clone — they run on every commit, blocking docs that point at files which no longer exist and subjects that would never reach the changelog:
+Enable the hooks once per clone — pre-commit runs the full local fail-closed
+rail, while commit-msg blocks subjects that would never reach the changelog:
 
 ```bash
 git config core.hooksPath .githooks
 brew install lychee   # optional; without it, external URLs go unchecked
-brew install uv       # optional; without it, commit messages go unchecked
+brew install uv       # required by the local commit rail
 ```
 
-`tools/check-links.sh` resolves the docs' own file references against the working tree (backticked script names, `../`-relative paths, and the `blob/master` links in [docs/flow.html](docs/flow.html)), then hands real links to [lychee](https://github.com/lycheeverse/lychee). Rename a script and every doc still naming it fails the commit. Run it any time with `bash tools/check-links.sh`; bypass once with `git commit --no-verify`.
+`tools/pre-commit-check.sh` is the one local entry point. It resolves the docs'
+own file references against the working tree (backticked script names,
+`../`-relative paths, and the `blob/master` links in
+[docs/flow.html](docs/flow.html)), checks generated views and isolated
+contracts, then validates Decree records. Run it any time with
+`bash tools/pre-commit-check.sh`. Do not bypass it for normal work.
 
 Native adapter files are generated, not hand-authored:
 

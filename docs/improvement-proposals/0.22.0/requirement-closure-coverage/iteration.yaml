@@ -1,0 +1,162 @@
+schema_version: 2
+improvement_id: requirement-closure-coverage
+evidence_root: evals/evidence/requirement-closure-coverage
+artifact_root: docs/improvement-proposals/0.22.0/requirement-closure-coverage/attempts
+claim: For the declared ambiguous target case, a generic normative-requirement audit
+  will retain every blocking open decision as one atomic blocker while the declared
+  fully specified control remains READY.
+non_claims:
+- No cross-task quality claim beyond the declared target and control cases.
+- No cross-model or cross-host quality claim.
+- No historical rescore or replacement of the immutable raw scorer result.
+- No claim that the candidate is implemented or improved before retained comparison
+  and explicit review.
+origin:
+  ticket: ATT-4845
+  observed_on: '2026-08-04'
+  statement: Three scored fresh-context runs were production-valid and BLOCKED but
+    each retained raw scorer coverage of 1/3.
+experiment:
+  target:
+    case_id: att-4845-pre-comment
+    ticket: ATT-4845
+    ticket_sha256: 6e073fc4fb282f49a671f3518ee6c2917893539dac530f9e93cdc9abfccf1d32
+    repository:
+      name: AdCreative-Frontend-V2
+      commit: fa6f2234128fee6a357e8086da385cc11794eb76
+    scorer_rubric_sha256: 696c843c7b3e0bf2aa6b904bae357152f4023a387896ba5b90263d670517ad18
+    expected_disposition: BLOCKED
+    authored_target:
+      numerator: 4
+      denominator: 4
+      unit: atomic blocking decisions
+  negative_control:
+    case_id: requirement-closure-ready-control
+    ticket: RCTRL-1
+    ticket_sha256: 599d0bc15e434d84c3f60554ceadf65c96a92eb5491f6a8d7debd6e890bd569f
+    repository:
+      name: AdCreative-Frontend-V2
+      commit: fa6f2234128fee6a357e8086da385cc11794eb76
+    scorer_rubric_sha256: 4df704c23010eb4491ea19d8e3d9447683fa7eedcfd1df3131a4dc708aa07b92
+    expected_disposition: READY
+  skills:
+    baseline:
+      id: recon-triage-baseline
+      path: skill/recon-triage/SKILL.md
+      sha256: 47c08950ea9434828a5f0efe8b8340e7292ff4a5223ba3f73d210b919b69731a
+      source_commit: 07b8d790ec699dd8e68fbe138c13e7736a04bf79
+    candidate:
+      id: requirement-closure-candidate
+      path: skill/recon-triage/SKILL.md
+      binding: first-candidate-run-per-attempt
+      must_differ_from_baseline: true
+      control_must_match: true
+  comparison_rubric:
+    id: requirement-closure-comparison-v1
+    path: docs/improvement-proposals/0.22.0/requirement-closure-coverage/comparison-rubric.yaml
+    sha256: fc8bb60c95f51b1232662d13ddc9ca72a4452905ba66751def02813a5cc96c0a
+thresholds:
+  baseline_runs: 3
+  minimum_runs_to_compare:
+    candidate: 1
+    negative_control: 1
+  minimum_runs_to_accept:
+    candidate: 3
+    negative_control: 3
+acceptance_criteria:
+  candidate:
+    artifact_status: PASS
+    artifact_exit: 0
+    disposition_actual: BLOCKED
+    disposition_status: PASS
+    score: PASS
+    score_exit: 0
+    decision_coverage_status: PASS
+  negative_control:
+    artifact_status: PASS
+    artifact_exit: 0
+    disposition_actual: READY
+    disposition_status: PASS
+    score: PASS
+    score_exit: 0
+    decision_coverage_status: PASS
+candidate_implementation_brief: docs/improvement-proposals/0.22.0/requirement-closure-coverage/candidate-implementation-brief.md
+raw_scorer_baseline:
+  numerator: 1
+  denominator: 3
+  score: FAIL
+  score_exit: 1
+  statement: Immutable scorer result retained by every baseline capture.
+human_calibration:
+  numerator: 2
+  denominator: 4
+  statement: Authored review found two atomic fallback decisions in the baseline submissions;
+    this calibration does not rewrite the raw scorer's 1/3.
+  owner: proposal README
+captures:
+- id: att-4845-decision-closure
+  role: baseline
+  path: evals/evidence/requirement-closure-coverage/att-4845-decision-closure
+  manifest_sha256: 87c05d2dfe1fc7696cc53f4b60cc31597362680aea8d0345a31aeee576da4aca
+- id: att-4845-replay-2
+  role: baseline
+  path: evals/evidence/requirement-closure-coverage/att-4845-replay-2
+  manifest_sha256: 093a5ebbf7d3f27e6e262bbb47378e3199dd26528239263aa47745d9fa4baa9e
+- id: att-4845-replay-3
+  role: baseline
+  path: evals/evidence/requirement-closure-coverage/att-4845-replay-3
+  manifest_sha256: 3270df23dfce325fc1c4c3f2f499d385de3c3ec6e2c3ad7a050e3d3be57689a2
+- id: att-4845-requirement-closure-attempt-1
+  role: candidate
+  path: evals/evidence/requirement-closure-coverage/att-4845-requirement-closure-attempt-1
+  manifest_sha256: d16c84fffb3250c014978f02beff553c5d7f0d01f9483e6bb67484395feabb66
+  attempt: 1
+- id: requirement-closure-ready-control-attempt-1
+  role: negative-control
+  path: evals/evidence/requirement-closure-coverage/requirement-closure-ready-control-attempt-1
+  manifest_sha256: 7c88a6efa2e84b9748d045137f74488f82f2c68736c572a0f9cbd4cdd0ec105a
+  attempt: 1
+- id: att-4845-requirement-closure-attempt-2-run-1
+  role: candidate
+  path: evals/evidence/requirement-closure-coverage/att-4845-requirement-closure-attempt-2-run-1
+  manifest_sha256: 653dafe3963c9399b54ea01d7c80ec225ff7b3539115a01b38d4804121290aeb
+  attempt: 2
+- id: att-4845-requirement-closure-attempt-2-run-2
+  role: candidate
+  path: evals/evidence/requirement-closure-coverage/att-4845-requirement-closure-attempt-2-run-2
+  manifest_sha256: 4cab1626793bd2c00e3bfe9da6ac15ff13c04785d23b1d8d96aa4463fbf2b81f
+  attempt: 2
+- id: att-4845-requirement-closure-attempt-2-run-3
+  role: candidate
+  path: evals/evidence/requirement-closure-coverage/att-4845-requirement-closure-attempt-2-run-3
+  manifest_sha256: 4657449078da0a3eff267d0aec1ff30371d223264ec2aa578e55306b34ef174e
+  attempt: 2
+- id: requirement-closure-ready-control-attempt-2-run-1
+  role: negative-control
+  path: evals/evidence/requirement-closure-coverage/requirement-closure-ready-control-attempt-2-run-1
+  manifest_sha256: a97700973767146ab80f2c9f891244b4fffbc878787316469f92d362fb1d4d72
+  attempt: 2
+- id: requirement-closure-ready-control-attempt-2-run-2
+  role: negative-control
+  path: evals/evidence/requirement-closure-coverage/requirement-closure-ready-control-attempt-2-run-2
+  manifest_sha256: 8acaf126acfb8ae211484101d4a239b21d9f5220577a9c39dbc1a1d1c62b724c
+  attempt: 2
+- id: requirement-closure-ready-control-attempt-2-run-3
+  role: negative-control
+  path: evals/evidence/requirement-closure-coverage/requirement-closure-ready-control-attempt-2-run-3
+  manifest_sha256: 1a5a2f7a5dc48f787e0756bb5fb0603cdb653ac75702e41ad6f9a1c2ee048833
+  attempt: 2
+comparisons:
+- attempt: 1
+  path: docs/improvement-proposals/0.22.0/requirement-closure-coverage/attempts/attempt-001/comparison.json
+  sha256: c07c5534dae0977e086b5cac02997e6a98ec4f3657b6fc1e520d62ba962cd677
+- attempt: 2
+  path: docs/improvement-proposals/0.22.0/requirement-closure-coverage/attempts/attempt-002/comparison.json
+  sha256: 935b21b8217abb2f8fe33b01ccf28880de7f19344268ccc88c2d1ae4fb5a48bc
+reviews:
+- attempt: 1
+  path: docs/improvement-proposals/0.22.0/requirement-closure-coverage/attempts/attempt-001/review.json
+  sha256: 9313212aa728aee9e91e95bd034377d8ccb2b12616471d07904d06c7937d4e21
+- attempt: 2
+  path: docs/improvement-proposals/0.22.0/requirement-closure-coverage/attempts/attempt-002/review.json
+  sha256: 43ed1725df12355612a76f743646bdfa361fb08b2f62a9bdda7f04b09ac7506e
