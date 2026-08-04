@@ -1,0 +1,14 @@
+schema_version: 1
+id: requirement-closure-comparison-v1
+semantic_review:
+  target:
+    - Every normative ticket requirement is present in the decision audit.
+    - Each requirement is classified as closed, open, optional, implementation freedom, or repository-resolvable.
+    - Generic identity and mapping, ownership and update path, thresholds, and ordering are each audited for completeness.
+    - Every blocking open decision maps to exactly one atomic blocker.
+  negative_control:
+    - A fully specified ticket remains READY with no invented blocker.
+claim_boundary:
+  - The comparison covers only the declared target and negative-control cases.
+  - Mechanical PASS does not replace explicit semantic review.
+  - The experiment does not establish cross-task, cross-model, or cross-host quality.

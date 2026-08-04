@@ -7,7 +7,7 @@ for. The path is the durable ID:
 Read [CLAUDE.md](CLAUDE.md) before adding or changing a record. In particular,
 new proposals must reserve a **future** SemVer cohort; do not add work to a
 released or historical version directory. v0.19.0 is the active future cohort;
-unrelated new intake starts at v0.22.0 or a later explicitly planned release.
+unrelated new intake starts at v0.21.0 or a later explicitly planned release.
 
 ## Design basis
 
@@ -34,6 +34,7 @@ evidence needs semantic or visual interpretation.
 | [v0.19.0](0.19.0/README.md) | in-progress | 1 | Frozen real-ticket replay and distinct decision-coverage scoring |
 | [v0.20.0](0.20.0/README.md) | in-progress | 1 | Offline-valid prepared replay verification |
 | [v0.21.0](0.21.0/README.md) | in-progress | 1 | Generic evidence-backed decision closure |
+| [v0.22.0](0.22.0/README.md) | in-progress | 1 | Durable requirement-closure improvement loop |
 
 ## v0.15 verified company chain
 

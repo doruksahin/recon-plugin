@@ -19,6 +19,7 @@ A multi-harness **agent plugin** shipping one workflow, `recon` — a determinis
 - `recon/docs/registry.yaml` — THE artifact registry (single source; `lint-workspace.sh` executes it)
 - `evals/` — repository-only real-ticket replay laboratory: sanitized frozen inputs, separately disclosed oracles, and scorer controls; nothing here ships in the plugin
 - `evals/skills/recon-replay-lab/` — repository-local LLM operator workflow for prepare → fresh-context handoff → resume → retained evaluation; it routes the lab but never owns parsing, scoring, or state
+- `evals/skills/recon-improvement-loop/` — repository-local operator workflow for durable proposal iteration; it routes only from retained improvement evidence and never ships in the plugin
 - `docs/replay-lab-report.html` — generated, drift-checked visual operator report for the laboratory; owned by `tools/render-replay-lab-report.py`, never hand-edited
 - `tools/` — repo tooling: link check, coherence check, commit-msg check, commitizen wrapper, release
 - `docs/agent-behavior/` — binding outcome-first operating contract for agent proposals, skill iteration, evidence, and live demonstrations
@@ -120,3 +121,7 @@ For repository-only replay work, route start, resume, state, evaluation,
 comparison, and explanation requests through
 `evals/skills/recon-replay-lab/SKILL.md`. It is not a runtime stage and must not
 be moved under `recon/skills/` or added to plugin manifests.
+
+For a plugin-improvement/resume request, route through
+`evals/skills/recon-improvement-loop/SKILL.md` first. Its state rail, not chat
+history, owns the next action; it is likewise repository-only.

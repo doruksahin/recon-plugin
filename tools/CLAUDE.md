@@ -23,6 +23,8 @@ recon pipeline run. Adding a file here without a role line below fails
 | `render-replay-lab-report.py` | Generated-view owner for `docs/replay-lab-report.html`: executes live replay controls, resolves source line references and hashes, renders the self-contained operator report, and fails `--check` on byte drift. |
 | `test-replay-lab.sh` | Isolated ATT-4845 scoring controls plus input-drift, oracle-isolation, exact-commit export, persisted state/evaluation, inconsistent-run, symlink, candidate-drift, and no-overwrite controls. |
 | `test-replay-lab-report.sh` | Structural report gate: generated-byte parity, section and navigation targets, in-repository references, copy targets, seven decision cards, required control diagnostics, no remote assets, and desktop/narrow/print responsive contracts. |
+| `improvement-cycle.py` | Repository-only improvement rail: validated fixed experiment contracts, comparable immutable attempt captures, retained comparison/review decisions, retry state, fail-closed acceptance, and generic deterministic proposal HTML rendering/checking. |
+| `test-improvement-cycle.sh` | Isolated controls for experiment identity enforcement, result consistency, symlink/overwrite/tamper rejection, retained compare/review lifecycle, retry attempts, generic rendering, state-first routing, and frozen baseline invariance. |
 
 Both check scripts run from `.githooks/pre-commit` (enable per clone:
 `git config core.hooksPath .githooks`; bypass once with `--no-verify`).

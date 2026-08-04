@@ -10,6 +10,8 @@
 | SPEC-01KZ5TE6QP704T8G2HJNXSP58W | Recon 0.19.0 Real Ticket Replay Laboratory | implemented | 2026-08-04 |
 | SPEC-01KZ63VTJ3DK28E7N5Q1F9F6N8 | Recon 0.20.0 Offline-Valid Replay Verification | implemented | 2026-08-04 |
 | SPEC-01KZ66V9HFAM8RASGZ4ZYZQEMT | Recon 0.21.0 Decision Closure Triage | implemented | 2026-08-04 |
+| SPEC-01KZ69A6YY6Z5MTW88XP815WJ7 | Persistent Improvement Loop | implemented | 2026-08-04 |
+| SPEC-01KZ6BVHVD97DS1GXK3XZMB1S7 | Persistent Improvement Loop Hardening | implemented | 2026-08-04 |
 | SPEC-01KZ6GYNQQXY7EQEDC4M4JFP88 | Recon 0.22.0 Normative Requirement Closure | implemented | 2026-08-04 |
 
 <!-- GENERATED:decree-graph — do not edit below this line -->

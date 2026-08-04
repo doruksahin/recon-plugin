@@ -1,0 +1,18 @@
+{
+  "attempt": 2,
+  "comparison_rubric": {
+    "id": "requirement-closure-comparison-v1",
+    "path": "docs/improvement-proposals/0.22.0/requirement-closure-coverage/comparison-rubric.yaml",
+    "sha256": "fc8bb60c95f51b1232662d13ddc9ca72a4452905ba66751def02813a5cc96c0a"
+  },
+  "contract_sha256": "90928045e2dd12fa81032dd419902dcfaa0fa8a6bc4d3c5412fdf1b859a57dbe",
+  "evidence_id": "att-4845-requirement-closure-attempt-2-run-3",
+  "files": {
+    "evaluation/result.json": "6bae2389d46f4113904c0bc948f8e2202242e5effa38fe803b9ea753ec1448b7",
+    "evaluation/score.txt": "a48ba0b2021b2d1ba904053e7d8af5de9e34e090aacf73a42fcbc7e8e78cfc97",
+    "receipt.json": "ca965dc652b2f85a4498da37dd66a93847ab3bcf6da1683fc12c6154b1a15e17",
+    "submission/triage.yaml": "76595fb559e9ebd794a2ed8186616983e69b1878c7e822fbca11195eb22b55a6"
+  },
+  "role": "candidate",
+  "schema_version": 2
+}

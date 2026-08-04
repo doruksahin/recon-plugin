@@ -1,0 +1,25 @@
+{
+  "case_id": "att-4845-pre-comment",
+  "repository": {
+    "commit": "fa6f2234128fee6a357e8086da385cc11794eb76",
+    "name": "AdCreative-Frontend-V2"
+  },
+  "schema_version": 2,
+  "skill": {
+    "path": "skill/recon-triage/SKILL.md",
+    "sha256": "002aa03b87ea4372e87f0efdd360951da91bb8b5c7b9cc50b8a4bbe52aa1852e",
+    "source_commit": "07b8d790ec699dd8e68fbe138c13e7736a04bf79",
+    "source_dirty": true
+  },
+  "submission": "submission/triage.yaml",
+  "ticket": "ATT-4845",
+  "ticket_sha256": "6e073fc4fb282f49a671f3518ee6c2917893539dac530f9e93cdc9abfccf1d32",
+  "verifier": {
+    "command": "python3 verifier/verify-submission.py",
+    "files": {
+      "verifier/replay-owner-identities.json": "167f49b8c0586d12a9b2c0a25aeda47a46fac57eee30095c89dd84b917d8adc0",
+      "verifier/triage-tools.py": "69b7f3984206d377e77a2f07c1f777d756f569c6277a42051e7aae9d2714a81a",
+      "verifier/verify-submission.py": "a18582415d9075d18294ed6d852d7ec50f5b54d7f5053634e4874e7e0da97e99"
+    }
+  }
+}

@@ -20,6 +20,11 @@ comparing, or explaining a frozen ticket run—read
 and follow its fresh-context handoff boundary. This skill is repository-local
 evaluation guidance; it is intentionally not part of the shipped plugin.
 
+For a plugin-improvement or improvement-resume request, start with
+[`evals/skills/recon-improvement-loop/SKILL.md`](evals/skills/recon-improvement-loop/SKILL.md).
+It derives the durable improvement state from retained evidence before any
+interpretation; it is repository-local and never ships in the Recon plugin.
+
 The architectural decision is
 `ADR-01KZ0ZK4WYVWRY0WJM2CZ7ZS8C` under `decree/adr/architecture/`.
 

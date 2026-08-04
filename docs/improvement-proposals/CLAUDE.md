@@ -25,8 +25,8 @@ grow into a design doc — full designs graduate to `../plans/` (see lifecycle b
 
 1. **Reserve a future target version first.** Use an explicit SemVer directory such
    as `0.16.0`; never write a proposal directly under this directory or under an
-   already released cohort. New intake after v0.15.0 starts at `0.16.0` or a later
-   explicitly planned release. Create `<version>/README.md` from the cohort template
+   already released cohort. New intake starts after the latest released or already
+   reserved cohort. Create `<version>/README.md` from the cohort template
    when the version directory does not yet exist.
 2. Pick a kebab-case slug that names the *change*, not the complaint
    (`derive-disposition`, not `disposition-bug`). No numeric prefixes — the cohort
