@@ -7,5 +7,9 @@
 | SPEC-01KZ12BKG5B1E66ZV6R820JPQB | Recon 0.14.0 Local Host Hardening | implemented | 2026-08-02 |
 | SPEC-01KZ14Q6A2WB6J6TTX3XWQC5QJ | Recon 0.15.0 Verified Handoff Chain | implemented | 2026-08-02 |
 | SPEC-01KZ1BD2V986MYTYD6PCB02BGX | Recon 0.16.0 Recorded Repro Runtime | implemented | 2026-08-02 |
+| SPEC-01KZ5TE6QP704T8G2HJNXSP58W | Recon 0.19.0 Real Ticket Replay Laboratory | implemented | 2026-08-04 |
+| SPEC-01KZ63VTJ3DK28E7N5Q1F9F6N8 | Recon 0.20.0 Offline-Valid Replay Verification | implemented | 2026-08-04 |
+| SPEC-01KZ66V9HFAM8RASGZ4ZYZQEMT | Recon 0.21.0 Decision Closure Triage | implemented | 2026-08-04 |
+| SPEC-01KZ6GYNQQXY7EQEDC4M4JFP88 | Recon 0.22.0 Normative Requirement Closure | implemented | 2026-08-04 |
 
 <!-- GENERATED:decree-graph — do not edit below this line -->

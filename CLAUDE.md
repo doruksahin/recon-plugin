@@ -17,6 +17,9 @@ A multi-harness **agent plugin** shipping one workflow, `recon` — a determinis
 - `recon/scripts/` — the mechanical rails the skills call (workspace lifecycle, verdict/comment rails, routing, Jira delivery, workspace lint, doctor)
 - `recon/docs/pipeline.md` — the machine spec: state machine, invariants, artifact registry mirror, trigger tables, the binding Change protocol
 - `recon/docs/registry.yaml` — THE artifact registry (single source; `lint-workspace.sh` executes it)
+- `evals/` — repository-only real-ticket replay laboratory: sanitized frozen inputs, separately disclosed oracles, and scorer controls; nothing here ships in the plugin
+- `evals/skills/recon-replay-lab/` — repository-local LLM operator workflow for prepare → fresh-context handoff → resume → retained evaluation; it routes the lab but never owns parsing, scoring, or state
+- `docs/replay-lab-report.html` — generated, drift-checked visual operator report for the laboratory; owned by `tools/render-replay-lab-report.py`, never hand-edited
 - `tools/` — repo tooling: link check, coherence check, commit-msg check, commitizen wrapper, release
 - `docs/agent-behavior/` — binding outcome-first operating contract for agent proposals, skill iteration, evidence, and live demonstrations
 
@@ -71,6 +74,11 @@ bash tools/check-links.sh
 # Check that mirrored facts still agree with their owner files (also runs as pre-commit)
 bash tools/check-coherence.sh
 
+# Validate, prepare, hand off, resume, and score a frozen real-ticket replay
+python3 tools/replay-ticket.py validate evals/cases/att-4845-pre-comment
+bash tools/test-replay-lab.sh
+python3 tools/render-replay-lab-report.py --check
+
 # Generate native Codex packaging, or fail if checked-in outputs drift
 python3 tools/generate-adapters.py
 python3 tools/generate-adapters.py --check
@@ -107,3 +115,8 @@ Control flow: `recon-triage` runs six blocker checks → `READY` auto-chains int
 Invariants worth internalizing before touching any skill or script (full list in pipeline.md): step 0 (`fresh-workspace.sh`) runs exactly once per run and archives prior runs into `runs/` which nothing may ever read; recon's own Jira comments carry a `~recon-triage~` marker and are excluded from evidence; no mutating Jira call happens without explicit in-session approval; attachments in the `recon-*-<TICKET>.*` namespace are replaced (delete-then-upload, always before the comment posts), never accumulated; when governance is `none`, decree vocabulary is banned from every artifact and lint greps for leakage.
 
 Skill SKILL.md files are authoritative over pipeline.md for their own stage; on conflict, SKILL.md wins — but keep them consistent in the same commit.
+
+For repository-only replay work, route start, resume, state, evaluation,
+comparison, and explanation requests through
+`evals/skills/recon-replay-lab/SKILL.md`. It is not a runtime stage and must not
+be moved under `recon/skills/` or added to plugin manifests.

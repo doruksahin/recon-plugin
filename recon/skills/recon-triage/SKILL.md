@@ -30,7 +30,7 @@ rule. Later rails still detect their current host and surface independently.
 1. **READ-ONLY.** You MUST NOT write code, create branches, or modify any repo. The only writes allowed are artifacts under `$RECON_ROOT/<TICKET-ID>/`, plus delivery files staged in the temp dir on the posting path (the `package-artifacts.sh` zip and the renamed dossier copy — step 4's posting path).
 2. **NEVER post to Jira without explicit approval in this session.** You draft comments and stage attachments; the user approves via the host-native user interaction (see hosts.md) before any mutating Jira call (comment create/edit, attachment delete/upload). NEVER skip this, even if the user previously approved a different comment.
 3. **Every checklist answer MUST carry evidence** — a command output, a `file:line`, an HTTP status, or an exact quote from the ticket. A check without evidence is not done.
-4. **The verdict MUST be the `triage.yaml` schema below**, written to `$RECON_ROOT/<TICKET-ID>/triage/triage.yaml`, and MUST pass `verify-triage.sh` — the rail re-derives the disposition from the six checks and verifies every quoted evidence entry verbatim against `ticket.json`. On failure fix the checks or the evidence, never the verdict. Prose around it is ≤10 lines. The shared comment rail renders either this stage's blocker format or an approved Discovery READY index; it never accepts hand-written comment bytes.
+4. **The verdict MUST be the `triage.yaml` schema below**, written to `$RECON_ROOT/<TICKET-ID>/triage/triage.yaml`, and MUST pass `verify-triage.sh` — the rail verifies the normative coverage attestations, each decision's classification and closure surface, atomic blocker joins, the derived disposition, and every quoted evidence entry verbatim against `ticket.json`. On failure fix the audit, checks, or evidence, never the verdict. Prose around it is ≤10 lines. The shared comment rail renders either this stage's blocker format or an approved Discovery READY index; it never accepts hand-written comment bytes.
 5. **On READY, auto-chain:** immediately invoke the `recon:recon-discovery` skill (host-native skill invocation; see hosts.md) in the same run — unless the user said "triage only".
 6. **Triage decides; it never plans.** NEVER include implementation direction, candidate code changes, or governance decisions ("no SPEC needed") in triage output. That authority belongs to later stages.
 7. **Human-facing questions MUST be concrete.** Every question must be answerable without reading code. The concreteness pack — numbered repro steps from a stated start state (e.g. the project's mock-mode dev command, which page), concrete entity names from the running system ("Collection3", not "a collection"), the before and after state, and options phrased as user-observable outcomes ("the tab appears and becomes selected"), never code outcomes ("activeTab is set") — goes in the dossier question packs (`blockers[].detail` in `triage.yaml`); the comment's `ask` line stays ONE rule-7-clean sentence ending in "?". Internal identifiers (service/method/prop names) are BANNED from all human-facing text, `ask` and `detail` alike. If a question concerns observable UI behavior, invoke the `recon:recon-repro` skill to attach visual evidence BEFORE presenting the draft.
@@ -68,7 +68,80 @@ curl -sS -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
 
 Use API v2 (plain-text bodies). Read description AND all comments — blockers often live in comments. Before evaluating anything, partition the comments: any comment whose body contains `recon-triage` is recon's own output and is excluded from every check (rule 9); only human comments are evidence.
 
-### 2. Run the six checks (each with mechanical evaluation)
+### 2. Audit decision closure, then run the six checks
+
+Before setting any check, make a requirement-closure sweep of the ticket and
+accessible repository evidence. Inventory **every normative requirement**: any
+acceptance criterion, required or forbidden outcome, stated default, explicit
+mapping, threshold, ordering rule, and required configuration or override
+behavior. Informational rationale is not normative. Split compound prose into
+atomic obligations; repeat the exact ticket quote when one sentence creates
+multiple independently decidable obligations. Each audit item must state one
+concrete input → observable-result contract.
+
+For the complete inventory, deliberately check these four generic closure
+surfaces and retain each applicable result as its own audit item:
+
+- **Identity and mapping:** when a normative result varies by context, retain
+  one separate `identity_mapping` audit item for **every** relevant context
+  identity. Enumerate named contexts plus every applicable omitted, default,
+  and alias case; each item names exactly one context and maps it to exactly one
+  selected observable result. Never infer an omitted/default result or alias
+  equivalence from neighboring prose. If the ticket and cited repository
+  evidence do not select the result, write `UNRESOLVED`, classify that item
+  OPEN, and keep it distinct from every other context's decision.
+- **Ownership and update path:** every configurable, tunable, centrally
+  defined, or no-code-change value has one authoritative owner/source plus the
+  delivery point or mechanism that updates the runtime value. Naming a central
+  mapping without its update path does not close the requirement.
+- **Threshold completeness:** every quantity or category boundary has its
+  units, comparison rule, inclusive/exclusive edges, and behavior below, at,
+  and above the boundary. Words such as “high”, “broad”, “enough”, or “small”
+  are not a testable threshold without those bounds.
+- **Ordering completeness:** every sequence, precedence, insertion/removal,
+  fallback, or tie has a total rule for before/after behavior, equal-priority
+  cases, and omitted items. A listed set does not imply its execution order.
+
+Also retain a `direct_obligation` item when a normative requirement is closed
+without depending on one of those four surfaces. Do not merge distinct
+unresolved surfaces into one item. An unknown context mapping and an unknown
+configuration owner are separate decisions and, when blocking, separate
+blockers even if the same ticket sentence prompted both.
+
+Classify every atomic audit item exactly once:
+
+| Classification | Schema status | Use when | Required evidence |
+| --- | --- | --- | --- |
+| closed | `CLOSED_BY_TICKET` | The ticket selects one concrete observable outcome. | Exact ticket quote. |
+| open | `OPEN` | An engineer would have to guess an observable product, design, backend, ownership, threshold, mapping, or ordering outcome. | Exact ticket quote or repository evidence. |
+| optional | `OPTIONAL_OUT_OF_SCOPE` | The ticket explicitly calls it optional and required behavior works without deciding it. | Exact ticket quote. |
+| implementation freedom | `IMPLEMENTATION_FREEDOM` | Multiple internal implementations or explicitly permitted visible alternatives still satisfy a fixed observable result. | Exact ticket/repository evidence. |
+| repository-resolvable | `CLOSED_BY_REPOSITORY` | Existing code, API, configuration, or documented behavior resolves it. Never assume resolution from a likely convention, filename, or search result. | At least one exact `kind: file` entry with `path`, `line`, and complete source line. |
+
+An OPEN item is blocking only when an engineer cannot implement **and test one
+correct observable result** without an external decision. A non-blocking OPEN
+item may be retained, but it cannot create a blocker. Do not convert an
+explicitly optional enhancement or a valid implementation choice into a
+product blocker.
+
+Every blocking OPEN candidate has one stable `DEC-N` ID and exactly one
+independently answerable `BLK-N` blocker; no blocker can combine decisions.
+Use `product_decision_open`, `design_dependency`, or `backend_dependency` as
+the candidate's `check`. The three triage checks are mechanically derived from
+the blocking OPEN candidates, so set no check until this audit is complete.
+Set every `requirement_coverage` field to `true` only after the full inventory
+and all four generic surfaces have been checked. Set
+`context_mapping_exhaustive` only after every context-varying requirement has
+one item per relevant named, omitted, default, and alias identity. The verifier
+rejects a missing, partial, or false coverage record.
+
+For repository evidence, run from the target repository and retain a path
+relative to its root, an exact positive line number, and the exact source line.
+Before verification, set `RECON_SOURCE_ROOT` to that root; otherwise the rail
+uses the current working directory. This rail verifies the cited regular file
+and line, not whether the model discovered every possible candidate.
+
+Then evaluate the remaining checks:
 
 | # | Check | How to evaluate |
 |---|---|---|
@@ -102,6 +175,8 @@ status_drift: "<note or omit>"
 stale_blocker_note: "<note or omit>"
 blockers: []          # each entry (exact two-space indent steps — the rails parse them):
 #  - title: "Updated design"            # ≤5 words, names the blocker
+#    id: BLK-1
+#    decision_id: DEC-1
 #    owner: osman                       # handle as written on the ticket
 #    owner_account_id: "712020:…"       # resolved on the posting path (step 1), never guessed
 #    ask: "deliver the updated design, or should I build to the attached PNG?"
@@ -119,15 +194,60 @@ blockers: []          # each entry (exact two-space indent steps — the rails p
 #          text: "design link → HTTP 403 (anonymous, this run)"
 #      repro_ref: repro/exhibits/…      # when recon-repro ran
 conflicts: []         # [{ticket, pr, state, surface, note}]
+requirement_coverage: # mandatory audit attestations; all must be true
+  normative_requirements: true
+  identity_mapping: true
+  context_mapping_exhaustive: true
+  ownership_update_path: true
+  threshold_completeness: true
+  ordering_completeness: true
+decision_audit:        # mandatory; [] is valid only when no normative obligation exists
+#  - id: DEC-1
+#    requirement: "<exact observable obligation that prompted this audit>"
+#    requirement_source: description | summary | comment <id>
+#    surface: direct_obligation | identity_mapping | ownership_update_path | threshold_completeness | ordering_completeness
+#    context_kind: named | omitted | default | alias # identity_mapping only
+#    context_identity: "<exactly one relevant context identity>" # identity_mapping only
+#    observable_result: "<one selected visible result>" | UNRESOLVED # identity_mapping only
+#    status: OPEN | CLOSED_BY_TICKET | CLOSED_BY_REPOSITORY | OPTIONAL_OUT_OF_SCOPE | IMPLEMENTATION_FREEDOM
+#    check: product_decision_open | design_dependency | backend_dependency
+#    blocking: true | false
+#    blocker_id: BLK-1                # required only for blocking OPEN
+#    evidence:                        # non-empty, typed; quote/file shapes below
+#      - kind: quote
+#        text: "<exact ticket words>"
+#        source: description | summary | comment <id>
+#      - kind: file
+#        path: "relative/source-file.ts"
+#        line: 42
+#        text: "<exact complete source line>"
 evidence:             # one TYPED entry per claim above (same kinds as detail.evidence)
   - kind: git
     text: "git branch -a | grep -iE '<keywords>' → none"
 ```
 
-**The disposition is derived, not chosen.** Any of checks 2–5 failing (each failure's owner-question written as a blocker) → `BLOCKED`; otherwise check 1 `partial`/`false` → `NEEDS_INFO` (each ambiguity materialized as a blocker; owner = whoever can decide it, the `ask` IS the clarifying question); otherwise `READY`. Conflicts never block — they ride along as guardrails. BLOCKED and NEEDS_INFO require `blockers` non-empty (the posting path demands n ≥ 1); READY requires it empty. After writing the yaml, run the rail — it re-derives the disposition, validates the schema, and greps every `kind: quote` verbatim (whitespace/curly-quote normalized) against the human content of `ticket.json`:
+**The disposition is derived, not chosen.** The coverage record attests that
+every normative requirement and all four generic surfaces were audited. Every
+decision-audit entry retains one atomic closure item, its surface, the exact
+observable requirement that triggered it, and its human ticket source; the rail
+verifies that trace before it evaluates closure evidence. Identity/mapping
+items additionally retain exactly one context identity and one selected
+observable result; OPEN mappings use `UNRESOLVED`, and each distinct unresolved
+context remains its own decision/blocker pair. Blocking OPEN candidates
+mechanically set checks 3–5; any of checks 2–5 failing → `BLOCKED`.
+Otherwise check 1 `partial`/`false` → `NEEDS_INFO`; otherwise `READY`. Every
+resulting blocker must have one `BLK-N` / `DEC-N` pair, and CLOSED, OPTIONAL,
+and IMPLEMENTATION_FREEDOM items must never create one. Conflicts never block
+— they ride along as guardrails. BLOCKED and NEEDS_INFO require `blockers`
+non-empty (the posting path demands n ≥ 1); READY requires it empty. After
+writing the yaml, run the rail — it validates the requirement trace, audit
+schema and joins, re-derives the disposition, verifies file evidence where
+supplied, and greps every `kind: quote` verbatim (whitespace/curly-quote
+normalized) against the human content of `ticket.json`:
 
 ```bash
-bash "<skill base dir>/../../scripts/verify-triage.sh" <TICKET>
+RECON_SOURCE_ROOT="$(git rev-parse --show-toplevel)" \
+  bash "<skill base dir>/../../scripts/verify-triage.sh" <TICKET>
 ```
 
 Fix and re-run until it prints `verify: clean`. A disposition mismatch means the checks and the verdict disagree — fix the checks or write the missing blocker; never hand-edit the verdict to match.

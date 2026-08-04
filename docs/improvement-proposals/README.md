@@ -6,8 +6,8 @@ for. The path is the durable ID:
 
 Read [CLAUDE.md](CLAUDE.md) before adding or changing a record. In particular,
 new proposals must reserve a **future** SemVer cohort; do not add work to a
-released or historical version directory. The next new cohort after v0.17.0 is
-v0.18.0 or a later explicitly planned release.
+released or historical version directory. v0.19.0 is the active future cohort;
+unrelated new intake starts at v0.22.0 or a later explicitly planned release.
 
 ## Design basis
 
@@ -31,6 +31,9 @@ evidence needs semantic or visual interpretation.
 | [v0.16.0](0.16.0/README.md) | released | 1 | Recorded repro runtime and proof package |
 | v0.17.0 | released | 0 | Gate exchange records |
 | [v0.18.0](0.18.0/README.md) | in-progress | 1 | Approved READY delivery to Jira with dossier and evidence bundle |
+| [v0.19.0](0.19.0/README.md) | in-progress | 1 | Frozen real-ticket replay and distinct decision-coverage scoring |
+| [v0.20.0](0.20.0/README.md) | in-progress | 1 | Offline-valid prepared replay verification |
+| [v0.21.0](0.21.0/README.md) | in-progress | 1 | Generic evidence-backed decision closure |
 
 ## v0.15 verified company chain
 

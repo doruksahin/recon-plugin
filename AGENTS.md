@@ -14,6 +14,12 @@ improvement until a rerunnable demonstration proves it. Apply it without waiting
 for the user to repeat these expectations. Follow its progressive-disclosure
 router and load only the principle, playbook, or example relevant to the work.
 
+For repository replay-laboratory work—starting, resuming, checking, evaluating,
+comparing, or explaining a frozen ticket run—read
+[`evals/skills/recon-replay-lab/SKILL.md`](evals/skills/recon-replay-lab/SKILL.md)
+and follow its fresh-context handoff boundary. This skill is repository-local
+evaluation guidance; it is intentionally not part of the shipped plugin.
+
 The architectural decision is
 `ADR-01KZ0ZK4WYVWRY0WJM2CZ7ZS8C` under `decree/adr/architecture/`.
 

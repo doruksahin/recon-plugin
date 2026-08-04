@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "requirement-closure-ready-control",
+  "task_class": "fully-specified-capability-change",
+  "source": {
+    "ticket": "RCTRL-1",
+    "snapshot_at": "2026-08-04T00:00:00Z",
+    "cutoff": "Frozen fully specified negative-control ticket",
+    "human_comments": 0
+  },
+  "input": {
+    "ticket": "input/ticket.json",
+    "sha256": "599d0bc15e434d84c3f60554ceadf65c96a92eb5491f6a8d7debd6e890bd569f"
+  },
+  "repository": {
+    "name": "AdCreative-Frontend-V2",
+    "commit": "fa6f2234128fee6a357e8086da385cc11794eb76"
+  },
+  "oracle": "oracle/decisions.json"
+}
