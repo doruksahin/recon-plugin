@@ -1,13 +1,19 @@
 # Recon pipeline — versioned improvement proposals
 
-Improvement records are grouped by the version they were proposed or shipped
-for. The path is the durable ID:
+Improvement records are grouped by the planning version originally reserved for
+them. The path is the durable ID:
 `docs/improvement-proposals/<target-version>/<slug>/README.md`.
+
+The directory name is evidence identity, not published-version history. When
+multiple unreleased cohorts land together, the release rail derives the actual
+next SemVer from Git and the records keep their original paths. Cohorts v0.19.0
+through v0.22.0 are therefore consolidated into the v0.19.0 release candidate;
+v0.20.0, v0.21.0, and v0.22.0 are not skipped releases or upgrade steps.
 
 Read [CLAUDE.md](CLAUDE.md) before adding or changing a record. In particular,
 new proposals must reserve a **future** SemVer cohort; do not add work to a
-released or historical version directory. v0.19.0 is the active future cohort;
-unrelated new intake starts at v0.21.0 or a later explicitly planned release.
+released, consolidated, or historical version directory. Unrelated new intake
+starts at v0.23.0 or a later explicitly planned cohort.
 
 ## Design basis
 
@@ -20,7 +26,7 @@ evidence needs semantic or visual interpretation.
 
 ## Cohort ledger
 
-| Target version | Cohort state | Records | Outcome |
+| Planning cohort | Cohort state | Records | Outcome |
 | --- | --- | ---: | --- |
 | [v0.9.0](0.9.0/README.md) | released | 4 | Initial deterministic rails and document coherence |
 | [v0.10.0](0.10.0/README.md) | released | 2 | Governance handoff UX and live doctor |
@@ -30,11 +36,11 @@ evidence needs semantic or visual interpretation.
 | [v0.15.0](0.15.0/README.md) | released | 5 | Verified company handoff chain |
 | [v0.16.0](0.16.0/README.md) | released | 1 | Recorded repro runtime and proof package |
 | v0.17.0 | released | 0 | Gate exchange records |
-| [v0.18.0](0.18.0/README.md) | in-progress | 1 | Approved READY delivery to Jira with dossier and evidence bundle |
-| [v0.19.0](0.19.0/README.md) | in-progress | 1 | Frozen real-ticket replay and distinct decision-coverage scoring |
-| [v0.20.0](0.20.0/README.md) | in-progress | 1 | Offline-valid prepared replay verification |
-| [v0.21.0](0.21.0/README.md) | in-progress | 1 | Generic evidence-backed decision closure |
-| [v0.22.0](0.22.0/README.md) | in-progress | 1 | Durable requirement-closure improvement loop |
+| [v0.18.0](0.18.0/README.md) | released | 1 | Approved READY delivery to Jira with dossier and evidence bundle |
+| [v0.19.0](0.19.0/README.md) | release candidate (v0.19.0) | 1 | Frozen real-ticket replay and distinct decision-coverage scoring |
+| [v0.20.0](0.20.0/README.md) | release candidate (v0.19.0) | 1 | Offline-valid prepared replay verification |
+| [v0.21.0](0.21.0/README.md) | release candidate (v0.19.0) | 1 | Generic evidence-backed decision closure |
+| [v0.22.0](0.22.0/README.md) | release candidate (v0.19.0) | 1 | Durable requirement-closure improvement loop |
 
 ## v0.15 verified company chain
 

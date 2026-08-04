@@ -2,7 +2,8 @@
 
 > Retain and verify generic observable-decision closure in triage.
 
-- **Status:** in-progress
+- **Status:** release candidate (v0.19.0)
+- **Release candidate:** [PR #2](https://github.com/doruksahin/recon-plugin/pull/2), merged as [`321514d`](https://github.com/doruksahin/recon-plugin/commit/321514df18e487c64ef17cbcaea974c99722e89c)
 - **Priority:** P1
 - **Theme:** determinism rail
 - **Origin:** ATT-4845 replay, 2026-08-04 — immutable run

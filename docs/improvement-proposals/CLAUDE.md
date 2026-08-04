@@ -1,9 +1,14 @@
 # docs/improvement-proposals/ — how this folder works
 
 Versioned improvement proposals for the recon pipeline. A proposal is a release
-candidate record, not an unscoped backlog note: one target version = one cohort,
-and one idea = one folder inside that cohort. This file tells a future agent or
-human how to read, add, and maintain those records.
+candidate record, not an unscoped backlog note: one planning version = one
+durable cohort identity, and one idea = one folder inside that cohort. The
+planning version is not a promise that a plugin tag with the same number will
+exist. When several unreleased cohorts land together, the release rail may
+consolidate them into the next SemVer derived from Git history. Preserve the
+cohort paths and record that release resolution instead of renaming evidence.
+This file tells a future agent or human how to read, add, and maintain those
+records.
 
 ## Progressive disclosure — read in this order
 
@@ -45,8 +50,9 @@ grow into a design doc — full designs graduate to `../plans/` (see lifecycle b
 
 > Release-scoped records proposed for v<target-version>.
 
-- **Cohort status:** proposed | in-progress | released
+- **Cohort status:** proposed | in-progress | release candidate (vX.Y.Z) | released
 - **Opened:** YYYY-MM-DD
+- **Release resolution:** pending | standalone as vX.Y.Z | consolidated into vX.Y.Z
 
 | Proposal | Status | Prio | One-liner |
 | --- | --- | --- | --- |
@@ -60,7 +66,7 @@ grow into a design doc — full designs graduate to `../plans/` (see lifecycle b
 
 > <One-liner, ≤100 chars, identical to the index row.>
 
-- **Status:** proposed | accepted | in-progress | shipped (vX.Y.Z) | rejected (why)
+- **Status:** proposed | accepted | in-progress | release candidate (vX.Y.Z) | shipped (vX.Y.Z) | rejected (why)
 - **Priority:** P1 | P2 | P3
 - **Theme:** determinism rail | operational robustness
 - **Origin:** <run/ticket + date + what actually happened>
@@ -98,9 +104,11 @@ new schema shape, failing lint line. Show, don't describe.>
   row in the same version cohort. Update the root ledger only if that changes the
   cohort's summary.
 - **Lifecycle:** `proposed` → (discussion) → `accepted` → implementation plan in
-  `../plans/` when non-trivial → `in-progress` → `shipped (vX.Y.Z)`. Shipped and
-  rejected folders stay — they're the record of what was tried and why. When an idea
-  ships, add a `Shipped:` line linking the commit/plan.
+  `../plans/` when non-trivial → `in-progress` → `release candidate (vX.Y.Z)` →
+  `shipped (vX.Y.Z)`. Shipped and rejected folders stay — they're the record of
+  what was tried and why. A release candidate names the actual SemVer selected by
+  the release preview; it does not claim that the tag exists. When an idea ships,
+  add a `Shipped:` line linking the commit/plan.
 - **This folder is docs-only.** Creating or editing proposals never bumps the plugin
   version and never touches `recon/` — the change protocol in pipeline.md applies
   only once an idea moves to implementation.
@@ -108,6 +116,12 @@ new schema shape, failing lint line. Show, don't describe.>
   target version to make a later release look fuller. If scope changes materially,
   preserve the original record and open a successor under the newly proposed version
   with a link to it.
+- **A release may consolidate cohorts without renaming them.** Record the actual
+  release candidate or shipped version in the root ledger, cohort index, and idea
+  status. A cohort directory remains its immutable planning identity; it is never
+  an upgrade step and does not prove that a matching plugin version was published.
+  New cohorts start with `Release resolution: pending`; replace it only after the
+  release preview derives an actual version.
 - **Proposed files get italics, not backticks.** `tools/check-links.sh` resolves
   every backticked path/script name against the working tree, so a backticked
   name that doesn't exist yet fails the pre-commit hook. Write not-yet-existing
