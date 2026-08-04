@@ -2,7 +2,8 @@
 
 > Publish approved READY dossiers and evidence bundles to Jira
 
-- **Status:** in-progress
+- **Status:** shipped (v0.18.0)
+- **Shipped:** [`cd25ff7`](https://github.com/doruksahin/recon-plugin/commit/cd25ff76d033dbf4156483ebfd49bd0e0644b233) via v0.18.0
 - **Priority:** P1
 - **Theme:** operational robustness
 - **Origin:** ATT-5047 Recon run on 2 Aug 2026 reached READY, completed Discovery,

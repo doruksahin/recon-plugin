@@ -1,10 +1,11 @@
 # v0.22.0 proposal cohort
 
-> Release-scoped records proposed for v0.22.0.
+> Planning cohort consolidated into the v0.19.0 release candidate.
 
-- **Cohort status:** in-progress
+- **Cohort status:** release candidate (v0.19.0)
 - **Opened:** 2026-08-04
+- **Release resolution:** consolidated into v0.19.0
 
 | Proposal | Status | Prio | One-liner |
 | --- | --- | --- | --- |
-| [requirement-closure-coverage](requirement-closure-coverage/README.md) | accepted | P1 | Retain and resume bounded requirement-closure evidence by durable ID |
+| [requirement-closure-coverage](requirement-closure-coverage/README.md) | release candidate (v0.19.0) | P1 | Retain and resume bounded requirement-closure evidence by durable ID |
