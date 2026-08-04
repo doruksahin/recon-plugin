@@ -8,7 +8,7 @@ STATE_JSON="$(python3 "$ROOT/tools/improvement-cycle.py" state \
   "$ROOT/docs/improvement-proposals/0.22.0/requirement-closure-coverage" --json)"
 CURRENT_STATE="$(python3 -c 'import json, sys; print(json.load(sys.stdin)["state"])' <<<"$STATE_JSON")"
 NEXT_ACTION="$(python3 -c 'import json, sys; print(json.load(sys.stdin)["next_action"])' <<<"$STATE_JSON")"
-for text in 'Shipped plugin' 'Replay laboratory' 'Improvement loop' 'ATT-4845' 'RCTRL-1' 'Reference ledger'; do
+for text in 'Shipped plugin' 'Private version review' 'Replay laboratory' 'Improvement loop' 'COLLECTING' 'SYNTHESIZED' 'ATT-4845' 'RCTRL-1' 'Reference ledger' 'evals/version-reviews/schema.yaml' 'tools/version-review.py'; do
   rg -q "$text" "$MAP" || { echo "missing map content: $text" >&2; exit 1; }
 done
 rg -Fq "Now: $CURRENT_STATE" "$MAP" || { echo "missing current map state: $CURRENT_STATE" >&2; exit 1; }

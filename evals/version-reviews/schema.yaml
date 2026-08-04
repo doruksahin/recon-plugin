@@ -1,0 +1,120 @@
+schema_version: 1
+
+lifecycle:
+  states:
+    - COLLECTING
+    - REVIEWING
+    - SYNTHESIZED
+    - CLOSED
+  transitions:
+    COLLECTING:
+      - REVIEWING
+    REVIEWING:
+      - SYNTHESIZED
+    SYNTHESIZED:
+      - CLOSED
+    CLOSED: []
+
+capture_paths:
+  required:
+    - meta.yaml
+    - triage/triage.yaml
+    - report/dossier.html
+  optional:
+    - discovery/discovery.md
+    - discovery/spec-draft.md
+    - discovery/gate.yaml
+    - route/routing.yaml
+    - repro/repro.md
+    - state/state.yaml
+    - state/canvas.html
+  excluded:
+    - runs/
+    - history.ndjson
+    - triage/ticket.json
+    - triage/aux-*
+    - triage/jira/
+
+enums:
+  review_overall:
+    - AGREE
+    - PARTIAL_AGREEMENT
+    - DISAGREE
+  finding_category:
+    - correct_result
+    - missed_requirement
+    - false_blocker
+    - wrong_classification
+    - wrong_owner
+    - weak_evidence
+    - non_atomic_blocker
+    - incorrect_code_mapping
+    - report_clarity
+    - workflow_friction
+  severity:
+    - low
+    - medium
+    - high
+    - critical
+  consensus_decision:
+    - ACCEPT
+    - CHANGES_NEEDED
+    - DISPUTED
+  proposed_action:
+    - OPEN_IMPROVEMENT_PROPOSAL
+    - MONITOR
+    - REJECT
+  theme_decision:
+    - PROPOSE
+    - MONITOR
+    - REJECT
+
+documents:
+  review:
+    required:
+      - schema_version
+      - review_id
+      - reviewer
+      - plugin_version
+      - ticket
+      - run_id
+      - report_sha256
+      - reviewed_at
+      - overall
+      - findings
+  consensus:
+    required:
+      - schema_version
+      - plugin_version
+      - ticket
+      - run_id
+      - report_sha256
+      - participants
+      - decision
+      - accepted_findings
+      - disputed_findings
+      - correct_observations
+  findings:
+    required:
+      - schema_version
+      - plugin_version
+      - findings
+  themes:
+    required:
+      - schema_version
+      - plugin_version
+      - themes
+  decisions:
+    required:
+      - schema_version
+      - plugin_version
+      - decisions
+  closure:
+    required:
+      - schema_version
+      - plugin_version
+      - status
+      - closed_at
+      - counts
+      - accepted_improvements
+      - remaining_nonclaims

@@ -25,8 +25,10 @@ recon pipeline run. Adding a file here without a role line below fails
 | `test-replay-lab-report.sh` | Structural report gate: generated-byte parity, section and navigation targets, in-repository references, copy targets, seven decision cards, required control diagnostics, no remote assets, and desktop/narrow/print responsive contracts. |
 | `improvement-cycle.py` | Repository-only improvement rail: validated fixed experiment contracts, comparable immutable attempt captures, retained comparison/review decisions, retry state, fail-closed acceptance, and generic deterministic proposal HTML rendering/checking. |
 | `test-improvement-cycle.sh` | Isolated controls for experiment identity enforcement, result consistency, symlink/overwrite/tamper rejection, retained compare/review lifecycle, retry attempts, generic rendering, state-first routing, and frozen baseline invariance. |
+| `version-review.py` | Repository-only external-root team-review rail: pins one published plugin version, captures immutable minimal dossier evidence, validates report-bound reviews/consensus/cross-ticket synthesis, and closes with proposal links without Jira mutation. |
+| `test-version-review.sh` | Isolated complete-lifecycle and negative controls for version-review identity, privacy allowlisting, hashes, joins, symlink/overlap rejection, no-overwrite, derived state, and exception cleanup. |
 | `render-system-map.py` | Generated-view owner for `docs/system-map.html`: resolves source references and hashes, derives current improvement state, and fails `--check` on any byte drift. |
-| `test-system-map.sh` | Structural and drift controls for the system map: required three-layer explanation, public examples, oracle non-leakage, and generated-byte parity. |
+| `test-system-map.sh` | Structural and drift controls for the system map: required four-flow explanation, public examples, version-review references, oracle non-leakage, and generated-byte parity. |
 | `pre-commit-check.sh` | Single fail-closed local commit gate: staged-diff integrity, local links, coherence plus every universal control, and Decree lint. Invoked only by `.githooks/pre-commit`. |
 | `test-pre-commit-check.sh` | Isolated temporary-index control that proves the commit gate rejects staged whitespace without touching the caller's worktree or index. |
 

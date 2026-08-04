@@ -1,0 +1,18 @@
+schema_version: 1
+review_id: teammate-a
+reviewer: Teammate A
+plugin_version: 0.19.0
+ticket: ATT-1234
+run_id: run-001
+report_sha256: 0000000000000000000000000000000000000000000000000000000000000000
+reviewed_at: '2026-08-05T12:00:00Z'
+overall: PARTIAL_AGREEMENT
+findings:
+  - id: REV-1
+    category: missed_requirement
+    artifact_ref: DEC-3
+    observed: The default context was classified as closed.
+    expected: The unspecified default should remain open.
+    impact: An implementation could choose inconsistent behavior.
+    severity: high
+    evidence: Acceptance criterion 4 leaves the default unspecified.

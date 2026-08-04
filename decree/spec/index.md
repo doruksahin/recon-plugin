@@ -15,5 +15,6 @@
 | SPEC-01KZ6FJX3SGZVDAWA2M64H1E94 | Recon System Map | implemented | 2026-08-04 |
 | SPEC-01KZ6G03YXFQTB46GFQ4R5X9VY | Fail-Closed Commit Guardrail | implemented | 2026-08-04 |
 | SPEC-01KZ6GYNQQXY7EQEDC4M4JFP88 | Recon 0.22.0 Normative Requirement Closure | implemented | 2026-08-04 |
+| SPEC-01KZ7E7FXK0T0W83PKGWPMC0ZW | Recon Version-Scoped Team Review Laboratory | implemented | 2026-08-05 |
 
 <!-- GENERATED:decree-graph — do not edit below this line -->

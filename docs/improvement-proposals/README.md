@@ -41,6 +41,7 @@ evidence needs semantic or visual interpretation.
 | [v0.20.0](0.20.0/README.md) | released (v0.19.0) | 1 | Offline-valid prepared replay verification |
 | [v0.21.0](0.21.0/README.md) | released (v0.19.0) | 1 | Generic evidence-backed decision closure |
 | [v0.22.0](0.22.0/README.md) | released (v0.19.0) | 1 | Durable requirement-closure improvement loop |
+| [v0.23.0](0.23.0/README.md) | in progress | 1 | Version-scoped private team-review laboratory |
 
 ## v0.15 verified company chain
 

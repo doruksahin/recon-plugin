@@ -10,6 +10,10 @@ history—as state.
   [replay-lab skill](skills/recon-replay-lab/SKILL.md).
 - Capturing evidence, comparing attempts, or recording an improvement decision:
   read the [improvement-loop skill](skills/recon-improvement-loop/SKILL.md).
+- Collecting private dossiers, teammate reviews, consensus, or cross-ticket
+  themes for one published plugin version: read the
+  [version-review skill](skills/recon-version-review/SKILL.md) and the linked
+  [external-tree contract](version-reviews/README.md).
 - For the full model, commands, cases, and claim boundary, read the
   [lab README](README.md) or the generated
   [operator report](../docs/replay-lab-report.html).
@@ -37,6 +41,13 @@ decisions. It is valid evidence, not something to repair or delete. Capture and
 review failed outcomes so the next attempt is based on observed behavior rather
 than cherry-picked successes.
 
+**Team-review cycle.** Initialize `versions/v0.19.0/` in a private external
+root, capture one immutable minimal dossier per ticket/run, then collect
+reviewer YAML against each retained report hash. The
+[schema](version-reviews/schema.yaml) owns fields and enums; the
+[rail](../tools/version-review.py) owns identities, indexes, hashes, and state.
+Sprint membership may be discussed in feedback, but never owns the folder.
+
 ## Hard boundaries
 
 - Replay authors read only the prepared run directory.
@@ -44,5 +55,8 @@ than cherry-picked successes.
 - Exit 1 from evaluation is a retained quality failure; exit 2 is a contract
   failure that must be reported without silent repair.
 - Never copy a target repository or scoring oracle into retained evidence.
+- Never commit a live version-review root, raw Jira source, or private dossier
+  under `evals/`; only the generic schema, templates, skills, and controls live
+  here.
 - One replay supports only a task-specific claim; it does not prove general
   model, host, or plugin quality.
