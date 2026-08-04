@@ -60,10 +60,13 @@ improvement loop. The pre-commit rail does not duplicate those commands.
 The Decree completion-report owner invokes the Decree regeneration rail for
 the exact tracked report set. Check mode copies source documents into an
 isolated temporary project, regenerates the same report IDs without touching
-tracked files, canonicalizes repository-relative Document identities and
-source-date transition identities exactly as write mode does, then compares
-the complete content while ignoring only the explicitly volatile Generated
-timestamp. Missing, extra, malformed, host-bound, or body-drifted reports fail.
+tracked files, canonicalizes the independently generated repository-relative
+Document and source-derived transition identities, explicitly validates those
+tracked identities without rewriting them, then compares the complete content
+while ignoring only the explicitly volatile Generated timestamp. The allocating
+scope cleans the isolated project after success or exception without masking the
+original diagnostic. Missing, extra, malformed, host-bound, transition-drifted,
+or body-drifted reports fail. Both owner and control remain directly executable.
 
 The root `AGENTS.md` contains only the entry rule and one command. The detailed
 failure, ownership, and extension policy lives in `.githooks/AGENTS.md` and is
@@ -78,10 +81,12 @@ and invokes every required child command. Validate the hook is locally enabled
 only through the explicit `git config core.hooksPath .githooks` command after
 the repository checks are clean.
 
-Generated-report controls mutate only the acceptance body, only the Document
-identity, and only the Generated timestamp. Body and identity mutations must
-fail; timestamp-only variation must pass; clean regeneration must remain
-byte-equivalent modulo that one declared volatile field.
+Generated-report controls mutate only the transition date, acceptance body,
+Document identity, and Generated timestamp. Transition, body, and Document
+mutations must fail; timestamp-only variation must pass; clean regeneration
+must remain byte-equivalent modulo that one declared volatile field. A forced
+copy failure after isolated-project allocation must retain its diagnostic and
+leave no owned temporary project behind.
 
 ## Acceptance Criteria
 
@@ -95,4 +100,4 @@ byte-equivalent modulo that one declared volatile field.
 - [x] Root and hook-local AGENTS documents provide progressive disclosure and
   forbid normal bypasses while naming the CI/remote boundary.
 - [x] The configured local hook path and full gate are demonstrated clean.
-- [x] Decree report checks regenerate the exact tracked set in isolation and reject complete-content, set, status, acceptance-body, and portable-identity drift while ignoring only the Generated timestamp.
+- [x] Decree report checks regenerate the exact tracked set in exception-cleaned isolation and reject complete-content, set, status, transition-date, acceptance-body, and portable-identity drift while ignoring only the Generated timestamp.

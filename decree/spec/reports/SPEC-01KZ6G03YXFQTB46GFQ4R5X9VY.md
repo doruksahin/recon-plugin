@@ -2,7 +2,7 @@
 
 **Document**: `decree/spec/reliability/evidence/spec-01kz6g03yxfqtb46gfq4r5x9vy-fail-closed-commit-guardrail.md`
 **Transitioned to `implemented` on**: 2026-08-04
-**Generated**: 2026-08-04T21:15:52Z
+**Generated**: 2026-08-04T21:39:37Z
 **Total documents in chain**: 2
 
 ## Document chain
@@ -22,7 +22,7 @@
 - [x] Comment-rendering and improvement-loop controls are included in
 - [x] Root and hook-local AGENTS documents provide progressive disclosure and
 - [x] The configured local hook path and full gate are demonstrated clean.
-- [x] Decree report checks regenerate the exact tracked set in isolation and reject complete-content, set, status, acceptance-body, and portable-identity drift while ignoring only the Generated timestamp.
+- [x] Decree report checks regenerate the exact tracked set in exception-cleaned isolation and reject complete-content, set, status, transition-date, acceptance-body, and portable-identity drift while ignoring only the Generated timestamp.
 
 ---
 
