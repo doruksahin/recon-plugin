@@ -1,0 +1,18 @@
+{
+  "attempt": 2,
+  "comparison_rubric": {
+    "id": "requirement-closure-comparison-v1",
+    "path": "docs/improvement-proposals/0.22.0/requirement-closure-coverage/comparison-rubric.yaml",
+    "sha256": "fc8bb60c95f51b1232662d13ddc9ca72a4452905ba66751def02813a5cc96c0a"
+  },
+  "contract_sha256": "90928045e2dd12fa81032dd419902dcfaa0fa8a6bc4d3c5412fdf1b859a57dbe",
+  "evidence_id": "requirement-closure-ready-control-attempt-2-run-2",
+  "files": {
+    "evaluation/result.json": "68e1d9a5ac47cf582a4ede1c3d52b61eb6ed520ac47576d350f26de0ac706b92",
+    "evaluation/score.txt": "53b9ac2a1245b9fa882d33fb0fd9e63ab0b46ce864ad656a8fac57b474b5e75b",
+    "receipt.json": "d9cccd9f627b2da71a570259c41c48892dc528f8a745ab19c3c11a5f39ac04ad",
+    "submission/triage.yaml": "1d02a7ca6ea2b99c295fbb02bbf5bd9c8dd83e9c427bf673c0de6ee7bf578fdd"
+  },
+  "role": "negative-control",
+  "schema_version": 2
+}

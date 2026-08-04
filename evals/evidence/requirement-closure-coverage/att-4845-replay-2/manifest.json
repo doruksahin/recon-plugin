@@ -1,0 +1,11 @@
+{
+  "evidence_id": "att-4845-replay-2",
+  "files": {
+    "evaluation/result.json": "662db8da9ce1b89067a3364b7ec92f550ceedd80b9f2ffe70edae51090cf543a",
+    "evaluation/score.txt": "4c92ef795e53ba08846bd3bb3a7c1ce0163bc77d372b9906bc1c204183e278c7",
+    "receipt.json": "e5145fec2eb36ad898e65555ce86af900cfa9e59de6b46400cf49f252bf8ac84",
+    "submission/triage.yaml": "39be53df5ea53136892b3e8e0de73f373b32dcc9ff0c1f48f4043117162aab7f"
+  },
+  "role": "baseline",
+  "schema_version": 1
+}

@@ -233,13 +233,13 @@
   </div>
 
   <div class="step judge">
-    <div class="step-h"><span class="step-no">STEP 2</span><h3>Six checks, typed evidence</h3>
+    <div class="step-h"><span class="step-no">STEP 2</span><h3>Decision audit, then six checks</h3>
       <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">SKILL.md §2–3</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-judge">judgment</span></dd>
       <dt>in</dt><dd>ticket.json + git/gh + fetched links</dd>
-      <dt>out</dt><dd><code>triage/triage.yaml</code> — six check values, blockers, TYPED evidence (<code>kind: quote|http|git|file|note</code>)</dd>
-      <dt>rule</dt><dd>every answer carries evidence <span class="sep">·</span> the model fills checks and blockers — it does NOT pick the verdict</dd>
+      <dt>out</dt><dd><code>triage/triage.yaml</code> — closure statuses, six check values, atomic blockers, TYPED evidence (<code>kind: quote|http|git|file|note</code>)</dd>
+      <dt>rule</dt><dd>every candidate carries evidence <span class="sep">·</span> blocking OPEN decisions join one-to-one to blockers <span class="sep">·</span> the model does NOT pick the verdict</dd>
     </dl>
   </div>
 
@@ -250,7 +250,7 @@
       <dt>who</dt><dd><span class="w-rail">rail</span> (new in v0.8.0)</dd>
       <dt>in</dt><dd><code>triage.yaml</code> + <code>ticket.json</code></dd>
       <dt>out</dt><dd><strong>READY</strong> | <strong>BLOCKED</strong> | <strong>NEEDS_INFO</strong> — derived from the checks; <code>verify: clean</code> or failures</dd>
-      <dt>rule</dt><dd>disposition is DERIVED (invariant 15) — mismatch ⇒ fix the checks, never the verdict <span class="sep">·</span> every <code>kind: quote</code> must appear verbatim in the ticket's human content <span class="sep">·</span> READY → auto-chain to discovery and, after package approval, its own delivery path <span class="sep">·</span> BLOCKED/NEEDS_INFO → posting path, needs ≥1 structured blocker</dd>
+      <dt>rule</dt><dd>closure audit and dependency checks are DERIVED (invariant 15) — mismatch ⇒ fix the audit/checks, never the verdict <span class="sep">·</span> ticket quotes and supplied file lines are verified <span class="sep">·</span> READY → auto-chain to discovery and, after package approval, its own delivery path <span class="sep">·</span> BLOCKED/NEEDS_INFO → posting path, needs ≥1 atomic blocker</dd>
     </dl>
   </div>
 

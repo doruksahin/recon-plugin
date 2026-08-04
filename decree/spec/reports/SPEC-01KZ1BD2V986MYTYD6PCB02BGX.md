@@ -1,8 +1,8 @@
 # SPEC-01KZ1BD2V986MYTYD6PCB02BGX Completion Report
 
-**Document**: `/Users/doruk/Desktop/ADCREATIVE/recon-plugin/decree/spec/reliability/evidence/spec-01kz1bd2v986mytyd6pcb02bgx-recon-0-16-0-recorded-repro-runtime.md`
+**Document**: `decree/spec/reliability/evidence/spec-01kz1bd2v986mytyd6pcb02bgx-recon-0-16-0-recorded-repro-runtime.md`
 **Transitioned to `implemented` on**: 2026-08-02
-**Generated**: 2026-08-02T14:32:43Z
+**Generated**: 2026-08-04T21:39:37Z
 **Total documents in chain**: 2
 
 ## Document chain
@@ -12,16 +12,16 @@
 | ADR | ADR-01KZ0ZK4WYVWRY0WJM2CZ7ZS8C | accepted | Portable Multi-Harness Recon Plugin Architecture |
 | SPEC | SPEC-01KZ1BD2V986MYTYD6PCB02BGX | implemented | Recon 0.16.0 Recorded Repro Runtime |
 
-## Acceptance Criteria — primary (0/6)
+## Acceptance Criteria — primary (6/6)
 
-### Acceptance Criteria (0/6)
+### Acceptance Criteria (6/6)
 
-- [ ] *record-repro.sh* brackets every repro: guarded exec, staging shadowed and cleaned, finalized bundle at `repro/session/`, step screenshots relocated to `repro/exhibits/`.
-- [ ] `reconctl.sh start repro` fails closed on a missing or version-mismatched proofshot/agent-browser install.
-- [ ] `verify-repro.sh` rejects a `reproduced: true` package without a session bundle, an exhibit not produced by a logged screenshot action, out-of-order screenshot actions, schema drift in the log, stale timestamps, and a corrupt video.
-- [ ] Honest failed repros pass with or without a session bundle.
-- [ ] Oversized session files are skipped from the delivery bundle with a visible `SKIPPED` line.
-- [ ] Registry, pipeline.md, workspace-index.md, and flow.html mirror the `session/` artifact; all coherence and link checks pass.
+- [x] *record-repro.sh* brackets every repro: guarded exec, staging shadowed and cleaned, finalized bundle at `repro/session/`, step screenshots relocated to `repro/exhibits/`.
+- [x] `reconctl.sh start repro` fails closed on a missing or version-mismatched proofshot/agent-browser install.
+- [x] `verify-repro.sh` rejects a `reproduced: true` package without a session bundle, an exhibit not produced by a logged screenshot action, out-of-order screenshot actions, schema drift in the log, stale timestamps, and a corrupt video.
+- [x] Honest failed repros pass with or without a session bundle.
+- [x] Oversized session files are skipped from the delivery bundle with a visible `SKIPPED` line.
+- [x] Registry, pipeline.md, workspace-index.md, and flow.html mirror the `session/` artifact; all coherence and link checks pass.
 
 ---
 

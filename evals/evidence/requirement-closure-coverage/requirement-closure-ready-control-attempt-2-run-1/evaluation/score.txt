@@ -1,0 +1,4 @@
+artifact: PASS — production triage verifier clean
+disposition: PASS — READY
+decision coverage: PASS — 0/0 distinct decisions
+score: PASS

@@ -1,0 +1,12 @@
+{
+  "attempt": 2,
+  "comparison_sha256": "935b21b8217abb2f8fe33b01ccf28880de7f19344268ccc88c2d1ae4fb5a48bc",
+  "contract_sha256": "90928045e2dd12fa81032dd419902dcfaa0fa8a6bc4d3c5412fdf1b859a57dbe",
+  "created_at": "2026-08-04T15:16:32.416392+00:00",
+  "decision": "accept",
+  "improvement_id": "requirement-closure-coverage",
+  "mechanical_acceptance_satisfied": true,
+  "reasoning": "Accept attempt 2 for the declared frozen target and control only. All three target runs are production-valid, retain the expected BLOCKED disposition, and achieve 3/3 scored decision coverage; semantic inspection also confirms separate audit-linked blockers for feature/context mapping, configuration ownership and update path, sparse-result threshold completeness, and fallback ordering completeness. All three same-candidate-snapshot controls remain READY/PASS with no blockers, so the candidate did not manufacture uncertainty in the declared fully specified case. This does not establish cross-task, cross-model, cross-host, or release quality.",
+  "reviewer": "Codex orchestration manager",
+  "schema_version": 1
+}

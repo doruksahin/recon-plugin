@@ -1,0 +1,26 @@
+{
+  "artifact": {
+    "status": "PASS",
+    "verifier_exit": 0
+  },
+  "candidate_sha256": "b1301bad5c6794d390a98215509821460bf58cd2698f6605ee0ab96cb8e4843c",
+  "case_id": "att-4845-pre-comment",
+  "decision_coverage": {
+    "matched": 3,
+    "missed": [],
+    "overloaded": [],
+    "status": "PASS",
+    "total": 3
+  },
+  "disposition": {
+    "actual": "BLOCKED",
+    "expected": "BLOCKED",
+    "status": "PASS"
+  },
+  "schema_version": 1,
+  "score": "PASS",
+  "score_exit": 0,
+  "score_sha256": "a48ba0b2021b2d1ba904053e7d8af5de9e34e090aacf73a42fcbc7e8e78cfc97",
+  "submission": "submission/triage.yaml",
+  "ticket": "ATT-4845"
+}

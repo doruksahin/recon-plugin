@@ -1,0 +1,142 @@
+{
+  "attempt": 1,
+  "comparison_rubric": {
+    "id": "requirement-closure-comparison-v1",
+    "path": "docs/improvement-proposals/0.22.0/requirement-closure-coverage/comparison-rubric.yaml",
+    "sha256": "fc8bb60c95f51b1232662d13ddc9ca72a4452905ba66751def02813a5cc96c0a"
+  },
+  "contract_sha256": "90928045e2dd12fa81032dd419902dcfaa0fa8a6bc4d3c5412fdf1b859a57dbe",
+  "created_at": "2026-08-04T14:37:25.736187+00:00",
+  "improvement_id": "requirement-closure-coverage",
+  "mechanical_acceptance": {
+    "checks": {
+      "candidate_results": false,
+      "candidate_run_count": false,
+      "negative_control_results": true,
+      "negative_control_run_count": false
+    },
+    "observed_runs": {
+      "candidate": 1,
+      "negative_control": 1
+    },
+    "required_runs": {
+      "candidate": 3,
+      "negative_control": 3
+    },
+    "satisfied": false
+  },
+  "minimum_runs_to_compare": {
+    "candidate": 1,
+    "negative_control": 1
+  },
+  "runs": [
+    {
+      "artifact": "PASS",
+      "attempt": null,
+      "case_id": "att-4845-pre-comment",
+      "coverage_matched": 1,
+      "coverage_status": "FAIL",
+      "coverage_total": 3,
+      "disposition_actual": "BLOCKED",
+      "disposition_status": "PASS",
+      "id": "att-4845-decision-closure",
+      "missed": [
+        "feature-context-mapping",
+        "configuration-ownership"
+      ],
+      "path": "evals/evidence/requirement-closure-coverage/att-4845-decision-closure",
+      "repository_commit": "fa6f2234128fee6a357e8086da385cc11794eb76",
+      "role": "baseline",
+      "score": "FAIL",
+      "score_exit": 1,
+      "skill_sha256": "47c08950ea9434828a5f0efe8b8340e7292ff4a5223ba3f73d210b919b69731a",
+      "ticket": "ATT-4845"
+    },
+    {
+      "artifact": "PASS",
+      "attempt": null,
+      "case_id": "att-4845-pre-comment",
+      "coverage_matched": 1,
+      "coverage_status": "FAIL",
+      "coverage_total": 3,
+      "disposition_actual": "BLOCKED",
+      "disposition_status": "PASS",
+      "id": "att-4845-replay-2",
+      "missed": [
+        "feature-context-mapping",
+        "configuration-ownership"
+      ],
+      "path": "evals/evidence/requirement-closure-coverage/att-4845-replay-2",
+      "repository_commit": "fa6f2234128fee6a357e8086da385cc11794eb76",
+      "role": "baseline",
+      "score": "FAIL",
+      "score_exit": 1,
+      "skill_sha256": "47c08950ea9434828a5f0efe8b8340e7292ff4a5223ba3f73d210b919b69731a",
+      "ticket": "ATT-4845"
+    },
+    {
+      "artifact": "PASS",
+      "attempt": null,
+      "case_id": "att-4845-pre-comment",
+      "coverage_matched": 1,
+      "coverage_status": "FAIL",
+      "coverage_total": 3,
+      "disposition_actual": "BLOCKED",
+      "disposition_status": "PASS",
+      "id": "att-4845-replay-3",
+      "missed": [
+        "feature-context-mapping",
+        "configuration-ownership"
+      ],
+      "path": "evals/evidence/requirement-closure-coverage/att-4845-replay-3",
+      "repository_commit": "fa6f2234128fee6a357e8086da385cc11794eb76",
+      "role": "baseline",
+      "score": "FAIL",
+      "score_exit": 1,
+      "skill_sha256": "47c08950ea9434828a5f0efe8b8340e7292ff4a5223ba3f73d210b919b69731a",
+      "ticket": "ATT-4845"
+    },
+    {
+      "artifact": "PASS",
+      "attempt": 1,
+      "case_id": "att-4845-pre-comment",
+      "coverage_matched": 2,
+      "coverage_status": "FAIL",
+      "coverage_total": 3,
+      "disposition_actual": "BLOCKED",
+      "disposition_status": "PASS",
+      "id": "att-4845-requirement-closure-attempt-1",
+      "missed": [
+        "feature-context-mapping"
+      ],
+      "path": "evals/evidence/requirement-closure-coverage/att-4845-requirement-closure-attempt-1",
+      "repository_commit": "fa6f2234128fee6a357e8086da385cc11794eb76",
+      "role": "candidate",
+      "score": "FAIL",
+      "score_exit": 1,
+      "skill_sha256": "002aa03b87ea4372e87f0efdd360951da91bb8b5c7b9cc50b8a4bbe52aa1852e",
+      "ticket": "ATT-4845"
+    },
+    {
+      "artifact": "PASS",
+      "attempt": 1,
+      "case_id": "requirement-closure-ready-control",
+      "coverage_matched": 0,
+      "coverage_status": "PASS",
+      "coverage_total": 0,
+      "disposition_actual": "READY",
+      "disposition_status": "PASS",
+      "id": "requirement-closure-ready-control-attempt-1",
+      "missed": [],
+      "path": "evals/evidence/requirement-closure-coverage/requirement-closure-ready-control-attempt-1",
+      "repository_commit": "fa6f2234128fee6a357e8086da385cc11794eb76",
+      "role": "negative-control",
+      "score": "PASS",
+      "score_exit": 0,
+      "skill_sha256": "002aa03b87ea4372e87f0efdd360951da91bb8b5c7b9cc50b8a4bbe52aa1852e",
+      "ticket": "RCTRL-1"
+    }
+  ],
+  "schema_version": 1,
+  "semantic_review_required": true
+}

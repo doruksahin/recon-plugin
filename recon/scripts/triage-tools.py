@@ -28,13 +28,34 @@
 # Parsed by hand on purpose: no PyYAML dependency, and an indentation drift
 # that a lenient parser would forgive is itself a schema violation here.
 import json
+import os
 import re
+import stat
 import sys
 from pathlib import Path
 
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 EVIDENCE_KINDS = {"quote", "http", "git", "file", "note"}
+DECISION_STATUSES = {
+    "OPEN", "CLOSED_BY_TICKET", "CLOSED_BY_REPOSITORY",
+    "OPTIONAL_OUT_OF_SCOPE", "IMPLEMENTATION_FREEDOM",
+}
+DECISION_CHECKS = {
+    "product_decision_open", "design_dependency", "backend_dependency",
+}
+REQUIREMENT_COVERAGE_KEYS = {
+    "normative_requirements", "identity_mapping", "context_mapping_exhaustive",
+    "ownership_update_path", "threshold_completeness", "ordering_completeness",
+}
+CLOSURE_SURFACES = {
+    "direct_obligation", "identity_mapping", "ownership_update_path",
+    "threshold_completeness", "ordering_completeness",
+}
+CONTEXT_KINDS = {"named", "omitted", "default", "alias"}
+CONTEXT_MAPPING_FIELDS = {"context_kind", "context_identity", "observable_result"}
+DECISION_ID = re.compile(r"DEC-[1-9][0-9]*\Z")
+BLOCKER_ID = re.compile(r"BLK-[1-9][0-9]*\Z")
 SCALAR_ENUMS = {
     "task_class": {"defect", "capability-change", "chore"},
     "disposition": {"READY", "BLOCKED", "NEEDS_INFO"},
@@ -79,13 +100,16 @@ def parse_triage(path, errors):
     """Parse the fixed triage.yaml schema into a dict. Indentation is part of
     the schema (the shape rail counts `^  - title:`), so unexpected indents are
     reported, not forgiven."""
-    doc = {"scalars": {}, "blockers": [], "conflicts": 0, "evidence": []}
+    doc = {"scalars": {}, "blockers": [], "conflicts": 0, "evidence": [],
+           "requirement_coverage": {}, "decision_audit": [], "sections": set()}
     lines = path.read_text(encoding="utf-8").splitlines()
     section = None      # None | blockers | conflicts | evidence
     blocker = None
     in_detail = False
     detail_list = None  # None | options | evidence
     ev_entry = None     # current typed evidence entry (top-level or detail)
+    audit = None
+    audit_list = None
 
     def close_entry():
         nonlocal ev_entry
@@ -100,22 +124,85 @@ def parse_triage(path, errors):
         if indent == 0:
             close_entry()
             blocker = None
+            audit = None
             in_detail = False
             detail_list = None
+            audit_list = None
             key, sep, val = line.partition(":")
             if not sep:
                 errors.append(f"yaml:{ln}: unparseable top-level line: {line}")
                 continue
             val = val.strip()
-            if key in ("blockers", "conflicts", "evidence"):
+            if key in ("blockers", "conflicts", "evidence", "requirement_coverage",
+                       "decision_audit"):
+                doc["sections"].add(key)
                 section = key
-                if val == "[]":
+                if key == "requirement_coverage" and val:
+                    errors.append(f"yaml:{ln}: requirement_coverage must be a block mapping")
+                    section = None
+                elif val == "[]":
                     section = None
                 elif val:
                     errors.append(f"yaml:{ln}: {key} must be a block list or []")
             else:
                 section = None
                 doc["scalars"][key] = unquote(val)
+            continue
+
+        if section == "requirement_coverage":
+            if indent == 2 and ":" in line:
+                key, _, val = line.partition(":")
+                key = key.strip()
+                if key in doc["requirement_coverage"]:
+                    errors.append(f"yaml:{ln}: duplicate requirement_coverage field '{key}'")
+                doc["requirement_coverage"][key] = unquote(val)
+                continue
+            errors.append(f"yaml:{ln}: unexpected indent {indent} in requirement_coverage: {line}")
+            continue
+
+        if section == "decision_audit":
+            if indent == 2 and line.startswith("- "):
+                close_entry()
+                audit_list = None
+                audit = {"_line": ln, "evidence": []}
+                doc["decision_audit"].append(audit)
+                key, sep, val = line[2:].partition(":")
+                if key.strip() != "id" or not sep:
+                    errors.append(f"yaml:{ln}: decision entries must start '  - id:'")
+                else:
+                    audit["id"] = unquote(val)
+                continue
+            if audit is None:
+                errors.append(f"yaml:{ln}: content before first '  - id:' in decision_audit")
+                continue
+            if indent == 4:
+                close_entry()
+                key, sep, val = line.partition(":")
+                key, val = key.strip(), val.strip()
+                if key == "evidence":
+                    audit_list = "evidence"
+                    if val == "[]":
+                        audit_list = None
+                    elif val:
+                        errors.append(f"yaml:{ln}: decision evidence must be a block list or []")
+                else:
+                    audit_list = None
+                    if key in audit:
+                        errors.append(f"yaml:{ln}: duplicate decision field '{key}'")
+                    audit[key] = unquote(val)
+                continue
+            if audit_list == "evidence":
+                if indent == 6 and line.startswith("- "):
+                    close_entry()
+                    ev_entry = {"_line": ln}
+                    audit["evidence"].append(ev_entry)
+                    line = line[2:].strip()
+                    indent = 8
+                if ev_entry is not None and indent == 8 and ":" in line:
+                    key, _, val = line.partition(":")
+                    ev_entry[key.strip()] = unquote(val)
+                    continue
+            errors.append(f"yaml:{ln}: unexpected indent {indent} in decision_audit: {line}")
             continue
 
         if section == "conflicts":
@@ -221,7 +308,78 @@ def quote_corpus(ticket_path, errors):
     return corpus, markers
 
 
-def check_evidence_entries(entries, where, corpus, markers, errors):
+def read_repository_evidence(source_root, path_value, _after_fstat=None):
+    """Read one regular UTF-8 file through a descriptor-rooted no-follow walk."""
+    relative = Path(path_value)
+    parts = relative.parts
+    opened = []
+    directory_flags = (os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+                       | getattr(os, "O_CLOEXEC", 0))
+    file_flags = (os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_NONBLOCK", 0)
+                  | getattr(os, "O_CLOEXEC", 0))
+
+    def inspect_entry(parent_fd, name):
+        try:
+            return os.stat(name, dir_fd=parent_fd, follow_symlinks=False), None
+        except (FileNotFoundError, NotADirectoryError, OSError):
+            return None, f"file evidence path is not a regular file: {path_value}"
+
+    try:
+        current_fd = os.open(source_root, directory_flags)
+        opened.append(current_fd)
+        for part in parts[:-1]:
+            entry, error = inspect_entry(current_fd, part)
+            if error:
+                return None, error
+            if stat.S_ISLNK(entry.st_mode):
+                return None, f"file evidence path contains a symlink: {path_value}"
+            if not stat.S_ISDIR(entry.st_mode):
+                return None, f"file evidence path is not a regular file: {path_value}"
+            try:
+                current_fd = os.open(part, directory_flags, dir_fd=current_fd)
+            except OSError:
+                return None, f"file evidence path could not be opened safely: {path_value}"
+            opened.append(current_fd)
+
+        leaf = parts[-1] if parts else "."
+        entry, error = inspect_entry(current_fd, leaf)
+        if error:
+            return None, error
+        if stat.S_ISLNK(entry.st_mode):
+            return None, f"file evidence path contains a symlink: {path_value}"
+        if not stat.S_ISREG(entry.st_mode):
+            return None, f"file evidence path is not a regular file: {path_value}"
+        try:
+            file_fd = os.open(leaf, file_flags, dir_fd=current_fd)
+        except OSError:
+            return None, f"file evidence path could not be opened safely: {path_value}"
+        opened.append(file_fd)
+        if not stat.S_ISREG(os.fstat(file_fd).st_mode):
+            return None, f"file evidence path is not a regular file: {path_value}"
+        if _after_fstat is not None:
+            _after_fstat()
+
+        chunks = []
+        while True:
+            chunk = os.read(file_fd, 65536)
+            if not chunk:
+                break
+            chunks.append(chunk)
+        try:
+            return b"".join(chunks).decode("utf-8").splitlines(), None
+        except UnicodeDecodeError:
+            return None, f"file evidence path is not a readable UTF-8 file: {path_value}"
+    except OSError:
+        return None, f"file evidence path could not be opened safely: {path_value}"
+    finally:
+        for descriptor in reversed(opened):
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+
+
+def check_evidence_entries(entries, where, corpus, markers, errors, source_root):
     verified = 0
     for e in entries:
         ln = e.get("_line", "?")
@@ -233,6 +391,22 @@ def check_evidence_entries(entries, where, corpus, markers, errors):
         text = e.get("text", "")
         if not text:
             errors.append(f"{where} (yaml:{ln}): evidence entry has empty text")
+            continue
+        if kind == "file":
+            path_value = e.get("path", "")
+            line_value = e.get("line", "")
+            if not path_value or Path(path_value).is_absolute() or ".." in Path(path_value).parts:
+                errors.append(f"{where} (yaml:{ln}): file evidence needs a relative path inside RECON_SOURCE_ROOT")
+                continue
+            if not str(line_value).isdigit() or int(line_value) < 1:
+                errors.append(f"{where} (yaml:{ln}): file evidence needs a positive line")
+                continue
+            source_lines, path_error = read_repository_evidence(source_root, path_value)
+            if path_error:
+                errors.append(f"{where} (yaml:{ln}): {path_error}")
+                continue
+            if int(line_value) > len(source_lines) or normalize(text) != normalize(source_lines[int(line_value) - 1]):
+                errors.append(f"{where} (yaml:{ln}): file evidence drift at {path_value}:{line_value}")
             continue
         if kind != "quote":
             continue
@@ -256,6 +430,162 @@ def check_evidence_entries(entries, where, corpus, markers, errors):
             continue
         verified += 1
     return verified
+
+
+def validate_decision_audit(doc, corpus, markers, errors, source_root):
+    """Verify the persisted closure audit and its atomic blocker join."""
+    if "requirement_coverage" not in doc["sections"]:
+        errors.append("schema: missing required section 'requirement_coverage'")
+    else:
+        coverage = doc["requirement_coverage"]
+        missing = REQUIREMENT_COVERAGE_KEYS - set(coverage)
+        unknown = set(coverage) - REQUIREMENT_COVERAGE_KEYS
+        if missing:
+            errors.append(f"requirement_coverage: missing field(s) {sorted(missing)}")
+        if unknown:
+            errors.append(f"requirement_coverage: unknown field(s) {sorted(unknown)}")
+        for key in sorted(REQUIREMENT_COVERAGE_KEYS):
+            if key in coverage and coverage[key] != "true":
+                errors.append(f"requirement_coverage: {key} must be true after the audit")
+
+    if "decision_audit" not in doc["sections"]:
+        errors.append("schema: missing required section 'decision_audit'")
+        return
+
+    audits = doc["decision_audit"]
+    audit_by_id = {}
+    context_mappings = set()
+    expected_checks = {key: "false" for key in DECISION_CHECKS}
+    for index, audit in enumerate(audits, 1):
+        where = f"decision {index}"
+        decision_id = audit.get("id", "")
+        if not DECISION_ID.fullmatch(decision_id):
+            errors.append(f"{where}: id must match DEC-N (got '{decision_id or 'missing'}')")
+        elif decision_id in audit_by_id:
+            errors.append(f"{where}: duplicate decision id {decision_id}")
+        else:
+            audit_by_id[decision_id] = audit
+        requirement = audit.get("requirement", "")
+        requirement_source = audit.get("requirement_source", "")
+        if not requirement:
+            errors.append(f"{where}: requirement must retain the observable obligation")
+        if not requirement_source:
+            errors.append(f"{where}: requirement_source must name a human ticket source")
+        elif requirement_source in markers:
+            errors.append(f"{where}: requirement_source {requirement_source} is a recon marker comment — pipeline output is not evidence")
+        elif requirement_source not in corpus:
+            errors.append(f"{where}: requirement_source '{requirement_source}' not in ticket.json")
+        elif requirement and normalize(requirement) not in corpus[requirement_source]:
+            errors.append(f"{where}: requirement is not found verbatim in {requirement_source}")
+        status = audit.get("status", "")
+        if status not in DECISION_STATUSES:
+            errors.append(f"{where}: status must be one of {sorted(DECISION_STATUSES)}")
+        surface = audit.get("surface", "")
+        if surface not in CLOSURE_SURFACES:
+            errors.append(f"{where}: surface must be one of {sorted(CLOSURE_SURFACES)}")
+        mapping_fields = CONTEXT_MAPPING_FIELDS & set(audit)
+        if surface == "identity_mapping":
+            missing_mapping = CONTEXT_MAPPING_FIELDS - set(audit)
+            if missing_mapping:
+                errors.append(f"{where}: identity_mapping missing field(s) {sorted(missing_mapping)}")
+            context_kind = audit.get("context_kind", "")
+            if context_kind not in CONTEXT_KINDS:
+                errors.append(f"{where}: context_kind must be one of {sorted(CONTEXT_KINDS)}")
+            context_identity = audit.get("context_identity", "").strip()
+            observable_result = audit.get("observable_result", "").strip()
+            if not context_identity:
+                errors.append(f"{where}: context_identity must name exactly one context")
+            if not observable_result:
+                errors.append(f"{where}: observable_result must select one result or be UNRESOLVED")
+            if status == "OPEN" and observable_result != "UNRESOLVED":
+                errors.append(f"{where}: OPEN identity_mapping must set observable_result to UNRESOLVED")
+            if status in DECISION_STATUSES - {"OPEN"} and observable_result == "UNRESOLVED":
+                errors.append(f"{where}: resolved identity_mapping must select an observable_result")
+            mapping_key = (
+                requirement_source,
+                normalize(requirement),
+                context_kind,
+                normalize(context_identity),
+            )
+            if context_kind in CONTEXT_KINDS and context_identity:
+                if mapping_key in context_mappings:
+                    errors.append(f"{where}: duplicate context mapping for {context_kind} '{context_identity}'")
+                else:
+                    context_mappings.add(mapping_key)
+        elif mapping_fields:
+            errors.append(f"{where}: context mapping fields are allowed only on identity_mapping")
+        check = audit.get("check", "")
+        if check not in DECISION_CHECKS:
+            errors.append(f"{where}: check must be one of {sorted(DECISION_CHECKS)}")
+        blocking = audit.get("blocking", "")
+        if blocking not in {"true", "false"}:
+            errors.append(f"{where}: blocking must be true or false")
+        elif status != "OPEN" and blocking != "false":
+            errors.append(f"{where}: only OPEN decisions may be blocking")
+        blocker_id = audit.get("blocker_id", "")
+        if status == "OPEN" and blocking == "true":
+            if not BLOCKER_ID.fullmatch(blocker_id):
+                errors.append(f"{where}: blocking OPEN decision needs blocker_id BLK-N")
+            if check in expected_checks:
+                expected_checks[check] = "true"
+        elif blocker_id:
+            errors.append(f"{where}: non-blocking decision must not name a blocker_id")
+        unknown = set(audit) - ({"_line", "id", "requirement", "requirement_source", "surface", "status", "check", "blocking", "blocker_id", "evidence"} | CONTEXT_MAPPING_FIELDS)
+        if unknown:
+            errors.append(f"{where}: unknown field(s) {sorted(unknown)}")
+        if not audit["evidence"]:
+            errors.append(f"{where}: evidence is empty")
+        if status == "CLOSED_BY_REPOSITORY" and not any(
+                evidence.get("kind") == "file" for evidence in audit["evidence"]):
+            errors.append(f"{where}: CLOSED_BY_REPOSITORY requires cited file evidence")
+        for evidence in audit["evidence"]:
+            kind = evidence.get("kind", "")
+            permitted = ({"_line", "kind", "text", "source"} if kind == "quote" else
+                         {"_line", "kind", "text", "path", "line"} if kind == "file" else
+                         {"_line", "kind", "text"})
+            extras = set(evidence) - permitted
+            if extras:
+                errors.append(f"{where} evidence (yaml:{evidence.get('_line', '?')}): unknown field(s) {sorted(extras)}")
+        check_evidence_entries(audit["evidence"], f"{where} evidence", corpus, markers, errors, source_root)
+
+    blockers_by_id = {}
+    for index, blocker in enumerate(doc["blockers"], 1):
+        where = f"blocker {index}"
+        blocker_id = blocker.get("id", "")
+        if not BLOCKER_ID.fullmatch(blocker_id):
+            errors.append(f"{where}: id must match BLK-N (got '{blocker_id or 'missing'}')")
+        elif blocker_id in blockers_by_id:
+            errors.append(f"{where}: duplicate blocker id {blocker_id}")
+        else:
+            blockers_by_id[blocker_id] = blocker
+        decision_id = blocker.get("decision_id", "")
+        if not DECISION_ID.fullmatch(decision_id):
+            errors.append(f"{where}: decision_id must match DEC-N (got '{decision_id or 'missing'}')")
+
+    for decision_id, audit in audit_by_id.items():
+        if audit.get("status") != "OPEN" or audit.get("blocking") != "true":
+            continue
+        blocker_id = audit.get("blocker_id", "")
+        blocker = blockers_by_id.get(blocker_id)
+        if blocker is None:
+            errors.append(f"decision {decision_id}: blocker_id {blocker_id} has no matching blocker")
+        elif blocker.get("decision_id") != decision_id:
+            errors.append(f"decision {decision_id}: blocker {blocker_id} points to {blocker.get('decision_id') or 'no decision'}")
+
+    for blocker_id, blocker in blockers_by_id.items():
+        decision_id = blocker.get("decision_id", "")
+        audit = audit_by_id.get(decision_id)
+        if audit is None:
+            errors.append(f"blocker {blocker_id}: decision_id {decision_id} has no audited OPEN decision")
+        elif audit.get("status") != "OPEN" or audit.get("blocking") != "true":
+            errors.append(f"blocker {blocker_id}: decision {decision_id} is not a blocking OPEN decision")
+        elif audit.get("blocker_id") != blocker_id:
+            errors.append(f"blocker {blocker_id}: decision {decision_id} maps to {audit.get('blocker_id') or 'no blocker'}")
+
+    for check, expected in expected_checks.items():
+        actual = doc["scalars"].get(check, "")
+        if actual and actual != expected:
+            errors.append(f"decision_audit: {check} must be {expected} from blocking OPEN decisions (triage.yaml says {actual})")
 
 
 def derive_disposition(s):
@@ -283,6 +613,9 @@ def cmd_verify(ws):
     errors = []
     doc = parse_triage(yaml_path, errors)
     s = doc["scalars"]
+    source_root = Path(os.environ.get("RECON_SOURCE_ROOT", Path.cwd())).resolve()
+    if not source_root.is_dir():
+        errors.append(f"RECON_SOURCE_ROOT is not a directory: {source_root}")
 
     for key in REQUIRED_SCALARS:
         if not s.get(key):
@@ -290,6 +623,9 @@ def cmd_verify(ws):
     for key, allowed in SCALAR_ENUMS.items():
         if s.get(key) and s[key] not in allowed:
             errors.append(f"schema: {key}='{s[key]}' not in {sorted(allowed)}")
+
+    corpus, markers = quote_corpus(ticket_path, errors)
+    validate_decision_audit(doc, corpus, markers, errors, source_root)
 
     disposition = s.get("disposition", "")
     n = len(doc["blockers"])
@@ -332,15 +668,14 @@ def cmd_verify(ws):
                 errors.append(f"{where}: owner_account_id missing or malformed — "
                               f"resolve it (posting path step 1), never guess")
 
-    corpus, markers = quote_corpus(ticket_path, errors)
     quotes = 0
     if not doc["evidence"]:
         errors.append("evidence: top-level evidence list is empty — every check "
                       "needs a typed evidence entry")
-    quotes += check_evidence_entries(doc["evidence"], "evidence", corpus, markers, errors)
+    quotes += check_evidence_entries(doc["evidence"], "evidence", corpus, markers, errors, source_root)
     for i, b in enumerate(doc["blockers"], 1):
         quotes += check_evidence_entries(b["detail"].get("evidence", []),
-                                         f"blocker {i} evidence", corpus, markers, errors)
+                                         f"blocker {i} evidence", corpus, markers, errors, source_root)
 
     if errors:
         for e in errors:

@@ -91,6 +91,6 @@ echo
 if [ "$fail" -eq 0 ]; then
   echo "links: clean — $checked repo reference(s) resolved"
 else
-  echo "links: DRIFT — fix the paths above, or commit with --no-verify"
+  echo "links: DRIFT — fix the paths above before committing"
   exit 1
 fi

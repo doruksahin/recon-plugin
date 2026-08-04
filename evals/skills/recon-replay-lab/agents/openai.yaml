@@ -1,0 +1,4 @@
+interface:
+  display_name: "Recon Replay Lab"
+  short_description: "Run and explain frozen ticket replays"
+  default_prompt: "Use $recon-replay-lab to start or resume a frozen real-ticket replay with explicit LLM handoffs."

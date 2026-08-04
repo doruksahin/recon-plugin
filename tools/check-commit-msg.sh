@@ -31,7 +31,7 @@ if [ "$status" -ne 0 ]; then
   Breaking:  feat(scope)!: subject   + a BREAKING CHANGE: footer
 
   Only feat, fix, perf and refactor reach CHANGELOG.md.
-  See CONTRIBUTING.md. Commit anyway with --no-verify.
+  See CONTRIBUTING.md and correct the message before committing.
 EOF
   exit 1
 fi

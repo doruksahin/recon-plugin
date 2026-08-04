@@ -1,0 +1,58 @@
+{
+  "schema_version": 2,
+  "expected_disposition": "BLOCKED",
+  "required_decisions": [
+    {
+      "id": "feature-context-mapping",
+      "label": "Unmapped feature context",
+      "signals": [["product photo ads"], ["context", "generator", "map", "feature"]]
+    },
+    {
+      "id": "fallback-policy",
+      "label": "Undefined fallback threshold and order",
+      "signals": [["fallback", "broaden", "drop", "remove"], ["few", "threshold", "empty", "order", "priority"]]
+    },
+    {
+      "id": "configuration-ownership",
+      "label": "Unselected configuration delivery model",
+      "signals": [["config", "mapping"], ["without a code change", "deployment", "runtime", "remote", "backend"]]
+    }
+  ],
+  "calibration": [
+    {
+      "id": "brand-seed-precedence",
+      "classification": "optional/non-blocking",
+      "reason": "The frozen ticket says brand or product context may refine or append to seeds and calls it an optional enhancement."
+    },
+    {
+      "id": "keyword-presentation",
+      "classification": "optional/non-blocking",
+      "reason": "The ticket explicitly permits display in the field or as removable chips; either testable visible result satisfies the stated behavior."
+    },
+    {
+      "id": "intro-layout",
+      "classification": "insufficient frozen evidence",
+      "reason": "The retained ticket has attachment metadata but no frozen visual bytes, and the pinned source does not establish the claimed preservation rule."
+    },
+    {
+      "id": "feature-context-mapping",
+      "classification": "approved blocking decision",
+      "reason": "The ticket names a context whose mapping is not selected by the frozen source, so an engineer would have to guess the observable feature mapping."
+    },
+    {
+      "id": "result-ordering-scope",
+      "classification": "repository-resolvable",
+      "reason": "The pinned search client forwards the provider response order without a local ordering control, while the ticket excludes a provider/API change."
+    },
+    {
+      "id": "fallback-policy",
+      "classification": "approved blocking decision",
+      "reason": "The required fallback uses an undefined few-results threshold and does not select a deterministic narrowing order."
+    },
+    {
+      "id": "configuration-ownership",
+      "classification": "approved blocking decision",
+      "reason": "The ticket requires tuning without a code change but does not choose a deploy-time, runtime, or remote configuration owner."
+    }
+  ]
+}

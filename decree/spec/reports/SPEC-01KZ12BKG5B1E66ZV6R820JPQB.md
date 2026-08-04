@@ -1,8 +1,8 @@
 # SPEC-01KZ12BKG5B1E66ZV6R820JPQB Completion Report
 
-**Document**: `/Users/doruk/Desktop/ADCREATIVE/recon-plugin/decree/spec/architecture/portability/spec-01kz12bkg5b1e66zv6r820jpqb-recon-0-14-0-local-host-hardening.md`
+**Document**: `decree/spec/architecture/portability/spec-01kz12bkg5b1e66zv6r820jpqb-recon-0-14-0-local-host-hardening.md`
 **Transitioned to `implemented` on**: 2026-08-02
-**Generated**: 2026-08-02T11:17:42Z
+**Generated**: 2026-08-04T21:39:37Z
 **Total documents in chain**: 2
 
 ## Document chain

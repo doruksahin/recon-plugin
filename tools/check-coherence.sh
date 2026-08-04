@@ -10,11 +10,12 @@
 #      history, design-doc names) are untouched — the marker is what makes a
 #      mention a claim about NOW. Caught live: docs/flow.html shipped a v0.7.0
 #      chip while plugin.json said 0.8.0 (2026-08-01).
-#   2. GENERATED ADAPTERS — native Codex manifest + skill UI metadata must
-#      exactly match the canonical Claude manifest and SKILL.md frontmatter.
-#   3. LOCAL CONTRACTS — isolated host/runtime, artifact-verifier, and Codex
-#      activation tests pass; shared scripts and skills contain no slash
-#      commands outside the single renderer.
+#   2. GENERATED VIEWS — native Codex manifest + skill UI metadata must exactly
+#      match canonical metadata, and the replay-lab HTML must match live case,
+#      oracle, command evidence, source references, and report generator bytes.
+#   3. LOCAL CONTRACTS — isolated host/runtime, artifact-verifier, replay-lab,
+#      and Codex activation tests pass; shared scripts and skills contain no
+#      slash commands outside the single renderer.
 #   4. REGISTRY MIRRORS — every `token` in recon/docs/registry.yaml (the
 #      single-source artifact registry that lint-workspace.sh executes) must
 #      appear in each doc that mirrors the registry: pipeline.md's table,
@@ -65,6 +66,18 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 2
 fi
 python3 tools/generate-adapters.py --check || say_fail "generated native adapters drifted"
+python3 tools/render-decree-reports.py --check || say_fail "generated Decree reports contain non-portable document identities"
+if ! bash tools/test-decree-reports.sh; then
+  say_fail "tools/test-decree-reports.sh failed"
+fi
+python3 tools/render-replay-lab-report.py --check || say_fail "generated replay-lab report drifted"
+if ! bash tools/test-replay-lab-report.sh; then
+  say_fail "tools/test-replay-lab-report.sh failed"
+fi
+python3 tools/render-system-map.py --check || say_fail "generated system map drifted"
+if ! bash tools/test-system-map.sh; then
+  say_fail "tools/test-system-map.sh failed"
+fi
 
 # --------------------------------------------------------- 3. local contracts
 echo "[3/6] local contracts → runtime + artifacts + activation"
@@ -73,6 +86,21 @@ if ! bash tools/test-host-contract.sh; then
 fi
 if ! bash tools/test-artifact-verifiers.sh; then
   say_fail "tools/test-artifact-verifiers.sh failed"
+fi
+if ! bash tools/test-comment-rendering.sh; then
+  say_fail "tools/test-comment-rendering.sh failed"
+fi
+if ! bash tools/test-triage-verifier.sh; then
+  say_fail "tools/test-triage-verifier.sh failed"
+fi
+if ! bash tools/test-replay-lab.sh; then
+  say_fail "tools/test-replay-lab.sh failed"
+fi
+if ! bash tools/test-improvement-cycle.sh; then
+  say_fail "tools/test-improvement-cycle.sh failed"
+fi
+if ! bash tools/test-pre-commit-check.sh; then
+  say_fail "tools/test-pre-commit-check.sh failed"
 fi
 if ! bash tools/test-codex-activation.sh; then
   say_fail "tools/test-codex-activation.sh failed"
@@ -98,7 +126,7 @@ done < <(sed -n 's/^  token: *"\(.*\)"$/\1/p' "$REGISTRY")
 
 # ------------------------------------------------------------- 5. role coverage
 echo "[5/6] role coverage → directory CLAUDE.md files"
-for dir in recon/scripts recon/docs recon/skills tools docs; do
+for dir in recon/scripts recon/docs recon/skills tools docs evals; do
   roledoc="$dir/CLAUDE.md"
   [ -f "$roledoc" ] || { say_fail "$dir/ has no role doc ($roledoc)"; continue; }
   while IFS= read -r entry; do
@@ -139,6 +167,6 @@ if [ "$fail" -eq 0 ]; then
   echo "coherence: clean — version v$VERSION stamped, adapters generated, local contracts passed, registry mirrored, roles covered, citations valid"
   exit 0
 else
-  echo "coherence: DRIFT — fix the facts above, or commit with --no-verify"
+  echo "coherence: DRIFT — fix the facts above before committing"
   exit 1
 fi
