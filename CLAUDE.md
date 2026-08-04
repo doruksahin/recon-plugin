@@ -67,14 +67,11 @@ Two kinds of pages live on claude.ai, outside this repo, and **no git hook can v
 ## Commands
 
 ```bash
-# One-time per clone: enable the git hooks (pre-commit link check, commit-msg format check)
+# One-time per clone: enable the versioned pre-commit gate and commit-msg check
 git config core.hooksPath .githooks
 
-# Check that docs don't reference files that no longer exist (also runs as pre-commit)
-bash tools/check-links.sh
-
-# Check that mirrored facts still agree with their owner files (also runs as pre-commit)
-bash tools/check-coherence.sh
+# Run the full local commit gate: staged diff, links, coherence + universal controls, Decree lint
+bash tools/pre-commit-check.sh
 
 # Validate, prepare, hand off, resume, and score a frozen real-ticket replay
 python3 tools/replay-ticket.py validate evals/cases/att-4845-pre-comment

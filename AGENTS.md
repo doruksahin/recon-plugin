@@ -28,6 +28,21 @@ interpretation; it is repository-local and never ships in the Recon plugin.
 The architectural decision is
 `ADR-01KZ0ZK4WYVWRY0WJM2CZ7ZS8C` under `decree/adr/architecture/`.
 
+## Commit guardrails
+
+Before committing, run the one owner command:
+
+```bash
+bash tools/pre-commit-check.sh
+```
+
+Enable the committed hooks once per clone with
+`git config core.hooksPath .githooks`. The rail fails closed on staged-diff,
+reference, generated-view, universal-control, and Decree drift. Read
+`.githooks/AGENTS.md` only when changing this gate or adding a universal check.
+Do not use `--no-verify` for normal work; remote CI/branch protection remains
+necessary to prevent intentional local bypasses.
+
 Portable-source rules:
 
 - `recon/skills/*/SKILL.md` and `recon/.claude-plugin/plugin.json` are source.

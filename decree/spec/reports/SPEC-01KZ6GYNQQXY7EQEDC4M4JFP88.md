@@ -2,7 +2,7 @@
 
 **Document**: `decree/spec/reliability/evidence/spec-01kz6gynqqxy7eqedc4m4jfp88-recon-0-22-0-normative-requirement-closure.md`
 **Transitioned to `implemented` on**: 2026-08-04
-**Generated**: 2026-08-04T14:03:36Z
+**Generated**: 2026-08-04T16:07:11Z
 **Total documents in chain**: 2
 
 ## Document chain
@@ -12,9 +12,9 @@
 | ADR | ADR-01KZ0ZK4WYVWRY0WJM2CZ7ZS8C | accepted | Portable Multi-Harness Recon Plugin Architecture |
 | SPEC | SPEC-01KZ6GYNQQXY7EQEDC4M4JFP88 | implemented | Recon 0.22.0 Normative Requirement Closure |
 
-## Acceptance Criteria — primary (7/7)
+## Acceptance Criteria — primary (11/11)
 
-### Acceptance Criteria (7/7)
+### Acceptance Criteria (11/11)
 
 - [x] Triage guidance inventories every normative requirement and explicitly audits identity/mapping, ownership/update path, thresholds, and ordering.
 - [x] Every audit entry has exactly one allowed classification and one allowed closure surface.
@@ -23,6 +23,10 @@
 - [x] Generic READY and BLOCKED controls pass without case-specific vocabulary in shipped assets.
 - [x] Pipeline and directory ownership documentation mirror the revised contract.
 - [x] The full commit guardrail passes.
+- [x] Context-varying requirements retain one identity/mapping item per relevant named, omitted, default, or alias context.
+- [x] Every identity/mapping item retains one context identity and one observable result, with unresolved values allowed only on OPEN items.
+- [x] The verifier rejects missing exhaustive-context coverage, cross-surface mapping fields, merged mapping/blocker joins, and uncited repository closure.
+- [x] The generic READY control and the full commit guardrail pass after the attempt-2 refinement.
 
 ---
 

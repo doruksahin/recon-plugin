@@ -13,6 +13,7 @@
 | SPEC-01KZ69A6YY6Z5MTW88XP815WJ7 | Persistent Improvement Loop | implemented | 2026-08-04 |
 | SPEC-01KZ6BVHVD97DS1GXK3XZMB1S7 | Persistent Improvement Loop Hardening | implemented | 2026-08-04 |
 | SPEC-01KZ6FJX3SGZVDAWA2M64H1E94 | Recon System Map | implemented | 2026-08-04 |
+| SPEC-01KZ6G03YXFQTB46GFQ4R5X9VY | Fail-Closed Commit Guardrail | implemented | 2026-08-04 |
 | SPEC-01KZ6GYNQQXY7EQEDC4M4JFP88 | Recon 0.22.0 Normative Requirement Closure | implemented | 2026-08-04 |
 
 <!-- GENERATED:decree-graph — do not edit below this line -->

@@ -2,7 +2,7 @@
 
 **Document**: `decree/spec/reliability/evidence/spec-01kz69a6yy6z5mtw88xp815wj7-persistent-improvement-loop.md`
 **Transitioned to `implemented` on**: 2026-08-04
-**Generated**: 2026-08-04T11:49:48Z
+**Generated**: 2026-08-04T16:07:11Z
 **Total documents in chain**: 2
 
 ## Document chain

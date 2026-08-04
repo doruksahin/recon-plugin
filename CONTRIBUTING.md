@@ -117,11 +117,13 @@ tools/cz.sh bump --changelog --dry-run
 git config core.hooksPath .githooks
 ```
 
-That wires both hooks: `pre-commit` runs `tools/check-links.sh` (docs pointing at
-files that do not exist), `commit-msg` runs `tools/check-commit-msg.sh` (subjects
-that would not reach the changelog). Both warn instead of blocking when their
-tooling is missing, so a fresh clone can still commit. Bypass either once with
-`git commit --no-verify`.
+That wires both hooks: `pre-commit` runs the fail-closed
+`tools/pre-commit-check.sh` rail (staged diff, local references, generated
+views, universal controls, and Decree records), while `commit-msg` runs
+`tools/check-commit-msg.sh` (subjects that would not reach the changelog).
+Install `uv` before committing; missing required local tooling blocks the
+pre-commit rail. Do not bypass normal checks with `git commit --no-verify`;
+CI and branch protection remain the remote enforcement boundary.
 
 Commitizen is resolved by `tools/cz.sh` — an installed `cz` if you have one,
 otherwise `uvx`, which needs no install.
