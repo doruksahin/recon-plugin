@@ -308,30 +308,75 @@ def quote_corpus(ticket_path, errors):
     return corpus, markers
 
 
-def read_repository_evidence(source_root, path_value):
-    """Return UTF-8 lines from a regular in-root file without symlink traversal."""
+def read_repository_evidence(source_root, path_value, _after_fstat=None):
+    """Read one regular UTF-8 file through a descriptor-rooted no-follow walk."""
     relative = Path(path_value)
-    candidate = source_root / relative
-    current = source_root
-    try:
-        for part in relative.parts:
-            current = current / part
-            if stat.S_ISLNK(current.lstat().st_mode):
-                return None, f"file evidence path contains a symlink: {path_value}"
-    except (FileNotFoundError, NotADirectoryError, OSError):
-        return None, f"file evidence path is not a regular file: {path_value}"
+    parts = relative.parts
+    opened = []
+    directory_flags = (os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+                       | getattr(os, "O_CLOEXEC", 0))
+    file_flags = (os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_NONBLOCK", 0)
+                  | getattr(os, "O_CLOEXEC", 0))
+
+    def inspect_entry(parent_fd, name):
+        try:
+            return os.stat(name, dir_fd=parent_fd, follow_symlinks=False), None
+        except (FileNotFoundError, NotADirectoryError, OSError):
+            return None, f"file evidence path is not a regular file: {path_value}"
 
     try:
-        resolved_candidate = candidate.resolve(strict=True)
-        resolved_candidate.relative_to(source_root)
-    except (FileNotFoundError, NotADirectoryError, OSError, ValueError):
-        return None, f"file evidence path escapes RECON_SOURCE_ROOT: {path_value}"
-    if not resolved_candidate.is_file():
-        return None, f"file evidence path is not a regular file: {path_value}"
-    try:
-        return resolved_candidate.read_text(encoding="utf-8").splitlines(), None
-    except (OSError, UnicodeError):
-        return None, f"file evidence path is not a readable UTF-8 file: {path_value}"
+        current_fd = os.open(source_root, directory_flags)
+        opened.append(current_fd)
+        for part in parts[:-1]:
+            entry, error = inspect_entry(current_fd, part)
+            if error:
+                return None, error
+            if stat.S_ISLNK(entry.st_mode):
+                return None, f"file evidence path contains a symlink: {path_value}"
+            if not stat.S_ISDIR(entry.st_mode):
+                return None, f"file evidence path is not a regular file: {path_value}"
+            try:
+                current_fd = os.open(part, directory_flags, dir_fd=current_fd)
+            except OSError:
+                return None, f"file evidence path could not be opened safely: {path_value}"
+            opened.append(current_fd)
+
+        leaf = parts[-1] if parts else "."
+        entry, error = inspect_entry(current_fd, leaf)
+        if error:
+            return None, error
+        if stat.S_ISLNK(entry.st_mode):
+            return None, f"file evidence path contains a symlink: {path_value}"
+        if not stat.S_ISREG(entry.st_mode):
+            return None, f"file evidence path is not a regular file: {path_value}"
+        try:
+            file_fd = os.open(leaf, file_flags, dir_fd=current_fd)
+        except OSError:
+            return None, f"file evidence path could not be opened safely: {path_value}"
+        opened.append(file_fd)
+        if not stat.S_ISREG(os.fstat(file_fd).st_mode):
+            return None, f"file evidence path is not a regular file: {path_value}"
+        if _after_fstat is not None:
+            _after_fstat()
+
+        chunks = []
+        while True:
+            chunk = os.read(file_fd, 65536)
+            if not chunk:
+                break
+            chunks.append(chunk)
+        try:
+            return b"".join(chunks).decode("utf-8").splitlines(), None
+        except UnicodeDecodeError:
+            return None, f"file evidence path is not a readable UTF-8 file: {path_value}"
+    except OSError:
+        return None, f"file evidence path could not be opened safely: {path_value}"
+    finally:
+        for descriptor in reversed(opened):
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
 
 
 def check_evidence_entries(entries, where, corpus, markers, errors, source_root):

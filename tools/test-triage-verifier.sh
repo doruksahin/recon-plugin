@@ -321,6 +321,47 @@ ln -s "$TMP/file-symlink-ancestor/outside" "$TMP/file-symlink-ancestor/source/li
 perl -0pi -e 's/path: "mapping.txt"/path: "linked\/mapping.txt"/' "$TMP/file-symlink-ancestor/TEST-1/triage/triage.yaml"
 expect_fail 'file evidence path contains a symlink: linked/mapping.txt' env RECON_ROOT="$TMP/file-symlink-ancestor" RECON_SOURCE_ROOT="$TMP/file-symlink-ancestor/source" bash "$VERIFY" TEST-1
 
+cp -R "$TMP/blocked" "$TMP/file-non-regular"
+rm "$TMP/file-non-regular/source/mapping.txt"
+mkdir "$TMP/file-non-regular/source/mapping.txt"
+expect_fail 'file evidence path is not a regular file: mapping.txt' env RECON_ROOT="$TMP/file-non-regular" RECON_SOURCE_ROOT="$TMP/file-non-regular/source" bash "$VERIFY" TEST-1
+
+cp -R "$TMP/blocked" "$TMP/file-invalid-utf8"
+printf '\377\n' >"$TMP/file-invalid-utf8/source/mapping.txt"
+expect_fail 'file evidence path is not a readable UTF-8 file: mapping.txt' env RECON_ROOT="$TMP/file-invalid-utf8" RECON_SOURCE_ROOT="$TMP/file-invalid-utf8/source" bash "$VERIFY" TEST-1
+
+PYTHONDONTWRITEBYTECODE=1 python3 - "$ROOT/recon/scripts/triage-tools.py" "$TMP" <<'PY'
+import importlib.util
+import os
+import sys
+from pathlib import Path
+
+module_path = Path(sys.argv[1])
+tmp = Path(sys.argv[2]) / "descriptor-swap"
+source = tmp / "source"
+outside = tmp / "outside.txt"
+source.mkdir(parents=True)
+leaf = source / "mapping.txt"
+leaf.write_text("repository mapping closes this technical choice\n", encoding="utf-8")
+outside.write_text("attacker-controlled external bytes\n", encoding="utf-8")
+
+spec = importlib.util.spec_from_file_location("triage_tools", module_path)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+
+def replace_leaf_after_fstat():
+    leaf.unlink()
+    leaf.symlink_to(outside)
+
+lines, error = module.read_repository_evidence(
+    source.resolve(), "mapping.txt", _after_fstat=replace_leaf_after_fstat
+)
+if error or lines != ["repository mapping closes this technical choice"]:
+    raise SystemExit(f"descriptor swap control failed: lines={lines!r} error={error!r}")
+if not leaf.is_symlink():
+    raise SystemExit("descriptor swap control did not interpose the pathname replacement")
+PY
+
 cp -R "$TMP/blocked" "$TMP/repository-without-file"
 perl -0pi -e 's/      - kind: file\n        path: "mapping.txt"\n        line: 1\n        text: "repository mapping closes this technical choice"/      - kind: note\n        text: "repository search suggested a likely mapping"/' "$TMP/repository-without-file/TEST-1/triage/triage.yaml"
 expect_fail 'CLOSED_BY_REPOSITORY requires cited file evidence' env RECON_ROOT="$TMP/repository-without-file" RECON_SOURCE_ROOT="$TMP/repository-without-file/source" bash "$VERIFY" TEST-1
@@ -337,4 +378,4 @@ if rg -ni --glob 'SKILL.md' --glob 'triage-tools.py' 'ATT-4845|stock image|produ
   fail "case-specific oracle vocabulary leaked into shipped triage assets"
 fi
 
-echo 'triage verifier controls: clean'
+echo 'triage verifier controls: clean — descriptor swap, clean file, symlink, type, and UTF-8 cases covered'

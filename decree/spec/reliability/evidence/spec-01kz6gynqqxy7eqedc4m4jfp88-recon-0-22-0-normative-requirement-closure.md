@@ -94,6 +94,17 @@ mapping-field surface rules, OPEN/resolved consistency, distinct-context
 blocker linkage, and repository-closure file evidence. The existing generic
 READY fixture remains unchanged in disposition and continues to pass.
 
+### Descriptor-bound repository evidence hardening
+
+Repository file evidence is opened relative to the verified source-root
+directory descriptor. Every descendant directory and the final leaf use
+non-following open semantics; the verifier checks the exact opened leaf with
+`fstat` and decodes bytes read from that same descriptor. It never reopens the
+pathname after validation. Deterministic controls replace the leaf after
+descriptor validation and prove the original opened bytes remain authoritative,
+while symlink leaves/ancestors, non-regular files, and invalid UTF-8 fail with
+verifier diagnostics rather than tracebacks.
+
 ## Acceptance Criteria
 
 - [x] Triage guidance inventories every normative requirement and explicitly audits identity/mapping, ownership/update path, thresholds, and ordering.
@@ -107,3 +118,4 @@ READY fixture remains unchanged in disposition and continues to pass.
 - [x] Every identity/mapping item retains one context identity and one observable result, with unresolved values allowed only on OPEN items.
 - [x] The verifier rejects missing exhaustive-context coverage, cross-surface mapping fields, merged mapping/blocker joins, and uncited repository closure.
 - [x] The generic READY control and the full commit guardrail pass after the attempt-2 refinement.
+- [x] Repository file evidence is read from one descriptor-rooted no-follow chain, with deterministic swap, symlink, type, decode, and clean-file controls.
