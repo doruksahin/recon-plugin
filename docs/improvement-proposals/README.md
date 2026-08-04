@@ -7,7 +7,7 @@ them. The path is the durable ID:
 The directory name is evidence identity, not published-version history. When
 multiple unreleased cohorts land together, the release rail derives the actual
 next SemVer from Git and the records keep their original paths. Cohorts v0.19.0
-through v0.22.0 are therefore consolidated into the v0.19.0 release candidate;
+through v0.22.0 were therefore consolidated into the v0.19.0 release;
 v0.20.0, v0.21.0, and v0.22.0 are not skipped releases or upgrade steps.
 
 Read [CLAUDE.md](CLAUDE.md) before adding or changing a record. In particular,
@@ -37,10 +37,10 @@ evidence needs semantic or visual interpretation.
 | [v0.16.0](0.16.0/README.md) | released | 1 | Recorded repro runtime and proof package |
 | v0.17.0 | released | 0 | Gate exchange records |
 | [v0.18.0](0.18.0/README.md) | released | 1 | Approved READY delivery to Jira with dossier and evidence bundle |
-| [v0.19.0](0.19.0/README.md) | release candidate (v0.19.0) | 1 | Frozen real-ticket replay and distinct decision-coverage scoring |
-| [v0.20.0](0.20.0/README.md) | release candidate (v0.19.0) | 1 | Offline-valid prepared replay verification |
-| [v0.21.0](0.21.0/README.md) | release candidate (v0.19.0) | 1 | Generic evidence-backed decision closure |
-| [v0.22.0](0.22.0/README.md) | release candidate (v0.19.0) | 1 | Durable requirement-closure improvement loop |
+| [v0.19.0](0.19.0/README.md) | released (v0.19.0) | 1 | Frozen real-ticket replay and distinct decision-coverage scoring |
+| [v0.20.0](0.20.0/README.md) | released (v0.19.0) | 1 | Offline-valid prepared replay verification |
+| [v0.21.0](0.21.0/README.md) | released (v0.19.0) | 1 | Generic evidence-backed decision closure |
+| [v0.22.0](0.22.0/README.md) | released (v0.19.0) | 1 | Durable requirement-closure improvement loop |
 
 ## v0.15 verified company chain
 
