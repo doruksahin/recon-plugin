@@ -18,8 +18,15 @@ A multi-harness **agent plugin** shipping one workflow, `recon` — a determinis
 - `recon/docs/pipeline.md` — the machine spec: state machine, invariants, artifact registry mirror, trigger tables, the binding Change protocol
 - `recon/docs/registry.yaml` — THE artifact registry (single source; `lint-workspace.sh` executes it)
 - `tools/` — repo tooling: link check, coherence check, commit-msg check, commitizen wrapper, release
+- `docs/agent-behavior/` — binding outcome-first operating contract for agent proposals, skill iteration, evidence, and live demonstrations
 
 Each of `recon/scripts/`, `recon/docs/`, `recon/skills/`, `tools/`, and `docs/` carries its own `CLAUDE.md` with a role line per file — enforced by the coherence check, so read the local one before editing in a directory.
+
+Before proposing or changing Recon behavior, read
+[`docs/agent-behavior/README.md`](docs/agent-behavior/README.md), then follow its
+progressive-disclosure router. Do not preload that whole tree. Do not call a
+change an improvement until the routed playbook shows the claim is bounded by
+retained, rerunnable evidence from the task class it concerns.
 
 ## Improvement-proposal records
 

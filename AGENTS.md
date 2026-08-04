@@ -6,6 +6,14 @@ historical name, it is the repository-wide editor contract. Also read the
 nearest directory-level `CLAUDE.md` before changing files in `recon/skills/`,
 `recon/scripts/`, `recon/docs/`, `tools/`, or `docs/`.
 
+Read [`docs/agent-behavior/README.md`](docs/agent-behavior/README.md) before
+proposing or changing Recon behavior. It is the binding operating mentality for
+agent work in this repository: start from an observed task outcome, prefer
+deterministic rails, separate claims from evidence, and do not call an idea an
+improvement until a rerunnable demonstration proves it. Apply it without waiting
+for the user to repeat these expectations. Follow its progressive-disclosure
+router and load only the principle, playbook, or example relevant to the work.
+
 The architectural decision is
 `ADR-01KZ0ZK4WYVWRY0WJM2CZ7ZS8C` under `decree/adr/architecture/`.
 
