@@ -21,6 +21,7 @@ A multi-harness **agent plugin** shipping one workflow, `recon` — a determinis
 - `evals/skills/recon-replay-lab/` — repository-local LLM operator workflow for prepare → fresh-context handoff → resume → retained evaluation; it routes the lab but never owns parsing, scoring, or state
 - `evals/skills/recon-improvement-loop/` — repository-local operator workflow for durable proposal iteration; it routes only from retained improvement evidence and never ships in the plugin
 - `docs/replay-lab-report.html` — generated, drift-checked visual operator report for the laboratory; owned by `tools/render-replay-lab-report.py`, never hand-edited
+- `docs/system-map.html` — generated, drift-checked maintainer overview separating the shipped runtime, replay laboratory, and improvement loop; owned by `tools/render-system-map.py`, never hand-edited
 - `tools/` — repo tooling: link check, coherence check, commit-msg check, commitizen wrapper, release
 - `docs/agent-behavior/` — binding outcome-first operating contract for agent proposals, skill iteration, evidence, and live demonstrations
 

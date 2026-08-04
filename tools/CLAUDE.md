@@ -25,6 +25,8 @@ recon pipeline run. Adding a file here without a role line below fails
 | `test-replay-lab-report.sh` | Structural report gate: generated-byte parity, section and navigation targets, in-repository references, copy targets, seven decision cards, required control diagnostics, no remote assets, and desktop/narrow/print responsive contracts. |
 | `improvement-cycle.py` | Repository-only improvement rail: validated fixed experiment contracts, comparable immutable attempt captures, retained comparison/review decisions, retry state, fail-closed acceptance, and generic deterministic proposal HTML rendering/checking. |
 | `test-improvement-cycle.sh` | Isolated controls for experiment identity enforcement, result consistency, symlink/overwrite/tamper rejection, retained compare/review lifecycle, retry attempts, generic rendering, state-first routing, and frozen baseline invariance. |
+| `render-system-map.py` | Generated-view owner for `docs/system-map.html`: resolves source references and hashes, derives current improvement state, and fails `--check` on any byte drift. |
+| `test-system-map.sh` | Structural and drift controls for the system map: required three-layer explanation, public examples, oracle non-leakage, and generated-byte parity. |
 
 Both check scripts run from `.githooks/pre-commit` (enable per clone:
 `git config core.hooksPath .githooks`; bypass once with `--no-verify`).
