@@ -47,7 +47,8 @@ with the standard library and must round-trip byte-for-byte so impossible and
 noncanonical calendar values fail. Valid values return one canonical string.
 
 `parse_post_gate` assigns that canonical return value to the parsed `date`
-field before its semantic checks and before capture retains the artifact. No
+field before its semantic checks. The source gate is validated transiently;
+it is not a capture artifact because the schema excludes `triage/jira/`. No
 generic recursive YAML coercion is introduced, and no unrelated fields change
 their accepted types. The stable field-specific failure diagnostic is
 `workspace post-gate date must be YYYY-MM-DD`.
@@ -71,8 +72,10 @@ and immutable-write behavior stays unchanged.
 Update the isolated posting-gate producer in `tools/test-version-review.sh` to
 write the date scalar unquoted exactly as Recon runtime does. Assert directly
 that `yaml.safe_load` returns concrete `datetime.date`, then let the ordinary
-complete lifecycle capture that workspace successfully and verify the copied
-posting-gate document still represents the same canonical date.
+complete lifecycle capture that workspace successfully. Direct validator
+assertions prove canonical string normalization, the receipt proves the
+declined capture path completed, and the allowlist assertion proves the source
+posting-gate document remains excluded.
 
 Add capture controls for an impossible calendar date, noncanonical string,
 malformed string, YAML datetime, and unrelated scalar types. Each must exit 2
@@ -85,7 +88,7 @@ checks, generated Decree mirrors, and `bash tools/pre-commit-check.sh`.
 
 - [x] A centralized strict date validator canonicalizes exact `YYYY-MM-DD` strings and concrete `datetime.date` values to strings.
 - [x] The validator rejects impossible, noncanonical, malformed, datetime, and unrelated values with the stable date diagnostic.
-- [x] The full lifecycle fixture uses the actual unquoted producer posting-gate date, proves PyYAML returns `datetime.date`, and completes capture.
+- [x] The full lifecycle fixture uses the actual unquoted producer posting-gate date, proves strict date normalization, completes declined capture, and keeps the source gate excluded.
 - [x] Every failed date capture leaves no run destination and preserves timestamp, privacy, identity, Jira, lifecycle, and integrity controls.
 - [x] `bash tools/test-version-review.sh` and `bash tools/pre-commit-check.sh` pass.
 - [x] Decree lint, progress, intent-check, generated index, and completion report agree with the implemented change.

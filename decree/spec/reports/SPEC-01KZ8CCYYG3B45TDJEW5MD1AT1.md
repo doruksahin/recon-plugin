@@ -2,7 +2,7 @@
 
 **Document**: `decree/spec/reliability/evidence/spec-01kz8ccyyg3b45tdjew5md1at1-version-review-yaml-date-compatibility.md`
 **Transitioned to `implemented` on**: 2026-08-05
-**Generated**: 2026-08-05T07:22:18Z
+**Generated**: 2026-08-05T07:37:01Z
 **Total documents in chain**: 2
 
 ## Document chain
@@ -18,7 +18,7 @@
 
 - [x] A centralized strict date validator canonicalizes exact `YYYY-MM-DD` strings and concrete `datetime.date` values to strings.
 - [x] The validator rejects impossible, noncanonical, malformed, datetime, and unrelated values with the stable date diagnostic.
-- [x] The full lifecycle fixture uses the actual unquoted producer posting-gate date, proves PyYAML returns `datetime.date`, and completes capture.
+- [x] The full lifecycle fixture uses the actual unquoted producer posting-gate date, proves strict date normalization, completes declined capture, and keeps the source gate excluded.
 - [x] Every failed date capture leaves no run destination and preserves timestamp, privacy, identity, Jira, lifecycle, and integrity controls.
 - [x] `bash tools/test-version-review.sh` and `bash tools/pre-commit-check.sh` pass.
 - [x] Decree lint, progress, intent-check, generated index, and completion report agree with the implemented change.
