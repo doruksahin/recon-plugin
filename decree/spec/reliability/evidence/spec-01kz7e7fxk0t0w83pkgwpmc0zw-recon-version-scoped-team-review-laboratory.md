@@ -3,6 +3,8 @@ date: '2026-08-05'
 governs:
 - AGENTS.md
 - CLAUDE.md
+- README.md
+- lychee.toml
 - evals/AGENTS.md
 - evals/CLAUDE.md
 - evals/README.md
@@ -11,6 +13,7 @@ governs:
 - evals/version-reviews/
 - tools/version-review.py
 - tools/test-version-review.sh
+- tools/check-links.sh
 - tools/check-coherence.sh
 - tools/CLAUDE.md
 - docs/plans/2026-08-05-version-scoped-team-review-laboratory.md
@@ -20,7 +23,14 @@ governs:
 - tools/test-system-map.sh
 - docs/system-map.html
 - docs/replay-lab-report.html
+- docs/flow.html
 - docs/CLAUDE.md
+- recon/docs/workspace-index.md
+- docs/improvement-proposals/0.18.0/ready-jira-delivery/README.md
+- docs/improvement-proposals/0.19.0/real-ticket-replay-lab/README.md
+- docs/improvement-proposals/0.20.0/offline-valid-replay-verification/README.md
+- docs/improvement-proposals/0.21.0/decision-closure-triage/README.md
+- docs/improvement-proposals/0.22.0/requirement-closure-coverage/README.md
 id: SPEC-01KZ7E7FXK0T0W83PKGWPMC0ZW
 references:
 - ADR-01KZ0ZK4WYVWRY0WJM2CZ7ZS8C
@@ -150,6 +160,31 @@ declared no-Jira-delivery review flow while keeping raw Jira source material
 out of the public repository. The external review root is still private and
 may contain quoted ticket information already rendered in the dossier.
 
+### 2026-08-05 amendment: canonical ownership and private Git storage
+
+The company-owned canonical source is `AdCreative-ai/recon-plugin`; the public
+`doruksahin/recon-plugin` repository is its personal-profile fork. Canonical
+install, source, release, historical PR, and generated flow links point to the
+organization repository. The fork remains a distribution and portfolio mirror,
+never the review evidence store.
+
+Live review evidence belongs to a distinct private GitHub repository, initially
+`AdCreative-ai/recon-team-reviews`. Before `init`, the rail proves that the
+operator-supplied review root is the top level of a real Git worktree, its
+`origin` resolves to a GitHub `owner/repository` identity, the identity is not
+the canonical or personal public plugin repository, and a live `gh repo view`
+reports `PRIVATE`. It pins provider, repository identity, visibility, remote,
+and verification time under `version.yaml.storage`.
+
+Every later mutating command revalidates the current worktree identity, origin,
+and live private visibility before writing. Read-only `state` and `validate`
+prove the local root/origin still match the pinned storage identity without
+requiring network access. A visibility change, remote swap, nested checkout,
+missing GitHub CLI, unavailable visibility lookup, public repository, or path
+inside the plugin source fails closed with exit 2 before any destination is
+created or replaced. Tests inject a fake `gh` executable through a bounded
+test-only environment override; production defaults to the real `gh` command.
+
 ### Routing and progressive disclosure
 
 Root and evaluation `AGENTS.md` files route version-review work to the
@@ -194,6 +229,15 @@ checked-in templates validate. `tools/check-coherence.sh` runs the focused
 control as a universal repository check. System-map generation and its focused
 test must render the new repository-only layer from live source references.
 
+The private-Git amendment adds controls for a clean private origin plus missing
+Git, nested root, plugin-contained root, malformed/non-GitHub origin, origin
+identity drift, unavailable `gh`, invalid visibility output, public visibility,
+and a repository that becomes public between lifecycle mutations. It also
+checks the pinned storage receipt, proves read-only state remains locally
+derivable after the live visibility command becomes unavailable, and clears
+inherited Git-hook repository variables before addressing the external review
+worktree so a hook cannot redirect or mutate the plugin repository.
+
 After focused controls, run links, coherence, adapters, all existing replay and
 improvement controls, Decree lint/progress, and `bash tools/pre-commit-check.sh`.
 Synthetic controls establish rail correctness only. A real workflow claim
@@ -212,6 +256,13 @@ plugin version, with retained private receipts and independent teammate input.
 - [x] Focused controls exercise the complete lifecycle and every bounded failure class, including no-overwrite and exception cleanup.
 - [x] Decree intent-check names this SPEC as authoritative for every changed path, and Decree lint/progress pass.
 - [x] The full pre-commit guardrail passes without modifying shipped Recon runtime, plugin versions, retained replay evidence, or published artifacts.
+- [x] Canonical install, source, flow, release, PR, and commit links resolve through `AdCreative-ai/recon-plugin`, while `doruksahin/recon-plugin` remains its public fork.
+- [x] `init` accepts only a top-level private GitHub review repository outside the plugin source and pins its verified storage identity in `version.yaml`.
+- [x] Every version-review mutation revalidates live private visibility and fails before writes when Git, origin, identity, visibility lookup, or privacy drifts.
+- [x] Read-only `state` and `validate` remain network-independent while proving the local worktree and origin match the pinned storage identity.
+- [x] Focused controls cover clean private storage, public and malformed origins, nested/plugin roots, lookup failure, identity drift, privacy drift, and no-partial-write behavior.
+- [x] `AdCreative-ai/recon-team-reviews` is private, initialized at `versions/v0.19.0`, and contains only generic cycle metadata before live ticket capture.
+- [x] The amended generated views, Decree completion report, links, coherence controls, and full pre-commit guardrail pass.
 
 ### Deferred
 

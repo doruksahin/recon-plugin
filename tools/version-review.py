@@ -9,10 +9,12 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
+from urllib.parse import urlparse
 
 import yaml
 
@@ -30,6 +32,21 @@ SAFE_ID = re.compile(r"[A-Za-z0-9]+(?:[-_.][A-Za-z0-9]+)*\Z")
 TICKET_ID = re.compile(r"[A-Za-z][A-Za-z0-9]*-[0-9]+\Z")
 FINDING_ID = re.compile(r"[A-Z]+-[0-9]+\Z")
 UTC_STAMP = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\Z")
+GITHUB_REPOSITORY = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\Z")
+PUBLIC_PLUGIN_REPOSITORIES = {
+    "adcreative-ai/recon-plugin",
+    "doruksahin/recon-plugin",
+}
+GH_COMMAND = os.environ.get("RECON_VERSION_REVIEW_GH", "gh")
+GIT_LOCAL_ENVIRONMENT = {
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_COMMON_DIR",
+    "GIT_DIR",
+    "GIT_INDEX_FILE",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_PREFIX",
+    "GIT_WORK_TREE",
+}
 
 
 class ReviewError(Exception):
@@ -264,6 +281,141 @@ def require_review_root(path: Path) -> Path:
     return require_real_directory(path, "review root")
 
 
+def command_output(command: list[str], label: str, *, environment: dict | None = None) -> str:
+    try:
+        result = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            env=environment,
+        )
+    except OSError as exc:
+        fail(f"{label} is unavailable: {exc}")
+    if result.returncode:
+        detail = (result.stderr or result.stdout).strip()
+        fail(f"{label} failed" + (f": {detail}" if detail else ""))
+    return result.stdout.strip()
+
+
+def local_git_environment() -> dict:
+    environment = os.environ.copy()
+    for name in GIT_LOCAL_ENVIRONMENT:
+        environment.pop(name, None)
+    return environment
+
+
+def github_repository_from_remote(remote: str) -> str:
+    value = remote.strip().rstrip("/")
+    path = ""
+    if value.startswith("git@github.com:"):
+        path = value.removeprefix("git@github.com:")
+    else:
+        parsed = urlparse(value)
+        if parsed.scheme not in {"https", "ssh"} or parsed.hostname != "github.com":
+            fail("review root origin must be a GitHub HTTPS or SSH remote")
+        path = parsed.path.lstrip("/")
+    if path.endswith(".git"):
+        path = path[:-4]
+    if not GITHUB_REPOSITORY.fullmatch(path):
+        fail("review root origin must identify one GitHub owner/repository")
+    return path
+
+
+def local_storage_identity(review_root: Path) -> dict:
+    try:
+        review_root.relative_to(REPO_ROOT.resolve(strict=True))
+    except ValueError:
+        pass
+    else:
+        fail("review root must be outside the Recon plugin repository")
+    top_level = command_output(
+        ["git", "-C", str(review_root), "rev-parse", "--show-toplevel"],
+        "review root Git worktree lookup",
+        environment=local_git_environment(),
+    )
+    try:
+        top = Path(top_level).resolve(strict=True)
+    except OSError as exc:
+        fail(f"review root Git top level is invalid: {exc}")
+    if top != review_root:
+        fail("review root must be the top level of its Git worktree")
+    remote = command_output(
+        ["git", "-C", str(review_root), "config", "--get", "remote.origin.url"],
+        "review root origin lookup",
+        environment=local_git_environment(),
+    )
+    repository = github_repository_from_remote(remote)
+    if repository.casefold() in PUBLIC_PLUGIN_REPOSITORIES:
+        fail("public Recon plugin repositories cannot store live review evidence")
+    return {"provider": "github", "repository": repository, "remote": remote}
+
+
+def live_private_storage(review_root: Path, expected: dict | None = None) -> dict:
+    local = local_storage_identity(review_root)
+    if expected is not None:
+        for field in ("provider", "repository", "remote"):
+            if local[field] != expected[field]:
+                fail(f"review root storage {field} drift")
+    raw = command_output(
+        [
+            GH_COMMAND,
+            "repo",
+            "view",
+            local["repository"],
+            "--json",
+            "nameWithOwner,visibility,url",
+        ],
+        "GitHub private-repository lookup",
+    )
+    try:
+        details = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        fail(f"GitHub private-repository lookup returned invalid JSON: {exc}")
+    if not isinstance(details, dict):
+        fail("GitHub private-repository lookup must return an object")
+    require_exact_keys(details, {"nameWithOwner", "visibility", "url"}, "GitHub repository")
+    repository = require_nonempty(details["nameWithOwner"], "GitHub repository nameWithOwner")
+    if repository.casefold() != local["repository"].casefold():
+        fail("GitHub repository identity disagrees with review root origin")
+    if details["visibility"] != "PRIVATE":
+        fail("review repository must have PRIVATE GitHub visibility")
+    require_nonempty(details["url"], "GitHub repository url")
+    return {
+        **local,
+        "repository": repository,
+        "visibility": "PRIVATE",
+        "verified_at": now_utc(),
+    }
+
+
+def validate_local_storage(review_root: Path, value: object) -> dict:
+    if not isinstance(value, dict):
+        fail("version.yaml storage must be an object")
+    require_exact_keys(
+        value,
+        {"provider", "repository", "visibility", "remote", "verified_at"},
+        "version.yaml storage",
+    )
+    if value["provider"] != "github" or value["visibility"] != "PRIVATE":
+        fail("version.yaml storage provider/visibility is invalid")
+    repository = require_nonempty(value["repository"], "version.yaml storage.repository")
+    if not GITHUB_REPOSITORY.fullmatch(repository):
+        fail("version.yaml storage.repository must be owner/repository")
+    require_nonempty(value["remote"], "version.yaml storage.remote")
+    require_timestamp(value["verified_at"], "version.yaml storage.verified_at")
+    local = local_storage_identity(review_root)
+    for field in ("provider", "repository", "remote"):
+        if local[field] != value[field]:
+            fail(f"review root storage {field} drift")
+    return value
+
+
+def reverify_mutation_storage(review_root: Path, version_doc: dict) -> None:
+    live_private_storage(review_root, version_doc["storage"])
+
+
 def safe_id(value: object, label: str) -> str:
     if not isinstance(value, str) or not SAFE_ID.fullmatch(value):
         fail(f"{label} must use letters, numbers, dash, underscore, or dot")
@@ -285,6 +437,7 @@ def load_cycle(review_root_arg: Path, version_arg: str) -> tuple[Path, dict, dic
     required = {
         "schema_version",
         "plugin",
+        "storage",
         "status",
         "opened_at",
         "closed_at",
@@ -307,6 +460,7 @@ def load_cycle(review_root_arg: Path, version_arg: str) -> tuple[Path, dict, dic
     if version_doc["closed_at"] is not None:
         require_timestamp(version_doc["closed_at"], "version.yaml closed_at")
     require_list(version_doc["non_claims"], "version.yaml non_claims", nonempty=True)
+    validate_local_storage(review_root, version_doc["storage"])
     contract = version_doc["contract"]
     if not isinstance(contract, dict):
         fail("version.yaml contract must be an object")
@@ -831,6 +985,7 @@ def command_init(args: argparse.Namespace) -> None:
         fail("plugin tag must equal v<plugin-version>")
     commit = require_object_id(args.plugin_commit, "plugin commit")
     opened_at = require_timestamp(args.opened_at or now_utc(), "opened_at")
+    storage = live_private_storage(review_root)
     schema = load_source_schema()
     versions_dir = review_root / "versions"
     require_no_symlinks(versions_dir, "versions directory")
@@ -851,6 +1006,7 @@ def command_init(args: argparse.Namespace) -> None:
         version_doc = {
             "schema_version": 1,
             "plugin": {"version": version, "tag": args.plugin_tag, "commit": commit},
+            "storage": storage,
             "status": "COLLECTING",
             "opened_at": opened_at,
             "closed_at": None,
@@ -896,6 +1052,7 @@ def parse_post_gate(path: Path) -> str:
 
 def command_capture(args: argparse.Namespace) -> None:
     version_dir, version_doc, schema = load_cycle(Path(args.review_root), args.plugin_version)
+    reverify_mutation_storage(require_review_root(Path(args.review_root)), version_doc)
     if version_doc["status"] != "COLLECTING":
         fail("capture is allowed only while the version cycle is COLLECTING")
     workspace = require_real_directory(Path(args.workspace), "source workspace")
@@ -999,6 +1156,7 @@ def update_status(version_dir: Path, version_doc: dict, schema: dict, target: st
 
 def command_begin_review(args: argparse.Namespace) -> None:
     state = validate_cycle(Path(args.review_root), args.plugin_version)
+    reverify_mutation_storage(require_review_root(Path(args.review_root)), state["version"])
     if state["version"]["status"] != "COLLECTING":
         fail("begin-review requires COLLECTING state")
     if not state["runs"]:
@@ -1017,6 +1175,7 @@ def find_run(state: dict, ticket: str, run_id: str) -> dict:
 
 def command_add_review(args: argparse.Namespace) -> None:
     state = validate_cycle(Path(args.review_root), args.plugin_version)
+    reverify_mutation_storage(require_review_root(Path(args.review_root)), state["version"])
     if state["version"]["status"] != "REVIEWING":
         fail("add-review requires REVIEWING state")
     source = read_yaml(Path(args.source), "authored review")
@@ -1035,6 +1194,7 @@ def command_add_review(args: argparse.Namespace) -> None:
 
 def command_add_consensus(args: argparse.Namespace) -> None:
     state = validate_cycle(Path(args.review_root), args.plugin_version)
+    reverify_mutation_storage(require_review_root(Path(args.review_root)), state["version"])
     if state["version"]["status"] != "REVIEWING":
         fail("add-consensus requires REVIEWING state")
     source = read_yaml(Path(args.source), "authored consensus")
@@ -1057,6 +1217,7 @@ def command_add_consensus(args: argparse.Namespace) -> None:
 
 def command_synthesize(args: argparse.Namespace) -> None:
     state = validate_cycle(Path(args.review_root), args.plugin_version)
+    reverify_mutation_storage(require_review_root(Path(args.review_root)), state["version"])
     if state["version"]["status"] != "REVIEWING":
         fail("synthesize requires REVIEWING state")
     if not state["runs"] or any(run["consensus"] is None for run in state["runs"]):
@@ -1091,6 +1252,7 @@ def command_synthesize(args: argparse.Namespace) -> None:
 
 def command_close(args: argparse.Namespace) -> None:
     state = validate_cycle(Path(args.review_root), args.plugin_version)
+    reverify_mutation_storage(require_review_root(Path(args.review_root)), state["version"])
     if state["version"]["status"] != "SYNTHESIZED" or state["synthesis"] is None:
         fail("close requires SYNTHESIZED state")
     closure = validate_closure(
@@ -1192,7 +1354,7 @@ def command_validate(args: argparse.Namespace) -> None:
 STRUCTURE = """<review-root>/
   versions/
     vX.Y.Z/
-      version.yaml                  # rail-owned release identity + lifecycle
+      version.yaml                  # release/lifecycle + verified private-Git storage
       manifest.yaml                 # rail-generated run/review/consensus index
       contract/
         schema.yaml                 # pinned schema snapshot

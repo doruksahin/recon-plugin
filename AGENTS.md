@@ -32,7 +32,10 @@ The live review tree is private and external; its checked-in
 [`schema`](evals/version-reviews/schema.yaml),
 [`structure guide`](evals/version-reviews/README.md), and
 [`rail`](tools/version-review.py) are the non-drifting owners. Do not group the
-evidence by sprint or commit live ticket/report material under `evals/`.
+evidence by sprint or commit live ticket/report material under `evals/`. A live
+root must be the top level of a distinct private GitHub repository outside this
+source tree. Let the rail verify and pin that identity; never bypass its live
+privacy check or hand-edit its storage receipt.
 
 The architectural decision is
 `ADR-01KZ0ZK4WYVWRY0WJM2CZ7ZS8C` under `decree/adr/architecture/`.

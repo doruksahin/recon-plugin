@@ -7,7 +7,10 @@ sprint, never writes inside `$RECON_ROOT/<TICKET>/`, and never posts to Jira.
 The complete machine contract is [schema.yaml](schema.yaml). All mutations go
 through [tools/version-review.py](../../tools/version-review.py); agents start
 with the [version-review skill](../skills/recon-version-review/SKILL.md). The
-live review root is private and external to this repository.
+live review root is the top level of a distinct private GitHub repository and
+is external to this source repository. The initial team store is the private
+`AdCreative-ai/recon-team-reviews` repository; never place evidence in either
+the canonical public plugin repository or its public personal fork.
 
 ## External folder model
 
@@ -22,6 +25,13 @@ One published version owns one append-only cycle at
 `<review-root>/versions/vX.Y.Z/`. A ticket may have multiple immutable run IDs
 under that version. A later plugin version gets a new sibling directory; runs
 are never moved between versions.
+
+`init` verifies the local Git top level and `origin`, asks GitHub for the live
+visibility, and pins the verified repository identity in `version.yaml`.
+Every mutating command repeats the live privacy check before writing. `state`
+and `validate` intentionally use only the pinned identity plus local Git state,
+so teammates can inspect an existing cycle while GitHub is temporarily
+unavailable. A changed origin still fails closed.
 
 ## Evidence boundary
 

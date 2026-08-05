@@ -41,12 +41,14 @@ decisions. It is valid evidence, not something to repair or delete. Capture and
 review failed outcomes so the next attempt is based on observed behavior rather
 than cherry-picked successes.
 
-**Team-review cycle.** Initialize `versions/v0.19.0/` in a private external
-root, capture one immutable minimal dossier per ticket/run, then collect
-reviewer YAML against each retained report hash. The
+**Team-review cycle.** Initialize `versions/v0.19.0/` at the top level of a
+distinct private GitHub repository outside the plugin source, capture one
+immutable minimal dossier per ticket/run, then collect reviewer YAML against
+each retained report hash. The
 [schema](version-reviews/schema.yaml) owns fields and enums; the
-[rail](../tools/version-review.py) owns identities, indexes, hashes, and state.
-Sprint membership may be discussed in feedback, but never owns the folder.
+[rail](../tools/version-review.py) owns storage verification, identities,
+indexes, hashes, and state. Sprint membership may be discussed in feedback,
+but never owns the folder.
 
 ## Hard boundaries
 

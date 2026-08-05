@@ -21,7 +21,7 @@ A multi-harness **agent plugin** shipping one workflow, `recon` — a determinis
 - `evals/skills/recon-replay-lab/` — repository-local LLM operator workflow for prepare → fresh-context handoff → resume → retained evaluation; it routes the lab but never owns parsing, scoring, or state
 - `evals/skills/recon-improvement-loop/` — repository-local operator workflow for durable proposal iteration; it routes only from retained improvement evidence and never ships in the plugin
 - `evals/version-reviews/` — repository-only schema, templates, and linked structure contract for private team review cycles grouped by the actual published plugin version
-- `evals/skills/recon-version-review/` — repository-local operator workflow for capture → teammate review → consensus → cross-ticket synthesis → proposal routing; live evidence stays outside the repository
+- `evals/skills/recon-version-review/` — repository-local operator workflow for capture → teammate review → consensus → cross-ticket synthesis → proposal routing; live evidence stays in a distinct private GitHub repository outside this source tree
 - `docs/replay-lab-report.html` — generated, drift-checked visual operator report for the laboratory; owned by `tools/render-replay-lab-report.py`, never hand-edited
 - `docs/system-map.html` — generated, drift-checked maintainer overview separating the shipped runtime, private version review, replay laboratory, and improvement loop; owned by `tools/render-system-map.py`, never hand-edited
 - `tools/` — repo tooling: link check, coherence check, commit-msg check, commitizen wrapper, release
@@ -80,7 +80,7 @@ python3 tools/replay-ticket.py validate evals/cases/att-4845-pre-comment
 bash tools/test-replay-lab.sh
 python3 tools/render-replay-lab-report.py --check
 
-# Print and validate the private external team-review layout
+# Print and validate the private external GitHub team-review layout
 python3 tools/version-review.py structure
 bash tools/test-version-review.sh
 
@@ -133,6 +133,8 @@ history, owns the next action; it is likewise repository-only.
 For a version-scoped team-review request, route through
 `evals/skills/recon-version-review/SKILL.md`. Its external-root state rail owns
 the lifecycle; the checked-in schema and templates own the semantic interface.
-Do not use Jira comments as the review store and do not treat teammate feedback
-as improvement evidence until a bounded proposal enters the replay/improvement
-loop.
+The root must be the top level of a distinct private GitHub repository; each
+mutation rechecks live visibility, while `state` and `validate` remain locally
+derivable from the pinned identity. Do not use Jira comments as the review
+store and do not treat teammate feedback as improvement evidence until a
+bounded proposal enters the replay/improvement loop.

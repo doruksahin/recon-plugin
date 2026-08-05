@@ -40,7 +40,8 @@ allowed_action: add-review | add-consensus
 All v0.19.0 reports remain under `versions/v0.19.0/`, even when a selected
 theme later becomes a proposal or ships in another version. The rail rejects
 Jira mutation results, source/report identity drift, unknown review references,
-overwrites, and premature synthesis or closure.
+overwrites, premature synthesis or closure, non-Git/nested/public review roots,
+origin drift, and live GitHub privacy drift.
 
 ## Implementation sketch
 
@@ -52,10 +53,14 @@ overwrites, and premature synthesis or closure.
   derive the lifecycle from retained files.
 - Add focused controls, linked root/nested agent routers, and the generated
   system-map layer.
+- Require a distinct private GitHub repository, pin its origin and verified
+  visibility in the version cycle, recheck privacy before writes, and keep
+  read-only state derivation available offline.
 
 ## Deferred field evidence
 
-- A private shared-drive or private-repository synchronization mechanism is
-  deferred until the local version cycle is exercised on real team reviews.
+- Private synchronization is now concretely owned by
+  `AdCreative-ai/recon-team-reviews`; its workflow value still requires a real
+  team field trial.
 - Workflow value remains unproven until at least three representative private
   ticket reports receive independent teammate review.

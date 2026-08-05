@@ -20,6 +20,10 @@ then synthesize feedback and route only evidenced themes into Recon changes.
    version-review layer.
 6. Run focused tests, generated-view checks, Decree intent/lint/progress, and
    the full pre-commit guardrail.
+7. Move canonical source ownership to `AdCreative-ai/recon-plugin`, retain
+   `doruksahin/recon-plugin` as its public personal fork, and bind live review
+   evidence to a distinct private GitHub repository whose identity and
+   visibility the rail verifies before every write.
 
 ## Claim boundary
 

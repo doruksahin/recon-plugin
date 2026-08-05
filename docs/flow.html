@@ -185,7 +185,7 @@
 
   <header>
     <h1>RECON PIPELINE — FLOW</h1>
-    <p class="sub">Every step: <strong>WHO</strong> acts (rail = zero model freedom · judgment = evidence required · red = you) · <strong>IN</strong> → <strong>OUT</strong> · the <strong>RULE</strong> that binds it. Every file name links to the source of truth on GitHub — when in doubt, the repo wins, not this page. Machine spec: <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/docs/pipeline.md">pipeline.md</a>.</p>
+    <p class="sub">Every step: <strong>WHO</strong> acts (rail = zero model freedom · judgment = evidence required · red = you) · <strong>IN</strong> → <strong>OUT</strong> · the <strong>RULE</strong> that binds it. Every file name links to the source of truth on GitHub — when in doubt, the repo wins, not this page. Machine spec: <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/docs/pipeline.md">pipeline.md</a>.</p>
     <div class="legend">
       <span class="chip rail">RAIL</span>
       <span class="chip judge">JUDGMENT</span>
@@ -196,12 +196,12 @@
 
   <div class="stage">
     <h2>Stage 0–1 · Triage</h2>
-    <small>entry: Recon Triage ATT-1234 (host invocation rendered by reconctl) · skill: <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">recon-triage/SKILL.md</a></small>
+    <small>entry: Recon Triage ATT-1234 (host invocation rendered by reconctl) · skill: <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">recon-triage/SKILL.md</a></small>
   </div>
 
   <div class="step rail">
     <div class="step-h"><span class="step-no">START</span><h3>Atomic runtime contract</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/reconctl.sh">reconctl.sh start triage</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/reconctl.sh">reconctl.sh start triage</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span></dd>
       <dt>in</dt><dd>explicit <code>base|triage</code> profile + current host environment</dd>
@@ -212,7 +212,7 @@
 
   <div class="step rail">
     <div class="step-h"><span class="step-no">STEP 0</span><h3>Fresh workspace</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/fresh-workspace.sh">fresh-workspace.sh</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/fresh-workspace.sh">fresh-workspace.sh</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span></dd>
       <dt>in</dt><dd>ticket ID</dd>
@@ -223,7 +223,7 @@
 
   <div class="step rail">
     <div class="step-h"><span class="step-no">STEP 1</span><h3>Fetch &amp; partition</h3>
-      <span class="src">curl · Jira API v2 (<a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/docs/decisions/0001-jira-rest-api-over-mcp.md">why not MCP</a>)</span></div>
+      <span class="src">curl · Jira API v2 (<a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/docs/decisions/0001-jira-rest-api-over-mcp.md">why not MCP</a>)</span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span></dd>
       <dt>in</dt><dd>live ticket + linked resources (GET only)</dd>
@@ -234,7 +234,7 @@
 
   <div class="step judge">
     <div class="step-h"><span class="step-no">STEP 2</span><h3>Decision audit, then six checks</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">SKILL.md §2–3</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">SKILL.md §2–3</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-judge">judgment</span></dd>
       <dt>in</dt><dd>ticket.json + git/gh + fetched links</dd>
@@ -245,7 +245,7 @@
 
   <div class="step rail">
     <div class="step-h"><span class="step-no">STEP 3</span><h3>Verify the verdict</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-triage.sh">verify-triage.sh</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/verify-triage.sh">verify-triage.sh</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span> (new in v0.8.0)</dd>
       <dt>in</dt><dd><code>triage.yaml</code> + <code>ticket.json</code></dd>
@@ -256,23 +256,23 @@
 
   <div class="stage blocked">
     <h2>Posting path · Blocked / Needs_info</h2>
-    <small>v0.7.0, render rail v0.8.0 · short comment on the ticket, depth as attachments · invariants 13–15 in <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/docs/pipeline.md">pipeline.md</a></small>
+    <small>v0.7.0, render rail v0.8.0 · short comment on the ticket, depth as attachments · invariants 13–15 in <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/docs/pipeline.md">pipeline.md</a></small>
   </div>
 
   <div class="step judge">
     <div class="step-h"><span class="step-no">P1</span><h3>Structure the blockers</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">SKILL.md §step 4</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">SKILL.md §step 4</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-judge">judgment</span></dd>
       <dt>in</dt><dd>the failed checks</dd>
       <dt>out</dt><dd><code>blockers[]</code>: title · owner · <strong>owner_account_id</strong> · ask · detail <span class="sep">·</span> <code>aux-user-&lt;slug&gt;.json</code> (accountId lookups)</dd>
-      <dt>rule</dt><dd>ask = ONE sentence ending "?" <span class="sep">·</span> depth goes in <code>detail</code> <span class="sep">·</span> UI blocker → <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-repro/SKILL.md">recon-repro</a> then <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-repro.sh">verify-repro.sh</a> first <span class="sep">·</span> accountIds from user-search, never guessed — on duplicate names, prefer the account already on the ticket <span class="sep">·</span> re-run <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-triage.sh">verify-triage.sh</a> until clean</dd>
+      <dt>rule</dt><dd>ask = ONE sentence ending "?" <span class="sep">·</span> depth goes in <code>detail</code> <span class="sep">·</span> UI blocker → <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-repro/SKILL.md">recon-repro</a> then <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/verify-repro.sh">verify-repro.sh</a> first <span class="sep">·</span> accountIds from user-search, never guessed — on duplicate names, prefer the account already on the ticket <span class="sep">·</span> re-run <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/verify-triage.sh">verify-triage.sh</a> until clean</dd>
     </dl>
   </div>
 
   <div class="step rail">
     <div class="step-h"><span class="step-no">P2</span><h3>Dossier — render-only</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report/SKILL.md</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/template.html">template.html</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report/SKILL.md</a> · <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-report/template.html">template.html</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span> (fixed template, no new facts)</dd>
       <dt>in</dt><dd>current-run artifacts</dd>
@@ -283,7 +283,7 @@
 
   <div class="step rail">
     <div class="step-h"><span class="step-no">P3</span><h3>Render the delivery comment</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-comment.sh">render-comment.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-comment-shape.sh">verify-comment-shape.sh</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/render-comment.sh">render-comment.sh</a> · <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/verify-comment-shape.sh">verify-comment-shape.sh</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span> renders (new in v0.8.0) — the asks were <span class="w-judge">judgment</span> upstream, in <code>triage.yaml</code></dd>
       <dt>in</dt><dd>BLOCKED/NEEDS_INFO: <code>triage.yaml</code> + <code>meta.yaml</code>; READY: also approved <code>gate.yaml</code> + <code>routing.yaml</code></dd>
@@ -304,7 +304,7 @@
 
   <div class="step rail">
     <div class="step-h"><span class="step-no">P4</span><h3>Package</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/package-artifacts.sh">package-artifacts.sh</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/package-artifacts.sh">package-artifacts.sh</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span></dd>
       <dt>in</dt><dd>whole workspace (dossier included)</dd>
@@ -315,7 +315,7 @@
 
   <div class="step rail">
     <div class="step-h"><span class="step-no">P5</span><h3>Render the gate question</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-post-gate.sh">render-post-gate.sh</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/render-post-gate.sh">render-post-gate.sh</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span></dd>
       <dt>in</dt><dd><code>comment.txt</code> + <code>bundle-manifest.txt</code> + the staged zip</dd>
@@ -337,7 +337,7 @@
 
   <div class="step rail">
     <div class="step-h"><span class="step-no">P7</span><h3>Attach first, then comment</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/attach-artifacts.sh">attach-artifacts.sh</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/attach-artifacts.sh">attach-artifacts.sh</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span></dd>
       <dt>in</dt><dd><code>recon-dossier-&lt;TICKET&gt;.html</code> + zip</dd>
@@ -348,7 +348,7 @@
 
   <div class="step rail">
     <div class="step-h"><span class="step-no">P8</span><h3>Verify the recorded answer</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-post-gate.sh">verify-post-gate.sh</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/verify-post-gate.sh">verify-post-gate.sh</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span></dd>
       <dt>in</dt><dd><code>post-gate-questions.txt</code> + <code>post-gate.yaml</code> + what is on disk</dd>
@@ -364,7 +364,7 @@
 
   <div class="stage">
     <h2>Stage 2 · Discovery</h2>
-    <small>precondition: disposition READY · skill: <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-discovery/SKILL.md">recon-discovery/SKILL.md</a></small>
+    <small>precondition: disposition READY · skill: <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-discovery/SKILL.md">recon-discovery/SKILL.md</a></small>
   </div>
 
   <div class="step judge">
@@ -379,7 +379,7 @@
 
   <div class="step rail">
     <div class="step-h"><span class="step-no">D2</span><h3>Governance ladder → routing fork</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/detect-governance.sh">detect-governance.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/route-generic.sh">route-generic.sh</a> | <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-decree/SKILL.md">recon-decree</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/detect-governance.sh">detect-governance.sh</a> · <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/route-generic.sh">route-generic.sh</a> | <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-decree/SKILL.md">recon-decree</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span></dd>
       <dt>in</dt><dd>env var → <code>~/.config/recon/config</code> → probe</dd>
@@ -390,18 +390,18 @@
 
   <div class="step rail">
     <div class="step-h"><span class="step-no">D3</span><h3>Repro trigger</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-repro/SKILL.md">recon-repro/SKILL.md</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-repro/SKILL.md">recon-repro/SKILL.md</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span> triggers <span class="sep">·</span> <span class="w-judge">judgment</span> reproduces</dd>
       <dt>in</dt><dd><code>task_class</code> + surface + route (condition table)</dd>
       <dt>out</dt><dd><code>repro/repro.md</code> fixed frontmatter <span class="sep">·</span> <code>repro/exhibits/&lt;n&gt;-&lt;slug&gt;.png</code> <span class="sep">·</span> <code>repro/session/</code> recorded bundle (action log + video)</dd>
-      <dt>rule</dt><dd>fires on defect + visible UI + non-trivial route, or any UI OPEN scenario <span class="sep">·</span> every browser action recorded through <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/record-repro.sh">record-repro.sh</a> (pinned proofshot) <span class="sep">·</span> happens before the brief <span class="sep">·</span> failed repro = reported finding, never faked</dd>
+      <dt>rule</dt><dd>fires on defect + visible UI + non-trivial route, or any UI OPEN scenario <span class="sep">·</span> every browser action recorded through <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/record-repro.sh">record-repro.sh</a> (pinned proofshot) <span class="sep">·</span> happens before the brief <span class="sep">·</span> failed repro = reported finding, never faked</dd>
     </dl>
   </div>
 
   <div class="step rail">
     <div class="step-h"><span class="step-no">D4</span><h3>Verify repro evidence</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-repro.sh">verify-repro.sh</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/verify-repro.sh">verify-repro.sh</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span> for structure/provenance <span class="sep">·</span> <span class="w-judge">judgment</span> still reads the pixels</dd>
       <dt>in</dt><dd><code>repro.md</code> + current-run PNG exhibits + <code>session-log.json</code></dd>
@@ -422,7 +422,7 @@
 
   <div class="step rail">
     <div class="step-h"><span class="step-no">D6</span><h3>Verify the pre-gate package</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-discovery.sh">verify-discovery.sh pre-gate</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/verify-discovery.sh">verify-discovery.sh pre-gate</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span></dd>
       <dt>in</dt><dd>contract + route + route-required brief + handoff</dd>
@@ -433,7 +433,7 @@
 
   <div class="step rail">
     <div class="step-h"><span class="step-no">D7</span><h3>Render the gate questions</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-gate.sh">render-gate.sh</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/render-gate.sh">render-gate.sh</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span></dd>
       <dt>in</dt><dd><code>discovery.md</code> + <code>routing.yaml</code></dd>
@@ -455,7 +455,7 @@
 
   <div class="step rail">
     <div class="step-h"><span class="step-no">D9</span><h3>Verify the recorded decision</h3>
-      <span class="src"><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-discovery.sh">verify-discovery.sh post-gate</a></span></div>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/verify-discovery.sh">verify-discovery.sh post-gate</a></span></div>
     <dl class="fields">
       <dt>who</dt><dd><span class="w-rail">rail</span></dd>
       <dt>in</dt><dd>pre-gate package + <code>gate-questions.md</code> + <code>gate.yaml</code></dd>
@@ -487,45 +487,45 @@
 
   <div class="stopbar">
     <span class="stamp">Stop</span>
-    <p>After any stop, <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a> fills <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/template.html">the fixed template</a> and publishes only when the local host exposes a publisher. <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-state/SKILL.md">recon-state</a> keeps the living canvas honest: state is derived from artifact presence by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/derive-state.sh">rail</a>, always rendered locally, and republished only when stable-URL publishing is available.</p>
+    <p>After any stop, <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a> fills <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-report/template.html">the fixed template</a> and publishes only when the local host exposes a publisher. <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-state/SKILL.md">recon-state</a> keeps the living canvas honest: state is derived from artifact presence by <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/derive-state.sh">rail</a>, always rendered locally, and republished only when stable-URL publishing is available.</p>
   </div>
 
   <section class="reg">
     <p class="kicker">Workspace</p>
     <h2>What a run leaves behind — <code>~/.claude/recon/&lt;TICKET&gt;/</code></h2>
-    <p style="font-size:14px;color:var(--ink-2)">Checked mechanically by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/lint-workspace.sh">lint-workspace.sh</a> against the registry in <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/docs/pipeline.md">pipeline.md</a> — an unregistered file fails the run. Full per-file docs: <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/docs/workspace-index.md">workspace-index.md</a> (copied into every workspace as <code>index.md</code>).</p>
+    <p style="font-size:14px;color:var(--ink-2)">Checked mechanically by <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/lint-workspace.sh">lint-workspace.sh</a> against the registry in <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/docs/pipeline.md">pipeline.md</a> — an unregistered file fails the run. Full per-file docs: <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/docs/workspace-index.md">workspace-index.md</a> (copied into every workspace as <code>index.md</code>).</p>
     <div class="tablewrap">
       <table>
         <thead><tr><th>Artifact</th><th>Producer</th><th>Consumed by</th></tr></thead>
         <tbody>
-          <tr><td class="mono">meta.yaml · index.md</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/fresh-workspace.sh">fresh-workspace.sh</a></td><td>current-run check, starting host/surface provenance, humans</td></tr>
-          <tr><td class="mono">runs/&lt;ts&gt;/…</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/fresh-workspace.sh">fresh-workspace.sh</a></td><td><strong>nobody</strong> — reading archived runs is banned</td></tr>
-          <tr><td class="mono">history.ndjson</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/log-event.sh">log-event.sh</a> (closed vocabulary + current host/surface; survives step 0)</td><td>state canvas timeline, humans — output, <strong>never evidence</strong></td></tr>
-          <tr><td class="mono">triage/{ticket.json, aux-*.json}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">triage</a></td><td>the six checks; aux-user-*.json backs the @mentions</td></tr>
-          <tr><td class="mono">triage/triage.yaml</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">triage</a>, verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-triage.sh">verify-triage.sh</a></td><td>discovery precondition; disposition derived + quotes verified from it; comment AND dossier both render from it</td></tr>
-          <tr><td class="mono">triage/jira/{comment.txt, bundle-manifest.txt}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-comment.sh">render-comment.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/package-artifacts.sh">package-artifacts.sh</a></td><td>the BLOCKED/NEEDS_INFO or approved READY delivery gate (exact bytes + what ships), audit</td></tr>
-          <tr><td class="mono">triage/jira/{post-gate-questions.txt, post-gate.yaml}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-post-gate.sh">render-post-gate.sh</a> · triage, verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-post-gate.sh">verify-post-gate.sh</a></td><td>the posting gate (exact asked bytes + one verbatim exchange per presentation), state derivation, audit</td></tr>
-          <tr><td class="mono">triage/jira/{attach-result.json, post-result.json}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/attach-artifacts.sh">attach-artifacts.sh</a> · comment rail (after "post")</td><td>delivery audit — attach-result absent ⇒ attachment replacement never completed</td></tr>
-          <tr><td class="mono">discovery/{discovery.md, gate-questions.md, gate.yaml, spec-draft.md}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-discovery/SKILL.md">discovery</a> (gate-questions.md by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-gate.sh">render-gate.sh</a>), verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-discovery.sh">verify-discovery.sh</a></td><td>gate (exact asked bytes + verbatim exchanges), dossier decision cards, the implementing session; spec-draft absent for brief_kind none</td></tr>
-          <tr><td class="mono">route/{routing.yaml, aux-intent-check.txt}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/route-generic.sh">route-generic.sh</a> | <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-decree/SKILL.md">recon-decree</a></td><td>discovery (route, brief_kind, verbatim handoff), dossier</td></tr>
-          <tr><td class="mono">repro/{repro.md, exhibits/*.png}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-repro/SKILL.md">repro</a>, verified by <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/verify-repro.sh">verify-repro.sh</a></td><td>blocker detail packs, gate questions, Manual verification, PR "before" evidence</td></tr>
-          <tr><td class="mono">repro/session/*</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/record-repro.sh">record-repro.sh</a> (proofshot bundle, finalized at stop)</td><td>verify-repro.sh log cross-check, delivery bundle (video), audit</td></tr>
-          <tr><td class="mono">report/dossier.html</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a></td><td>attached to the ticket on a BLOCKED/NEEDS_INFO or approved READY delivery path; published private on demand</td></tr>
-          <tr><td class="mono">state/{state.yaml, canvas.html, publish-gate.yaml, artifact-url}</td><td><a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/derive-state.sh">derive-state.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/render-state-canvas.sh">render-state-canvas.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/scripts/record-publish-gate.sh">record-publish-gate.sh</a> · <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/skills/recon-state/SKILL.md">recon-state</a></td><td>living state: canonical next action + local canvas; the publish answer on the record; stable URL only on capable hosts, after a published answer</td></tr>
+          <tr><td class="mono">meta.yaml · index.md</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/fresh-workspace.sh">fresh-workspace.sh</a></td><td>current-run check, starting host/surface provenance, humans</td></tr>
+          <tr><td class="mono">runs/&lt;ts&gt;/…</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/fresh-workspace.sh">fresh-workspace.sh</a></td><td><strong>nobody</strong> — reading archived runs is banned</td></tr>
+          <tr><td class="mono">history.ndjson</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/log-event.sh">log-event.sh</a> (closed vocabulary + current host/surface; survives step 0)</td><td>state canvas timeline, humans — output, <strong>never evidence</strong></td></tr>
+          <tr><td class="mono">triage/{ticket.json, aux-*.json}</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">triage</a></td><td>the six checks; aux-user-*.json backs the @mentions</td></tr>
+          <tr><td class="mono">triage/triage.yaml</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-triage/SKILL.md">triage</a>, verified by <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/verify-triage.sh">verify-triage.sh</a></td><td>discovery precondition; disposition derived + quotes verified from it; comment AND dossier both render from it</td></tr>
+          <tr><td class="mono">triage/jira/{comment.txt, bundle-manifest.txt}</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/render-comment.sh">render-comment.sh</a> · <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/package-artifacts.sh">package-artifacts.sh</a></td><td>the BLOCKED/NEEDS_INFO or approved READY delivery gate (exact bytes + what ships), audit</td></tr>
+          <tr><td class="mono">triage/jira/{post-gate-questions.txt, post-gate.yaml}</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/render-post-gate.sh">render-post-gate.sh</a> · triage, verified by <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/verify-post-gate.sh">verify-post-gate.sh</a></td><td>the posting gate (exact asked bytes + one verbatim exchange per presentation), state derivation, audit</td></tr>
+          <tr><td class="mono">triage/jira/{attach-result.json, post-result.json}</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/attach-artifacts.sh">attach-artifacts.sh</a> · comment rail (after "post")</td><td>delivery audit — attach-result absent ⇒ attachment replacement never completed</td></tr>
+          <tr><td class="mono">discovery/{discovery.md, gate-questions.md, gate.yaml, spec-draft.md}</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-discovery/SKILL.md">discovery</a> (gate-questions.md by <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/render-gate.sh">render-gate.sh</a>), verified by <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/verify-discovery.sh">verify-discovery.sh</a></td><td>gate (exact asked bytes + verbatim exchanges), dossier decision cards, the implementing session; spec-draft absent for brief_kind none</td></tr>
+          <tr><td class="mono">route/{routing.yaml, aux-intent-check.txt}</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/route-generic.sh">route-generic.sh</a> | <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-decree/SKILL.md">recon-decree</a></td><td>discovery (route, brief_kind, verbatim handoff), dossier</td></tr>
+          <tr><td class="mono">repro/{repro.md, exhibits/*.png}</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-repro/SKILL.md">repro</a>, verified by <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/verify-repro.sh">verify-repro.sh</a></td><td>blocker detail packs, gate questions, Manual verification, PR "before" evidence</td></tr>
+          <tr><td class="mono">repro/session/*</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/record-repro.sh">record-repro.sh</a> (proofshot bundle, finalized at stop)</td><td>verify-repro.sh log cross-check, delivery bundle (video), audit</td></tr>
+          <tr><td class="mono">report/dossier.html</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a></td><td>attached to the ticket on a BLOCKED/NEEDS_INFO or approved READY delivery path; published private on demand</td></tr>
+          <tr><td class="mono">state/{state.yaml, canvas.html, publish-gate.yaml, artifact-url}</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/derive-state.sh">derive-state.sh</a> · <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/render-state-canvas.sh">render-state-canvas.sh</a> · <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/record-publish-gate.sh">record-publish-gate.sh</a> · <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-state/SKILL.md">recon-state</a></td><td>living state: canonical next action + local canvas; the publish answer on the record; stable URL only on capable hosts, after a published answer</td></tr>
         </tbody>
       </table>
     </div>
   </section>
 
   <footer>
-    <!-- coherence:version -->recon <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/.claude-plugin/plugin.json">v0.19.0</a> ·
-    repo: <a href="https://github.com/doruksahin/recon-plugin">doruksahin/recon-plugin</a> ·
-    machine spec: <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/docs/pipeline.md">pipeline.md</a> ·
-    ADR: <a href="https://github.com/doruksahin/recon-plugin/blob/master/recon/docs/decisions/0001-jira-rest-api-over-mcp.md">0001 — REST API over MCP</a><br>
-    v0.7.0 design: <a href="https://github.com/doruksahin/recon-plugin/blob/master/docs/plans/2026-07-31-recon-triage-comment-and-delivery-design.md">design doc</a> ·
-    <a href="https://github.com/doruksahin/recon-plugin/blob/master/docs/plans/2026-07-31-recon-triage-comment-and-delivery.md">implementation plan</a> ·
-    <a href="https://github.com/doruksahin/recon-plugin/blob/master/docs/plans/2026-07-31-spike-notes.md">spike evidence</a><br>
-    improvement proposals: <a href="https://github.com/doruksahin/recon-plugin/blob/master/docs/improvement-proposals/README.md">docs/improvement-proposals</a> ·
+    <!-- coherence:version -->recon <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/.claude-plugin/plugin.json">v0.19.0</a> ·
+    repo: <a href="https://github.com/AdCreative-ai/recon-plugin">AdCreative-ai/recon-plugin</a> ·
+    machine spec: <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/docs/pipeline.md">pipeline.md</a> ·
+    ADR: <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/docs/decisions/0001-jira-rest-api-over-mcp.md">0001 — REST API over MCP</a><br>
+    v0.7.0 design: <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/docs/plans/2026-07-31-recon-triage-comment-and-delivery-design.md">design doc</a> ·
+    <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/docs/plans/2026-07-31-recon-triage-comment-and-delivery.md">implementation plan</a> ·
+    <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/docs/plans/2026-07-31-spike-notes.md">spike evidence</a><br>
+    improvement proposals: <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/docs/improvement-proposals/README.md">docs/improvement-proposals</a> ·
     links checked with <a href="https://github.com/lycheeverse/lychee">lychee</a>
   </footer>
 

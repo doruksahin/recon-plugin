@@ -28,6 +28,38 @@ plugin_commit = "1" * 40
 target_commit = "2" * 40
 proposal = "docs/improvement-proposals/0.23.0/version-scoped-team-review"
 temp = Path(tempfile.mkdtemp(prefix="recon-version-review-test."))
+git_local_environment = {
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_COMMON_DIR", "GIT_DIR",
+    "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_PREFIX", "GIT_WORK_TREE",
+}
+fake_gh = temp / "fake-gh"
+fake_gh.write_text(
+    """#!/usr/bin/env python3
+import json
+import os
+import sys
+
+mode = os.environ.get("FAKE_GH_MODE", "PRIVATE")
+if mode == "FAIL":
+    print("lookup failed", file=sys.stderr)
+    raise SystemExit(1)
+if mode == "INVALID":
+    print("not-json")
+    raise SystemExit(0)
+if sys.argv[1:3] != ["repo", "view"] or len(sys.argv) < 4:
+    print("unexpected fake-gh invocation", file=sys.stderr)
+    raise SystemExit(2)
+repository = os.environ.get("FAKE_GH_REPOSITORY", sys.argv[3])
+print(json.dumps({
+    "nameWithOwner": repository,
+    "visibility": mode,
+    "url": f"https://github.com/{repository}",
+}))
+""",
+    encoding="utf-8",
+)
+fake_gh.chmod(0o755)
+os.environ["RECON_VERSION_REVIEW_GH"] = str(fake_gh)
 
 
 def fail(message):
@@ -66,8 +98,39 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def init(review_root, *, selected_version=version):
-    review_root.mkdir(parents=True)
+def git(review_root, *arguments):
+    environment = os.environ.copy()
+    for name in git_local_environment:
+        environment.pop(name, None)
+    completed = subprocess.run(
+        ["git", "-C", str(review_root), *arguments],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+        env=environment,
+    )
+    if completed.returncode:
+        fail(f"git {' '.join(arguments)} failed:\n{completed.stderr}")
+    return completed.stdout.strip()
+
+
+def initialize_repository(review_root, *, remote=None):
+    review_root.mkdir(parents=True, exist_ok=True)
+    git(review_root, "init", "-q")
+    repository = f"AdCreative-ai/{review_root.name}"
+    git(
+        review_root,
+        "remote",
+        "add",
+        "origin",
+        remote or f"https://github.com/{repository}.git",
+    )
+    return repository
+
+
+def init(review_root, *, selected_version=version, remote=None):
+    repository = initialize_repository(review_root, remote=remote)
     invoke(
         "init",
         review_root,
@@ -80,6 +143,7 @@ def init(review_root, *, selected_version=version):
         "--opened-at",
         "2026-08-05T09:00:00Z",
     )
+    return repository
 
 
 def workspace(name, *, ticket="ATT-1234", selected_version=version, started="2026-08-05T10:00:00Z"):
@@ -260,7 +324,17 @@ try:
     )
 
     review_root = temp / "private-review"
-    init(review_root)
+    review_repository = init(review_root)
+    version_doc = load(review_root / f"versions/v{version}/version.yaml")
+    storage = version_doc["storage"]
+    if storage["provider"] != "github" or storage["visibility"] != "PRIVATE":
+        fail("private GitHub storage was not pinned")
+    if storage["repository"] != review_repository:
+        fail("pinned storage repository drift")
+    if storage["remote"] != f"https://github.com/{review_repository}.git":
+        fail("pinned storage remote drift")
+    if not isinstance(storage["verified_at"], str) or not storage["verified_at"].endswith("Z"):
+        fail("pinned storage verification timestamp is invalid")
     invoke(
         "init", review_root, "--plugin-version", version, "--plugin-tag", f"v{version}",
         "--plugin-commit", plugin_commit, expected=2, contains="destination already exists",
@@ -268,6 +342,123 @@ try:
     collecting = invoke("state", review_root, "--plugin-version", version)
     if "state: COLLECTING" not in collecting or "runs: 0" not in collecting:
         fail("COLLECTING state output drift")
+
+    # Storage must be a distinct, private, top-level GitHub repository.
+    non_git = temp / "non-git"
+    non_git.mkdir()
+    invoke(
+        "init", non_git, "--plugin-version", version, "--plugin-tag", f"v{version}",
+        "--plugin-commit", plugin_commit, expected=2, contains="Git worktree lookup failed",
+    )
+
+    nested_repository = temp / "nested-repository"
+    initialize_repository(nested_repository)
+    nested_root = nested_repository / "reviews"
+    nested_root.mkdir()
+    invoke(
+        "init", nested_root, "--plugin-version", version, "--plugin-tag", f"v{version}",
+        "--plugin-commit", plugin_commit, expected=2, contains="must be the top level",
+    )
+
+    malformed_remote = temp / "malformed-remote"
+    initialize_repository(malformed_remote, remote="https://gitlab.com/AdCreative-ai/reviews.git")
+    invoke(
+        "init", malformed_remote, "--plugin-version", version, "--plugin-tag", f"v{version}",
+        "--plugin-commit", plugin_commit, expected=2, contains="GitHub HTTPS or SSH remote",
+    )
+
+    public_plugin = temp / "public-plugin"
+    initialize_repository(public_plugin, remote="https://github.com/AdCreative-ai/recon-plugin.git")
+    invoke(
+        "init", public_plugin, "--plugin-version", version, "--plugin-tag", f"v{version}",
+        "--plugin-commit", plugin_commit, expected=2, contains="cannot store live review evidence",
+    )
+
+    plugin_contained = Path(tempfile.mkdtemp(prefix=".version-review-root.", dir=root))
+    try:
+        initialize_repository(plugin_contained)
+        invoke(
+            "init", plugin_contained, "--plugin-version", version, "--plugin-tag", f"v{version}",
+            "--plugin-commit", plugin_commit, expected=2, contains="outside the Recon plugin repository",
+        )
+    finally:
+        shutil.rmtree(plugin_contained, ignore_errors=True)
+
+    public_root = temp / "public-root"
+    initialize_repository(public_root)
+    os.environ["FAKE_GH_MODE"] = "PUBLIC"
+    invoke(
+        "init", public_root, "--plugin-version", version, "--plugin-tag", f"v{version}",
+        "--plugin-commit", plugin_commit, expected=2, contains="PRIVATE GitHub visibility",
+    )
+    os.environ.pop("FAKE_GH_MODE")
+    if (public_root / "versions").exists():
+        fail("public storage failure created version evidence")
+
+    identity_root = temp / "identity-root"
+    initialize_repository(identity_root)
+    os.environ["FAKE_GH_REPOSITORY"] = "AdCreative-ai/different-repository"
+    invoke(
+        "init", identity_root, "--plugin-version", version, "--plugin-tag", f"v{version}",
+        "--plugin-commit", plugin_commit, expected=2, contains="identity disagrees",
+    )
+    os.environ.pop("FAKE_GH_REPOSITORY")
+
+    invalid_json_root = temp / "invalid-json-root"
+    initialize_repository(invalid_json_root)
+    os.environ["FAKE_GH_MODE"] = "INVALID"
+    invoke(
+        "init", invalid_json_root, "--plugin-version", version, "--plugin-tag", f"v{version}",
+        "--plugin-commit", plugin_commit, expected=2, contains="invalid JSON",
+    )
+    os.environ.pop("FAKE_GH_MODE")
+
+    unavailable_root = temp / "unavailable-root"
+    initialize_repository(unavailable_root)
+    os.environ["RECON_VERSION_REVIEW_GH"] = str(temp / "missing-gh")
+    invoke(
+        "init", unavailable_root, "--plugin-version", version, "--plugin-tag", f"v{version}",
+        "--plugin-commit", plugin_commit, expected=2, contains="lookup is unavailable",
+    )
+    os.environ["RECON_VERSION_REVIEW_GH"] = str(fake_gh)
+
+    # Git hooks export repository-local variables; they must not redirect
+    # review-root checks back into the plugin source repository.
+    os.environ["GIT_DIR"] = str(root / ".git")
+    invoke("state", review_root, "--plugin-version", version, contains="state: COLLECTING")
+    os.environ.pop("GIT_DIR")
+
+    # Read-only derivation is intentionally offline after private identity is pinned.
+    os.environ["RECON_VERSION_REVIEW_GH"] = str(temp / "missing-gh")
+    invoke("state", review_root, "--plugin-version", version, contains="state: COLLECTING")
+    invoke("validate", review_root, "--plugin-version", version, contains="version review: clean")
+    os.environ["RECON_VERSION_REVIEW_GH"] = str(fake_gh)
+
+    # Local origin drift is visible offline, and mutations recheck live privacy.
+    origin_drift = temp / "origin-drift"
+    shutil.copytree(review_root, origin_drift)
+    git(origin_drift, "remote", "set-url", "origin", "https://github.com/AdCreative-ai/drift.git")
+    invoke(
+        "state", origin_drift, "--plugin-version", version,
+        expected=2, contains="storage repository drift",
+    )
+
+    privacy_drift = temp / "privacy-drift"
+    init(privacy_drift, selected_version="0.19.2")
+    drift_workspace = workspace("privacy-drift", selected_version="0.19.2")
+    invoke(
+        "capture", privacy_drift, "--plugin-version", "0.19.2", "--ticket", "ATT-1234",
+        "--workspace", drift_workspace, "--target-repository", "AdCreative-Frontend-V2",
+        "--target-commit", target_commit, "--run-id", "privacy-drift",
+        "--captured-at", "2026-08-05T11:00:00Z",
+    )
+    os.environ["FAKE_GH_MODE"] = "PUBLIC"
+    invoke(
+        "begin-review", privacy_drift, "--plugin-version", "0.19.2",
+        expected=2, contains="PRIVATE GitHub visibility",
+    )
+    os.environ.pop("FAKE_GH_MODE")
+    invoke("state", privacy_drift, "--plugin-version", "0.19.2", contains="state: COLLECTING")
 
     first = workspace("first")
     second = workspace("second", started="2026-08-05T10:30:00Z")

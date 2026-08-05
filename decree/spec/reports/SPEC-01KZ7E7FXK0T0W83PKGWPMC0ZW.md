@@ -2,7 +2,7 @@
 
 **Document**: `decree/spec/reliability/evidence/spec-01kz7e7fxk0t0w83pkgwpmc0zw-recon-version-scoped-team-review-laboratory.md`
 **Transitioned to `implemented` on**: 2026-08-05
-**Generated**: 2026-08-04T22:54:33Z
+**Generated**: 2026-08-05T05:57:58Z
 **Total documents in chain**: 2
 
 ## Document chain
@@ -12,9 +12,9 @@
 | ADR | ADR-01KZ0ZK4WYVWRY0WJM2CZ7ZS8C | accepted | Portable Multi-Harness Recon Plugin Architecture |
 | SPEC | SPEC-01KZ7E7FXK0T0W83PKGWPMC0ZW | implemented | Recon Version-Scoped Team Review Laboratory |
 
-## Acceptance Criteria — primary (10/10)
+## Acceptance Criteria — primary (17/17)
 
-### Acceptance Criteria (10/10)
+### Acceptance Criteria (17/17)
 
 - [x] A version-scoped external tree and schema own all lifecycle states, fields, enums, and minimal capture paths.
 - [x] Init, capture, begin-review, add-review, add-consensus, synthesize, close, state, and validate implement the fixed interface and stable exit behavior.
@@ -26,6 +26,13 @@
 - [x] Focused controls exercise the complete lifecycle and every bounded failure class, including no-overwrite and exception cleanup.
 - [x] Decree intent-check names this SPEC as authoritative for every changed path, and Decree lint/progress pass.
 - [x] The full pre-commit guardrail passes without modifying shipped Recon runtime, plugin versions, retained replay evidence, or published artifacts.
+- [x] Canonical install, source, flow, release, PR, and commit links resolve through `AdCreative-ai/recon-plugin`, while `doruksahin/recon-plugin` remains its public fork.
+- [x] `init` accepts only a top-level private GitHub review repository outside the plugin source and pins its verified storage identity in `version.yaml`.
+- [x] Every version-review mutation revalidates live private visibility and fails before writes when Git, origin, identity, visibility lookup, or privacy drifts.
+- [x] Read-only `state` and `validate` remain network-independent while proving the local worktree and origin match the pinned storage identity.
+- [x] Focused controls cover clean private storage, public and malformed origins, nested/plugin roots, lookup failure, identity drift, privacy drift, and no-partial-write behavior.
+- [x] `AdCreative-ai/recon-team-reviews` is private, initialized at `versions/v0.19.0`, and contains only generic cycle metadata before live ticket capture.
+- [x] The amended generated views, Decree completion report, links, coherence controls, and full pre-commit guardrail pass.
 
 ## Deferred / Out of scope (0/2)
 

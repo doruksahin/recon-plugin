@@ -15,18 +15,23 @@ The [schema](../../version-reviews/schema.yaml) owns fields and enums;
 
 ## Contract
 
-- **Input:** an external private review root and one published plugin version.
+- **Input:** the top level of a distinct private GitHub review repository and
+  one published plugin version.
 - **Reads:** local current-run Recon workspaces and authored semantic YAML.
 - **Writes:** only through the rail beneath
   `<review-root>/versions/v<version>/`.
-- **External side effects:** none; no Jira, repository, release, activation, or
-  publication mutation.
+- **External reads:** live GitHub repository identity and visibility before
+  initialization and every mutation.
+- **External side effects:** no Jira, repository, release, activation, or
+  publication mutation; the rail writes only to the supplied local worktree.
 
 ## Rules
 
 1. Run `state` before interpreting or mutating an existing version cycle.
 2. Never place a live review root, dossier, Jira export, or teammate feedback
-   in this repository or inside `$RECON_ROOT`.
+   in this repository or inside `$RECON_ROOT`. The review root must be a
+   separate private GitHub repository; do not use either public Recon plugin
+   repository.
 3. At Recon's delivery gate choose **Don't post**. Capture rejects successful
    Jira response artifacts and non-declined posting-gate records.
 4. Teammates author only files shaped by the checked-in
@@ -37,6 +42,9 @@ The [schema](../../version-reviews/schema.yaml) owns fields and enums;
    the [replay skill](../recon-replay-lab/SKILL.md) and
    [improvement skill](../recon-improvement-loop/SKILL.md) before changing or
    claiming improvement in Recon.
+6. Do not hand-edit `version.yaml.storage`. Each mutation must pass the rail's
+   live private-visibility check. `state` and `validate` are the only offline
+   operations and still require the local origin to match the pinned identity.
 
 ## Workflow
 

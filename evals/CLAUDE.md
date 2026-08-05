@@ -10,4 +10,4 @@ oracles for repository development; prepared runs must contain inputs only.
 | `cases/` | Immutable real-ticket cases: sanitized replay inputs, separately disclosed scoring oracles, and scorer-control fixtures. |
 | `skills/` | Repository-local LLM operator workflows; never shipped or added to plugin manifests. |
 | `evidence/` | Immutable minimal scored-run captures for versioned improvement records; never contains a target export or oracle. |
-| `version-reviews/` | Generic schema, templates, and linked operator contract for private external review cycles grouped by actual published plugin version; live ticket/report evidence never lives here. |
+| `version-reviews/` | Generic schema, templates, and linked operator contract for review cycles grouped by actual published plugin version; live ticket/report evidence belongs only in a distinct private GitHub repository, never here. |

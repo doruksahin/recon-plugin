@@ -10,7 +10,7 @@
 #     (percent-encoded to %C2%AB… once resolved).
 
 exclude = [
-  '^https://github\.com/doruksahin/recon-plugin/blob/',
+  '^https://github\.com/AdCreative-ai/recon-plugin/blob/',
   'atlassian\.net',
   'claude\.ai',
   '\$\{?[A-Z_]+',

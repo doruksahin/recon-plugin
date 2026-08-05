@@ -2,7 +2,7 @@
 
 You are looking at `$RECON_ROOT/<TICKET>/` — the working directory of one recon
 run for one Jira ticket. It is produced by the `recon` plugin
-(https://github.com/doruksahin/recon-plugin). Two rules govern everything here:
+(https://github.com/AdCreative-ai/recon-plugin). Two rules govern everything here:
 
 1. **Flat + stage dirs = the current run. `runs/` = archived history.** Nothing in
    `runs/` may be read by any pipeline skill — it exists only so no run is ever
