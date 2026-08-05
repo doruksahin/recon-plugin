@@ -1,0 +1,13 @@
+schema_version: 1
+plugin_version: 0.19.0
+findings:
+  - id: FINDING-1
+    category: missed_requirement
+    pattern: omitted-default-context
+    severity: high
+    occurrences:
+      - ticket: ATT-1234
+        run_id: run-001
+        review_id: teammate-a
+        finding_id: REV-1
+    count: 1

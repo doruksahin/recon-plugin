@@ -1,0 +1,16 @@
+schema_version: 1
+plugin_version: 0.19.0
+ticket: ATT-1234
+run_id: run-001
+report_sha256: 0000000000000000000000000000000000000000000000000000000000000000
+participants:
+  - Teammate A
+  - Teammate B
+decision: CHANGES_NEEDED
+accepted_findings:
+  - review_id: teammate-a
+    finding_id: REV-1
+    reason: Ticket and repository evidence leave the default unspecified.
+disputed_findings: []
+correct_observations:
+  - The ownership blocker was retained atomically.

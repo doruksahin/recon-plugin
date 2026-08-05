@@ -1,0 +1,18 @@
+schema_version: 1
+plugin_version: 0.19.0
+status: CLOSED
+closed_at: '2026-08-05T18:00:00Z'
+counts:
+  tickets: 1
+  runs: 1
+  reviews: 1
+  themes: 1
+  decisions:
+    PROPOSE: 1
+    MONITOR: 0
+    REJECT: 0
+accepted_improvements:
+  - theme_id: THEME-1
+    proposal_path: docs/improvement-proposals/0.23.0/version-scoped-team-review
+remaining_nonclaims:
+  - Reviewed tickets do not prove correctness for unreviewed task classes.

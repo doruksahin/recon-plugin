@@ -3,7 +3,7 @@
 > Replay frozen real tickets and score distinct decision coverage
 
 - **Status:** shipped (v0.19.0)
-- **Shipped:** [v0.19.0](https://github.com/doruksahin/recon-plugin/releases/tag/v0.19.0) from [PR #2](https://github.com/doruksahin/recon-plugin/pull/2), merged as [`321514d`](https://github.com/doruksahin/recon-plugin/commit/321514df18e487c64ef17cbcaea974c99722e89c)
+- **Shipped:** [v0.19.0](https://github.com/AdCreative-ai/recon-plugin/releases/tag/v0.19.0) from [PR #2](https://github.com/AdCreative-ai/recon-plugin/pull/2), merged as [`321514d`](https://github.com/AdCreative-ai/recon-plugin/commit/321514df18e487c64ef17cbcaea974c99722e89c)
 - **Priority:** P1
 - **Theme:** determinism rail
 - **Origin:** ATT-4845, reviewed 4 Aug 2026 — the verified triage produced six

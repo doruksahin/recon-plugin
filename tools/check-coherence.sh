@@ -99,6 +99,9 @@ fi
 if ! bash tools/test-improvement-cycle.sh; then
   say_fail "tools/test-improvement-cycle.sh failed"
 fi
+if ! bash tools/test-version-review.sh; then
+  say_fail "tools/test-version-review.sh failed"
+fi
 if ! bash tools/test-pre-commit-check.sh; then
   say_fail "tools/test-pre-commit-check.sh failed"
 fi

@@ -2,6 +2,12 @@
 
 Deterministic Jira task recon pipeline for Claude Code and Codex. Runs **before** any planning: decides whether a task is actionable, maps the code surface with evidence, and routes it into [decree](https://github.com/doruksahin/decree) — ending at a human approval gate, never at code. The same Agent Skills power both hosts; native manifests and UI metadata are generated and drift-checked.
 
+[AdCreative-ai/recon-plugin](https://github.com/AdCreative-ai/recon-plugin) is
+the canonical source and release repository. The public
+[doruksahin/recon-plugin](https://github.com/doruksahin/recon-plugin) fork is a
+personal portfolio and distribution mirror; changes and releases originate in
+the organization repository.
+
 ```text
 Recon Triage ATT-1234
   ├─ six blocker checks → triage.yaml
@@ -90,14 +96,14 @@ Full machine-readable spec of stages, invariants, artifacts, and triggers: [reco
 ### Claude Code
 
 ```
-/plugin marketplace add doruksahin/recon-plugin
+/plugin marketplace add AdCreative-ai/recon-plugin
 /plugin install recon@recon-plugin
 ```
 
 ### Codex
 
 ```bash
-codex plugin marketplace add doruksahin/recon-plugin
+codex plugin marketplace add AdCreative-ai/recon-plugin
 codex plugin add recon@recon-plugin
 ```
 

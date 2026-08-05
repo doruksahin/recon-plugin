@@ -25,6 +25,18 @@ For a plugin-improvement or improvement-resume request, start with
 It derives the durable improvement state from retained evidence before any
 interpretation; it is repository-local and never ships in the Recon plugin.
 
+For collecting or reviewing teammate feedback across tickets produced by one
+published plugin version, start with
+[`evals/skills/recon-version-review/SKILL.md`](evals/skills/recon-version-review/SKILL.md).
+The live review tree is private and external; its checked-in
+[`schema`](evals/version-reviews/schema.yaml),
+[`structure guide`](evals/version-reviews/README.md), and
+[`rail`](tools/version-review.py) are the non-drifting owners. Do not group the
+evidence by sprint or commit live ticket/report material under `evals/`. A live
+root must be the top level of a distinct private GitHub repository outside this
+source tree. Let the rail verify and pin that identity; never bypass its live
+privacy check or hand-edit its storage receipt.
+
 The architectural decision is
 `ADR-01KZ0ZK4WYVWRY0WJM2CZ7ZS8C` under `decree/adr/architecture/`.
 

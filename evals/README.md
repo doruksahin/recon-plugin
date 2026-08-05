@@ -4,6 +4,12 @@ Replay one frozen task against a named plugin and target-repository commit,
 then score the retained artifact. This is repository evaluation tooling; it is
 not part of the shipped Recon runtime.
 
+For private teammate review across many live dossiers, use the separate
+[version-review contract](version-reviews/README.md) and
+[operator skill](skills/recon-version-review/SKILL.md). That flow groups runs by
+the actual published plugin version and routes accepted themes into this replay
+laboratory only after sanitization; it does not store private evidence here.
+
 For the visual explanation—both folder trees, reasoning, concrete scenarios,
 before/after controls, and the complete runbook—open the generated
 [Replay Laboratory Operator Report](../docs/replay-lab-report.html). Its bytes,

@@ -21,7 +21,7 @@ set -uo pipefail
 ROOT="$(git rev-parse --show-toplevel)" || { echo "not a git repo" >&2; exit 2; }
 cd "$ROOT" || exit 2
 
-SELF_PREFIX="https://github.com/doruksahin/recon-plugin/blob/master/"
+SELF_PREFIX="https://github.com/AdCreative-ai/recon-plugin/blob/master/"
 SCAN=(--include='*.md' --include='*.html' --exclude-dir=.git)
 fail=0
 checked=0

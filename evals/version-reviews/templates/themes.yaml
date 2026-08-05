@@ -1,0 +1,10 @@
+schema_version: 1
+plugin_version: 0.19.0
+themes:
+  - id: THEME-1
+    title: Omitted default contexts are inconsistently audited
+    finding_ids:
+      - FINDING-1
+    affected_tickets:
+      - ATT-1234
+    proposed_action: OPEN_IMPROVEMENT_PROPOSAL
