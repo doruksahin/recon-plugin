@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
 import yaml
@@ -149,15 +150,14 @@ def init(review_root, *, selected_version=version, remote=None):
 def workspace(name, *, ticket="ATT-1234", selected_version=version, started="2026-08-05T10:00:00Z"):
     directory = temp / "workspaces" / name
     directory.mkdir(parents=True)
-    dump(
-        directory / "meta.yaml",
-        {
-            "ticket": ticket,
-            "plugin_version": selected_version,
-            "started": started,
-            "started_host": "codex",
-            "started_surface": "desktop",
-        },
+    (directory / "meta.yaml").write_text(
+        f"""ticket: {ticket}
+plugin_version: {selected_version}
+started: {started}
+started_host: codex
+started_surface: desktop
+""",
+        encoding="utf-8",
     )
     dump(directory / "triage/triage.yaml", {"recon": "triage", "disposition": "BLOCKED"})
     report = directory / "report/dossier.html"
@@ -463,6 +463,9 @@ try:
     first = workspace("first")
     second = workspace("second", started="2026-08-05T10:30:00Z")
 
+    if not isinstance(load(first / "meta.yaml")["started"], datetime):
+        fail("workspace control does not exercise the unquoted YAML timestamp producer shape")
+
     # Source identity, completeness, Jira, symlink, and overlap controls.
     missing = workspace("missing")
     (missing / "report/dossier.html").unlink()
@@ -515,6 +518,30 @@ try:
     capture(review_root, overlap, run_id="overlap", expected=2, contains="must not overlap")
     shutil.rmtree(overlap)
 
+    invalid_timestamps = {
+        "naive": "2026-08-05T10:00:00",
+        "non-utc": "2026-08-05T13:00:00+03:00",
+        "fractional": "2026-08-05T10:00:00.123Z",
+        "date-only": "2026-08-05",
+        "impossible": "'2026-02-30T10:00:00Z'",
+        "malformed": "not-a-timestamp",
+        "noncanonical": "'2026-08-05T10:00:00+00:00'",
+        "non-string": "123",
+    }
+    for name, scalar in invalid_timestamps.items():
+        invalid = workspace(f"timestamp-{name}", started=scalar)
+        run_id = f"timestamp-{name}"
+        capture(
+            review_root,
+            invalid,
+            run_id=run_id,
+            expected=2,
+            contains="workspace meta.started must be UTC YYYY-MM-DDTHH:MM:SSZ",
+        )
+        destination = review_root / f"versions/v{version}/tickets/ATT-1234/runs/{run_id}"
+        if destination.exists():
+            fail(f"invalid timestamp created run destination: {name}")
+
     # Two immutable runs for one ticket; excluded private artifacts never cross the boundary.
     capture(review_root, first, run_id="run-one")
     capture(review_root, first, run_id="run-one", expected=2, contains="already exists")
@@ -529,6 +556,9 @@ try:
         "meta.yaml", "triage/triage.yaml", "report/dossier.html", "discovery/discovery.md"
     }:
         fail(f"capture allowlist drift: {sorted(actual_artifacts)}")
+    retained_started = receipt(review_root, "run-one")["source"]["started"]
+    if retained_started != "2026-08-05T10:00:00Z" or not isinstance(retained_started, str):
+        fail("captured source timestamp was not retained as a canonical UTC string")
     forbidden = ("ticket.json", "aux-owners.json", "post-gate.yaml", "history.ndjson", "private.txt")
     if any(any(path.name == name for path in run_one.rglob("*")) for name in forbidden):
         fail("excluded private artifacts crossed the capture boundary")

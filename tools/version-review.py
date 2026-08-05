@@ -12,7 +12,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
 
@@ -148,8 +148,20 @@ def require_object_id(value: object, label: str) -> str:
 
 
 def require_timestamp(value: object, label: str) -> str:
+    diagnostic = f"{label} must be UTC YYYY-MM-DDTHH:MM:SSZ"
+    if isinstance(value, datetime):
+        if value.tzinfo is None or value.utcoffset() != timedelta(0) or value.microsecond:
+            fail(diagnostic)
+        return (
+            f"{value.year:04d}-{value.month:02d}-{value.day:02d}T"
+            f"{value.hour:02d}:{value.minute:02d}:{value.second:02d}Z"
+        )
     if not isinstance(value, str) or not UTC_STAMP.fullmatch(value):
-        fail(f"{label} must be UTC YYYY-MM-DDTHH:MM:SSZ")
+        fail(diagnostic)
+    try:
+        datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        fail(diagnostic)
     return value
 
 
@@ -404,7 +416,9 @@ def validate_local_storage(review_root: Path, value: object) -> dict:
     if not GITHUB_REPOSITORY.fullmatch(repository):
         fail("version.yaml storage.repository must be owner/repository")
     require_nonempty(value["remote"], "version.yaml storage.remote")
-    require_timestamp(value["verified_at"], "version.yaml storage.verified_at")
+    value["verified_at"] = require_timestamp(
+        value["verified_at"], "version.yaml storage.verified_at"
+    )
     local = local_storage_identity(review_root)
     for field in ("provider", "repository", "remote"):
         if local[field] != value[field]:
@@ -456,9 +470,13 @@ def load_cycle(review_root_arg: Path, version_arg: str) -> tuple[Path, dict, dic
     if plugin["tag"] != f"v{version}":
         fail("version.yaml plugin.tag must match plugin.version")
     require_object_id(plugin["commit"], "version.yaml plugin.commit")
-    require_timestamp(version_doc["opened_at"], "version.yaml opened_at")
+    version_doc["opened_at"] = require_timestamp(
+        version_doc["opened_at"], "version.yaml opened_at"
+    )
     if version_doc["closed_at"] is not None:
-        require_timestamp(version_doc["closed_at"], "version.yaml closed_at")
+        version_doc["closed_at"] = require_timestamp(
+            version_doc["closed_at"], "version.yaml closed_at"
+        )
     require_list(version_doc["non_claims"], "version.yaml non_claims", nonempty=True)
     validate_local_storage(review_root, version_doc["storage"])
     contract = version_doc["contract"]
@@ -515,7 +533,9 @@ def validate_review(value: dict, schema: dict, receipt: dict, label: str) -> dic
         fail(f"{label} schema_version must be 1")
     review_id = safe_id(value["review_id"], f"{label} review_id")
     require_nonempty(value["reviewer"], f"{label} reviewer")
-    require_timestamp(value["reviewed_at"], f"{label} reviewed_at")
+    value["reviewed_at"] = require_timestamp(
+        value["reviewed_at"], f"{label} reviewed_at"
+    )
     for field in ("plugin_version", "ticket", "run_id", "report_sha256"):
         expected = receipt_join_value(receipt, field)
         if value[field] != expected:
@@ -623,14 +643,18 @@ def validate_run(run_dir: Path, schema: dict) -> dict:
     if plugin["tag"] != f"v{version}":
         fail(f"{run_dir.name} receipt plugin tag drift")
     require_object_id(plugin["commit"], f"{run_dir.name} receipt plugin.commit")
-    require_timestamp(receipt["captured_at"], f"{run_dir.name} receipt captured_at")
+    receipt["captured_at"] = require_timestamp(
+        receipt["captured_at"], f"{run_dir.name} receipt captured_at"
+    )
     for section in ("source", "target", "jira_delivery"):
         if not isinstance(receipt[section], dict):
             fail(f"{run_dir.name} receipt {section} must be an object")
     require_exact_keys(receipt["source"], {"workspace", "started", "host", "surface"}, f"{run_dir.name} receipt source")
     require_exact_keys(receipt["target"], {"repository", "commit"}, f"{run_dir.name} receipt target")
     require_exact_keys(receipt["jira_delivery"], {"outcome", "mutated_jira"}, f"{run_dir.name} receipt jira_delivery")
-    require_timestamp(receipt["source"]["started"], f"{run_dir.name} receipt source.started")
+    receipt["source"]["started"] = require_timestamp(
+        receipt["source"]["started"], f"{run_dir.name} receipt source.started"
+    )
     require_nonempty(receipt["source"]["workspace"], f"{run_dir.name} receipt source.workspace")
     require_nonempty(receipt["source"]["host"], f"{run_dir.name} receipt source.host")
     require_nonempty(receipt["source"]["surface"], f"{run_dir.name} receipt source.surface")
@@ -868,7 +892,7 @@ def validate_closure(
     require_exact_keys(value, document_keys(schema, "closure"), "closure")
     if value["schema_version"] != 1 or value["plugin_version"] != version or value["status"] != "CLOSED":
         fail("closure identity/status drift")
-    require_timestamp(value["closed_at"], "closure closed_at")
+    value["closed_at"] = require_timestamp(value["closed_at"], "closure closed_at")
     counts = value["counts"]
     if not isinstance(counts, dict):
         fail("closure counts must be an object")
