@@ -16,7 +16,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 import yaml
@@ -61,6 +61,9 @@ print(json.dumps({
 )
 fake_gh.chmod(0o755)
 os.environ["RECON_VERSION_REVIEW_GH"] = str(fake_gh)
+spec = importlib.util.spec_from_file_location("version_review", tool)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
 
 
 def fail(message):
@@ -147,6 +150,22 @@ def init(review_root, *, selected_version=version, remote=None):
     return repository
 
 
+def write_post_gate(directory, *, date_scalar="2026-08-05", outcome="declined"):
+    path = directory / "triage/jira/post-gate.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    answer = "Don't post" if outcome == "declined" else "Post it"
+    path.write_text(
+        f"""post_gate:
+  date: {date_scalar}
+  exchanges:
+    - presented: post-gate-questions.txt
+      answer_verbatim: {answer}
+      outcome: {outcome}
+""",
+        encoding="utf-8",
+    )
+
+
 def workspace(name, *, ticket="ATT-1234", selected_version=version, started="2026-08-05T10:00:00Z"):
     directory = temp / "workspaces" / name
     directory.mkdir(parents=True)
@@ -168,21 +187,7 @@ started_surface: desktop
     (directory / "history.ndjson").write_text('{"private": true}\n', encoding="utf-8")
     dump(directory / "triage/ticket.json", {"private": True})
     dump(directory / "triage/aux-owners.json", {"private": True})
-    dump(
-        directory / "triage/jira/post-gate.yaml",
-        {
-            "post_gate": {
-                "date": "2026-08-05",
-                "exchanges": [
-                    {
-                        "presented": "post-gate-questions.txt",
-                        "answer_verbatim": "Don't post",
-                        "outcome": "declined",
-                    }
-                ],
-            }
-        },
-    )
+    write_post_gate(directory)
     (directory / "runs/old").mkdir(parents=True)
     (directory / "runs/old/private.txt").write_text("private\n", encoding="utf-8")
     return directory
@@ -465,6 +470,13 @@ try:
 
     if not isinstance(load(first / "meta.yaml")["started"], datetime):
         fail("workspace control does not exercise the unquoted YAML timestamp producer shape")
+    producer_date = load(first / "triage/jira/post-gate.yaml")["post_gate"]["date"]
+    if type(producer_date) is not date:
+        fail("workspace control does not exercise the unquoted YAML date producer shape")
+    if module.require_date(producer_date, "producer date") != "2026-08-05":
+        fail("PyYAML date was not normalized to a canonical string")
+    if module.require_date("2026-08-05", "canonical date") != "2026-08-05":
+        fail("canonical date string was not preserved")
 
     # Source identity, completeness, Jira, symlink, and overlap controls.
     missing = workspace("missing")
@@ -482,21 +494,7 @@ try:
     capture(review_root, posted, run_id="posted", expected=2, contains="Jira mutation result")
 
     nondeclined = workspace("nondeclined")
-    dump(
-        nondeclined / "triage/jira/post-gate.yaml",
-        {
-            "post_gate": {
-                "date": "2026-08-05",
-                "exchanges": [
-                    {
-                        "presented": "post-gate-questions.txt",
-                        "answer_verbatim": "Post it",
-                        "outcome": "posted",
-                    }
-                ],
-            }
-        },
-    )
+    write_post_gate(nondeclined, outcome="posted")
     capture(review_root, nondeclined, run_id="nondeclined", expected=2, contains="must end in declined")
 
     leaf = workspace("symlink-leaf")
@@ -542,6 +540,30 @@ try:
         if destination.exists():
             fail(f"invalid timestamp created run destination: {name}")
 
+    invalid_dates = {
+        "impossible": "'2026-02-30'",
+        "noncanonical": "'2026-8-05'",
+        "malformed": "not-a-date",
+        "datetime": "2026-08-05T00:00:00Z",
+        "integer": "123",
+        "boolean": "true",
+        "null": "null",
+    }
+    for name, scalar in invalid_dates.items():
+        invalid = workspace(f"date-{name}")
+        write_post_gate(invalid, date_scalar=scalar)
+        run_id = f"date-{name}"
+        capture(
+            review_root,
+            invalid,
+            run_id=run_id,
+            expected=2,
+            contains="workspace post-gate date must be YYYY-MM-DD",
+        )
+        destination = review_root / f"versions/v{version}/tickets/ATT-1234/runs/{run_id}"
+        if destination.exists():
+            fail(f"invalid date created run destination: {name}")
+
     # Two immutable runs for one ticket; excluded private artifacts never cross the boundary.
     capture(review_root, first, run_id="run-one")
     capture(review_root, first, run_id="run-one", expected=2, contains="already exists")
@@ -559,6 +581,11 @@ try:
     retained_started = receipt(review_root, "run-one")["source"]["started"]
     if retained_started != "2026-08-05T10:00:00Z" or not isinstance(retained_started, str):
         fail("captured source timestamp was not retained as a canonical UTC string")
+    if receipt(review_root, "run-one")["jira_delivery"] != {
+        "outcome": "DECLINED",
+        "mutated_jira": False,
+    }:
+        fail("unquoted producer date did not complete the declined full-capture path")
     forbidden = ("ticket.json", "aux-owners.json", "post-gate.yaml", "history.ndjson", "private.txt")
     if any(any(path.name == name for path in run_one.rglob("*")) for name in forbidden):
         fail("excluded private artifacts crossed the capture boundary")
@@ -635,9 +662,6 @@ try:
     # A forced post-create exception must restore REVIEWING with no synthesis directory.
     exception_review_root = temp / "exception-review"
     shutil.copytree(review_root, exception_review_root)
-    spec = importlib.util.spec_from_file_location("version_review", tool)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
     original_update = module.update_status
     module.update_status = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("forced"))
     try:

@@ -12,7 +12,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date as calendar_date, datetime, timedelta
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
 
@@ -32,6 +32,7 @@ SAFE_ID = re.compile(r"[A-Za-z0-9]+(?:[-_.][A-Za-z0-9]+)*\Z")
 TICKET_ID = re.compile(r"[A-Za-z][A-Za-z0-9]*-[0-9]+\Z")
 FINDING_ID = re.compile(r"[A-Z]+-[0-9]+\Z")
 UTC_STAMP = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\Z")
+DATE_STAMP = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\Z")
 GITHUB_REPOSITORY = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\Z")
 PUBLIC_PLUGIN_REPOSITORIES = {
     "adcreative-ai/recon-plugin",
@@ -161,6 +162,21 @@ def require_timestamp(value: object, label: str) -> str:
     try:
         datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
     except ValueError:
+        fail(diagnostic)
+    return value
+
+
+def require_date(value: object, label: str) -> str:
+    diagnostic = f"{label} must be YYYY-MM-DD"
+    if type(value) is calendar_date:
+        return value.isoformat()
+    if not isinstance(value, str) or not DATE_STAMP.fullmatch(value):
+        fail(diagnostic)
+    try:
+        parsed = calendar_date.fromisoformat(value)
+    except ValueError:
+        fail(diagnostic)
+    if parsed.isoformat() != value:
         fail(diagnostic)
     return value
 
@@ -1066,7 +1082,7 @@ def parse_post_gate(path: Path) -> str:
     if not isinstance(gate, dict):
         fail("workspace post-gate post_gate must be an object")
     require_exact_keys(gate, {"date", "exchanges"}, "workspace post-gate")
-    require_nonempty(gate["date"], "workspace post-gate date")
+    gate["date"] = require_date(gate["date"], "workspace post-gate date")
     exchanges = require_list(gate["exchanges"], "workspace post-gate exchanges", nonempty=True)
     terminal = exchanges[-1]
     if not isinstance(terminal, dict) or terminal.get("outcome") != "declined":
