@@ -46,6 +46,44 @@ if python3 "$ROOT/tools/render-system-map.py" --check >/dev/null 2>&1; then
   cp "$FLOW.test-backup" "$FLOW"; rm -f "$FLOW.test-backup"
   echo 'expected unmarked flow.html drift failure' >&2; exit 1
 fi
+printf 'x' >>"$FLOW"
+python3 - "$FLOW" <<'PY'
+import sys
+from pathlib import Path
+path = Path(sys.argv[1])
+path.write_bytes(path.read_bytes().rstrip(b"\nx"))
+PY
+if python3 "$ROOT/tools/render-system-map.py" --check >/dev/null 2>&1; then
+  cp "$FLOW.test-backup" "$FLOW"; rm -f "$FLOW.test-backup"
+  echo 'removing a trailing newline must drift the map' >&2; exit 1
+fi
 mv "$FLOW.test-backup" "$FLOW"
 python3 "$ROOT/tools/render-system-map.py" --check >/dev/null
+
+# Normalization is derived from .cz.toml, so a newly bump-stamped file cannot
+# silently become a whole-file-hashed reference again (the bug that made every
+# release refuse itself). Assert the derivation covers every hashed ref.
+# -B: importing the generator must not leave tools/__pycache__ behind, which the
+# role-coverage check would report as an undocumented directory.
+python3 -B - "$ROOT" <<'PY'
+import importlib.util, re, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+generator = root / "tools" / "render-system-map.py"
+spec = importlib.util.spec_from_file_location("rsm", generator)
+rsm = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(rsm)
+stamped = set(rsm.bump_stamped_markers())
+if "docs/flow.html" not in stamped:
+    raise SystemExit("derivation lost docs/flow.html — check .cz.toml version_files")
+refs = set(re.findall(r'ref\("R\d+", "[^"]*", "([^"]+)"', generator.read_text(encoding="utf-8")))
+covered = sorted(refs & stamped)
+for path in covered:
+    print(f"  hashed ref is bump-stamped and normalized: {path}")
+config = (root / ".cz.toml").read_text(encoding="utf-8")
+declared = {line.split(":")[0].strip().strip('",') for line in config.splitlines() if line.strip().startswith('"')}
+unnormalized = sorted((refs & declared) - stamped)
+if unnormalized:
+    raise SystemExit(f"hashed refs are bump-stamped without normalization: {unnormalized}")
+PY
 echo 'system map controls: PASS'

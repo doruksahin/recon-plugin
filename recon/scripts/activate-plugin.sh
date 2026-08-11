@@ -69,16 +69,30 @@ for p in mp["plugins"]:
 installed_path.write_text(json.dumps(installed, indent=1))
 
 # Sync the marketplace clone when it is a separate git checkout of this repo.
+# A failed sync EXITS NON-ZERO: this print used to be advisory while the script
+# still succeeded, so a clone that could not fast-forward — the signature of
+# someone having edited a distribution mirror — silently rotted release after
+# release while activation kept reporting success.
+sync_failure = ""
 try:
     known = json.loads((plugins_home / "known_marketplaces.json").read_text())
     loc = Path(known.get(mp_name, {}).get("installLocation", ""))
     if loc and loc.exists() and loc.resolve() != root.resolve() and (loc / ".git").exists():
         r = subprocess.run(["git", "-C", str(loc), "pull", "--ff-only"],
                            capture_output=True, text=True)
-        state = "synced" if r.returncode == 0 else f"SYNC FAILED — {r.stderr.strip().splitlines()[-1] if r.stderr else 'see git output'}"
-        print(f"clone: {loc} {state}")
+        if r.returncode == 0:
+            print(f"clone: {loc} synced")
+        else:
+            detail = r.stderr.strip().splitlines()[-1] if r.stderr.strip() else "see git output"
+            sync_failure = f"clone: {loc} SYNC FAILED — {detail}"
+            print(sync_failure)
     else:
         print("clone: n/a (marketplace served from the source repo or no separate clone)")
 except (OSError, json.JSONDecodeError) as exc:
     print(f"clone: skipped ({exc})")
+
+if sync_failure:
+    sys.exit("REFUSED: the cache is activated but the marketplace clone is stale — "
+             "the source repo is the only editable location, so resolve the clone's "
+             "local state (commit what belongs upstream, then discard the rest) and re-run")
 EOF

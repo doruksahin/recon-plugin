@@ -35,7 +35,17 @@ SOURCE_HEAD="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null)" || refuse \
 [ -z "$(git -C "$ROOT" status --porcelain --untracked-files=all)" ] || refuse \
   "source release checkout is dirty: $ROOT"
 
-configured_info="$(codex plugin marketplace list --json | python3 -c '
+# `codex plugin marketplace list` fails wholesale when ANY configured
+# marketplace cannot load — e.g. one whose source path no longer exists. It then
+# writes nothing to stdout, so piping it straight into json.load buried the real
+# cause under a JSONDecodeError traceback. Capture and report the CLI's own words.
+marketplace_list=""
+if ! marketplace_list="$(codex plugin marketplace list --json 2>&1)"; then
+  refuse "codex could not list marketplaces — fix the configured entry it names, then re-run:
+$marketplace_list"
+fi
+
+configured_info="$(printf '%s' "$marketplace_list" | python3 -c '
 import json, sys
 name = sys.argv[1]
 rows = json.load(sys.stdin).get("marketplaces", [])

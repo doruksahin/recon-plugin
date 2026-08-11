@@ -10,6 +10,7 @@ import json
 import re
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 import yaml
@@ -19,28 +20,36 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "docs" / "system-map.html"
 ITERATION = ROOT / "docs" / "improvement-proposals" / "0.22.0" / "requirement-closure-coverage"
 
-# Files whose version stamps `cz bump` rewrites, keyed to the marker tokens
-# .cz.toml declares in version_files. A reference hash must not move just
-# because a release renumbered a stamp: the bump is a real commit, so its
-# pre-commit hook runs check-coherence.sh BEFORE this map could be regenerated,
-# and a whole-file hash of a bump-rewritten file makes every release refuse
-# itself. Normalizing these stamps out keeps the map coherent DURING the bump
-# commit — the same reason .cz.toml lists flow.html's markers in the first place.
-# Scoped to the marked lines only, so an unmarked version elsewhere in the file
-# still counts as real drift.
-BUMP_STAMPED_MARKERS = {
-    "docs/flow.html": ("coherence:version", "~recon-triage v"),
-}
 VERSION_STAMP = re.compile(r"\d+\.\d+\.\d+")
 
 
+def bump_stamped_markers() -> dict[str, tuple[str, ...]]:
+    """Line markers `cz bump` rewrites, read from .cz.toml — its only owner.
+
+    A reference hash must not move just because a release renumbered a stamp.
+    The bump is a real commit, so its pre-commit hook runs check-coherence.sh
+    BEFORE this map could be regenerated, and a whole-file hash of a
+    bump-rewritten file makes every release refuse itself. Deriving the markers
+    from version_files means adding a file there cannot reintroduce that.
+    """
+    config = tomllib.loads((ROOT / ".cz.toml").read_text(encoding="utf-8"))
+    markers: dict[str, tuple[str, ...]] = {}
+    for entry in config["tool"]["commitizen"]["version_files"]:
+        relative, _, marker = entry.partition(":")
+        if marker:
+            markers[relative] = markers.get(relative, ()) + (marker,)
+    return markers
+
+
 def digest(path: Path, relative: str | None = None) -> str:
-    markers = BUMP_STAMPED_MARKERS.get(relative or "")
+    markers = bump_stamped_markers().get(relative or "")
     if not markers:
         return hashlib.sha256(path.read_bytes()).hexdigest()
-    normalized = "\n".join(
+    # keepends: separator identity is part of the file, so a stripped trailing
+    # newline or a CRLF conversion still counts as drift.
+    normalized = "".join(
         VERSION_STAMP.sub("<version>", text) if any(marker in text for marker in markers) else text
-        for text in path.read_text(encoding="utf-8").splitlines()
+        for text in path.read_text(encoding="utf-8").splitlines(keepends=True)
     )
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 

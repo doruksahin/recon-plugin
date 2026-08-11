@@ -86,6 +86,13 @@ set -euo pipefail
 
 case "${1:-}:${2:-}:${3:-}" in
   plugin:marketplace:list)
+    # Real codex fails the whole listing when ANY configured marketplace cannot
+    # load (e.g. a source path that no longer exists): nothing on stdout, the
+    # message on stderr, exit 1.
+    if [ "${FAKE_LIST_LOAD_FAILURE:-0}" = "1" ]; then
+      printf 'Error: failed to load marketplace(s):\n- `other-plugin` at /nonexistent: marketplace root does not contain a supported manifest\n' >&2
+      exit 1
+    fi
     python3 - "$FAKE_CONFIGURED_ROOT" "${FAKE_SOURCE_TYPE:-local}" <<'PY'
 import json, sys
 root, source_type = sys.argv[1:3]
@@ -295,6 +302,22 @@ assert_contains "$POST_SYNC_DIRTY_OUTPUT" "dirty after synchronization" \
   "post-upgrade dirty clone refusal"
 if printf '%s\n' "$POST_SYNC_DIRTY_OUTPUT" | grep -Fq 'codex: activated'; then
   fail "post-upgrade dirty clone was reported as activated"
+fi
+
+# An unrelated broken marketplace entry makes codex fail the whole listing with
+# nothing on stdout. The rail must report codex's own words, not die inside a
+# JSON parse of empty input.
+set +e
+LIST_FAILURE_OUTPUT="$(run_activation FAKE_LIST_LOAD_FAILURE=1 2>&1)"
+LIST_FAILURE_RC=$?
+set -e
+[ "$LIST_FAILURE_RC" -ne 0 ] || fail "unreadable marketplace listing was accepted"
+assert_contains "$LIST_FAILURE_OUTPUT" "codex could not list marketplaces" \
+  "marketplace listing failure refusal"
+assert_contains "$LIST_FAILURE_OUTPUT" "does not contain a supported manifest" \
+  "marketplace listing failure quotes codex"
+if printf '%s\n' "$LIST_FAILURE_OUTPUT" | grep -Fq 'JSONDecodeError'; then
+  fail "marketplace listing failure surfaced a raw traceback"
 fi
 
 echo "codex activation contract: PASS"

@@ -110,12 +110,13 @@ codex plugin add recon@recon-plugin
 Restart or start a new task after installation so the host discovers the new
 skills. Invoke Recon Triage through the native skill UI (for example,
 `$recon-triage ATT-1234` in Codex). Runtime detection, preflight,
-capability levels, and invocation rendering are defined in
-[recon/docs/hosts.md](recon/docs/hosts.md).
+capability levels, invocation rendering, and the authoritative host-package
+parity/anti-drift policy are defined in
+[recon/docs/hosts.md](recon/docs/hosts.md#package-parity-and-drift-prevention).
 
 ### Runtime scope
 
-Version `0.15.0` executes on Claude Code and local Codex (app or CLI). Hosted
+<!-- coherence:version -->Version `v0.20.0` executes on Claude Code and local Codex (app or CLI). Hosted
 ChatGPT, Codex Cloud, MCP, centralized Jira authentication, shared remote state,
 and remote publishing are intentionally outside this release rather than
 partially supported.

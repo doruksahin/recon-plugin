@@ -101,9 +101,12 @@ link drift; shows you the exact version and changelog and waits for a `y`; then
 bumps, tags, pushes, and opens the GitHub Release with that version's section as
 the body.
 
-Version numbers live in exactly two places, both written for you: the git tag
-(the source of truth, via `version_provider = "scm"`) and
-`recon/.claude-plugin/plugin.json`. Never edit either by hand.
+The git tag is the source of truth for the version (`version_provider = "scm"`).
+Every other appearance is a mirror the bump writes for you, enumerated once in
+`.cz.toml`'s `version_files`: both native plugin manifests, plus the lines marked
+`coherence:version` in `docs/flow.html`, `recon/docs/hosts.md`,
+`recon/docs/pipeline.md`, and `README.md`. Never edit any of them by hand — and
+when you add a new one, mark it and register it there, or it goes stale silently.
 
 To see what the next release would be without cutting it:
 

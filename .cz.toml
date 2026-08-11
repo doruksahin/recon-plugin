@@ -18,6 +18,14 @@ version_files = [
   # keeps tools/check-coherence.sh green DURING the bump commit itself.
   "docs/flow.html:coherence:version",
   "docs/flow.html:~recon-triage v",
+  # The prose that names the executable contract's version. These three
+  # sentences went five releases stale because nothing rewrote them; marking
+  # them makes the bump the owner and check-coherence.sh the enforcement.
+  # pipeline.md is also a hashed reference in docs/system-map.html — safe only
+  # because render-system-map.py derives its normalized markers from THIS list.
+  "recon/docs/hosts.md:coherence:version",
+  "recon/docs/pipeline.md:coherence:version",
+  "README.md:coherence:version",
 ]
 tag_format = "v$version"
 

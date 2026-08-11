@@ -109,7 +109,7 @@ Optional tooling: `lychee` (external URL checking in the link check) and `uv` (c
 - Scope names **what a teammate would notice** (`comment`, `attachments`, `gate`, `triage`, `discovery`, `repro`, `report`, `routing`, `workspace`, `scripts`, `tools`), not which file changed.
 - `feat` → minor, `fix`/`perf`/`refactor` → patch; `docs`/`chore`/`ci`/`test`/`style`/`revert` produce no changelog line and no release. Back out a user-visible change as `fix:`, never `revert:`.
 - Breaking changes need `!` **and** a `BREAKING CHANGE:` footer (the footer is the only place the migration note lands). Breaking = workspace layout/artifact-contract change, skill rename/removal, gate-semantics change, or comment-marker format change. Pre-1.0, `!` bumps minor (`major_version_zero` in `.cz.toml`).
-- Version numbers live only in the git tag (source of truth, `version_provider = "scm"`) and the two native plugin manifests (written by the tools).
+- The git tag owns the version (`version_provider = "scm"`); every other appearance is a bump-written mirror enumerated once in `.cz.toml`'s `version_files` — both native plugin manifests plus the `coherence:version` lines in `docs/flow.html`, `recon/docs/hosts.md`, `recon/docs/pipeline.md`, and `README.md`. A new appearance must be marked and registered there or it goes stale silently; `render-system-map.py` derives its hash normalization from that same list.
 
 ## Architecture — how the pieces relate
 

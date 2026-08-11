@@ -1,6 +1,6 @@
 # Local Host Contract
 
-Recon `0.15.0` executes on Claude Code and local Codex (app or CLI). Hosted
+<!-- coherence:version -->Recon `v0.20.0` executes on Claude Code and local Codex (app or CLI). Hosted
 ChatGPT, Codex Cloud, MCP, remote state, and remote publishing are not runtime
 targets for this release.
 
@@ -56,6 +56,66 @@ absolute `RECON_ROOT` to use another local or shared directory.
 
 The table is explanatory. `reconctl.sh start` and `capabilities` are the
 executable sources for host mechanics.
+
+## Package parity and drift prevention
+
+Recon is one workflow with two native host packages. The shared workflow is
+not two independently maintained copies: the same `recon/skills/*/SKILL.md`
+files, `recon/scripts/` rails, docs, and templates execute on both hosts. Host
+mechanics may differ only through the capability contract above.
+
+| Concern | Claude Code | Codex | Ownership and rule |
+| --- | --- | --- | --- |
+| Runtime skills and rails | Same shipped files | Same shipped files | Author the shared source once; never fork a host-specific skill body. |
+| Native manifest | `recon/.claude-plugin/plugin.json` | `recon/.codex-plugin/plugin.json` | The Claude manifest is canonical. The Codex manifest is generated; do not hand-edit it. |
+| Marketplace registration | `.claude-plugin/marketplace.json` | `.agents/plugins/marketplace.json` | The Codex marketplace entry is generated from the canonical source; do not hand-edit it. |
+| Skill UI metadata | Claude discovers each registered skill | `skills/*/agents/openai.yaml` | Codex UI metadata is generated from the shared skill frontmatter plus the generator's interface map; do not hand-edit it. |
+| User-facing invocation | `Skill` or `/recon:<skill>` | Native selection or `$<skill>` | Render through `reconctl.sh invocation`; never persist either spelling in durable artifacts. |
+| Presentation and publication | Can publish artifacts and stable URLs | Render-only; cannot write `state/artifact-url` | Follow `reconctl.sh capabilities`; this does not alter workflow semantics. |
+
+The package differences above are intentional. They must never change the
+artifact schemas, evidence requirements, routing rules, gate semantics, or
+shared skill instructions.
+
+### Source-to-install synchronization
+
+The source repository is the only editable location. An installed Claude cache,
+Codex marketplace clone, or host skill directory is a distribution mirror, not
+an alternate source of truth. In particular, do not copy or symlink individual
+Recon skills into generic host skill directories: each skill relies on its
+siblings at the plugin root (`scripts/`, `docs/`, templates, and manifest), and
+that bypasses native-plugin verification.
+
+For every change to canonical manifest fields or skill frontmatter:
+
+1. Edit the shared source only.
+2. Run `python3 tools/generate-adapters.py` to update the checked-in Codex
+   adapters.
+3. Run `python3 tools/generate-adapters.py --check` and
+   `bash tools/check-coherence.sh`. A failing check is drift: repair the owner
+   or regenerate the named mirror; never patch an installed host copy.
+4. Release through the release rail. After release approval, refresh the two
+   installations only through `recon/scripts/activate-plugin.sh` (Claude) and
+   `recon/scripts/activate-codex-plugin.sh` (Codex).
+
+Codex activation is stronger than a version comparison: it rejects an
+unexpected, dirty, sparse, or untracked materialized plugin tree and attests
+the installed package's source commit and tree before reporting success. A
+host may legitimately run an older released install until activation occurs;
+that is an installation lag, not permission to edit the installed package.
+
+### Drift response
+
+| Observation | Required response |
+| --- | --- |
+| Generated-adapter check fails | Regenerate from the canonical source, review the resulting files, then commit source and generated mirrors together. |
+| Coherence check fails | Treat the reported owner/mirror mismatch as the diagnosis and repair it at the owner named by the Change protocol. |
+| Claude and Codex behave differently | First compare `reconctl.sh start` capability snapshots. A documented capability difference is expected; any change to shared workflow semantics is a bug. |
+| A live installation differs from the released source | Do not repair the cache. Return to the source checkout, validate it, release if appropriate, and use the host activation rail. |
+
+`recon/scripts/doctor.sh` is the read-only per-install diagnostic. Its output,
+not a remembered version or a manually inspected cache, is the current host's
+setup evidence.
 
 ## Canonical actions
 
