@@ -1,3 +1,16 @@
+## v0.20.0 (2026-08-11)
+
+### Features
+
+- **review**: add version-scoped team review lifecycle
+
+### Bug Fixes
+
+- **tools**: keep the system map coherent during a bump
+- **review**: accept canonical YAML dates
+- **tools**: accept unquoted UTC YAML timestamps
+- **review**: require private GitHub evidence storage
+
 ## v0.19.0 (2026-08-05)
 
 ### BREAKING CHANGE
