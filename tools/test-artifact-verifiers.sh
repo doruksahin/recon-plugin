@@ -727,7 +727,27 @@ SESSION_DIR="session-staging/2026-01-01_00-00-00_stub"
 case "${1:-}" in
   start)
     mkdir -p "$SESSION_DIR"
-    printf '{"sessionDir": "%s"}\n' "$SESSION_DIR" > session-staging/.session.json
+    # proofshot records who owns the dev server; the rail must trust only this.
+    if [ -n "${PROOFSHOT_SERVER_PORT:-}" ]; then
+      printf '{"sessionDir": "%s", "serverAlreadyRunning": %s, "port": %s}\n' \
+        "$SESSION_DIR" "${PROOFSHOT_SERVER_ALREADY_RUNNING:-false}" "$PROOFSHOT_SERVER_PORT" \
+        > session-staging/.session.json
+    else
+      printf '{"sessionDir": "%s"}\n' "$SESSION_DIR" > session-staging/.session.json
+    fi
+    should_fail=0
+    if [ "${PROOFSHOT_START_FAIL:-}" = "1" ]; then
+      should_fail=1
+    elif [ -n "${PROOFSHOT_START_FAIL_ONCE_MARKER:-}" ] && [ ! -e "${PROOFSHOT_START_FAIL_ONCE_MARKER}" ]; then
+      touch "${PROOFSHOT_START_FAIL_ONCE_MARKER}"
+      should_fail=1
+    fi
+    if [ "$should_fail" = "1" ]; then
+      printf '✓ Dev server started on :5173\n'
+      printf "✗ Failed to initialize recording: agent-browser --session 'proofshot-2026-01-01_00-00-00' record start session.webm\n" >&2
+      printf '✗ Recording already active\n' >&2
+      exit 1
+    fi
     ;;
   exec)
     if [ "${2:-}" = "screenshot" ]; then
@@ -748,8 +768,22 @@ case "${1:-}" in
 esac
 SH
 chmod +x "$STUB_BIN/proofshot"
-printf '#!/bin/bash\nexit 0\n' >"$STUB_BIN/agent-browser"
+cat >"$STUB_BIN/agent-browser" <<'SH'
+#!/bin/bash
+if [ -n "${AGENT_BROWSER_LOG:-}" ]; then
+  printf '%s\n' "$*" >>"$AGENT_BROWSER_LOG"
+fi
+exit 0
+SH
 chmod +x "$STUB_BIN/agent-browser"
+# Resolves the port to one PID the case controls, so a kill is observable
+# without touching whatever really holds that port on this machine.
+cat >"$STUB_BIN/lsof" <<'SH'
+#!/bin/bash
+[ -n "${LSOF_FAKE_PID:-}" ] && printf '%s\n' "$LSOF_FAKE_PID"
+exit 0
+SH
+chmod +x "$STUB_BIN/lsof"
 
 new_workspace rail-guarded-exec
 mkdir -p "$CASE_WS/repro"
@@ -781,6 +815,71 @@ expect_pass "rail stop finalizes" \
   || fail "rail stop left session-staging behind"
 [ ! -e "$CASE_WS/repro/proofshot.config.json" ] \
   || fail "rail stop left proofshot.config.json behind"
+PASS_COUNT=$((PASS_COUNT + 1))
+
+new_workspace rail-start-recovery
+RECOVERY_LOG="$CASE_WS/agent-browser.log"
+expect_exit_code "rail failed start recovers stranded session" "RECOVERY: closed stranded browser session" 1 \
+  env PATH="$STUB_BIN:$PATH" RECON_ROOT="$CASE_ROOT" PROOFSHOT_START_FAIL=1 AGENT_BROWSER_LOG="$RECOVERY_LOG" \
+  bash "$RECORD_REPRO" "$TICKET" start
+[ ! -e "$CASE_WS/repro/session-staging" ] \
+  || fail "rail failed start left session-staging behind"
+[ ! -e "$CASE_WS/repro/proofshot.config.json" ] \
+  || fail "rail failed start left proofshot.config.json behind"
+grep -qx -- '--session proofshot-2026-01-01_00-00-00 record stop' "$RECOVERY_LOG" \
+  || fail "rail failed start did not stop the stranded recording"
+grep -qx -- '--session proofshot-2026-01-01_00-00-00 close' "$RECOVERY_LOG" \
+  || fail "rail failed start did not close the stranded browser"
+PASS_COUNT=$((PASS_COUNT + 1))
+
+new_workspace rail-start-recovery-retry
+RECOVERY_RETRY_LOG="$CASE_WS/agent-browser.log"
+RECOVERY_RETRY_MARKER="$CASE_WS/first-start-failed"
+expect_pass "rail retries once after active recording recovery" \
+  env PATH="$STUB_BIN:$PATH" RECON_ROOT="$CASE_ROOT" PROOFSHOT_START_FAIL_ONCE_MARKER="$RECOVERY_RETRY_MARKER" AGENT_BROWSER_LOG="$RECOVERY_RETRY_LOG" \
+  bash "$RECORD_REPRO" "$TICKET" start
+[ -e "$RECOVERY_RETRY_MARKER" ] \
+  || fail "rail recovery retry did not exercise the first failed start"
+[ -f "$CASE_WS/repro/session-staging/.session.json" ] \
+  || fail "rail recovery retry did not reach an active second recording"
+grep -qx -- '--session proofshot-2026-01-01_00-00-00 record stop' "$RECOVERY_RETRY_LOG" \
+  || fail "rail recovery retry did not stop the stranded recording"
+grep -qx -- '--session proofshot-2026-01-01_00-00-00 close' "$RECOVERY_RETRY_LOG" \
+  || fail "rail recovery retry did not close the stranded browser"
+expect_pass "rail recovery retry stop finalizes" \
+  env PATH="$STUB_BIN:$PATH" RECON_ROOT="$CASE_ROOT" bash "$RECORD_REPRO" "$TICKET" stop
+PASS_COUNT=$((PASS_COUNT + 1))
+
+# Server ownership comes from the marker, never from proofshot's log prose: a
+# log line cannot tell "the recording started it" from "one was already up", so
+# scraping one kills the developer's own dev server.
+new_workspace rail-server-owned
+sleep 120 & OWNED_PID=$!
+expect_pass "rail stop stops the server this recording started" \
+  env PATH="$STUB_BIN:$PATH" RECON_ROOT="$CASE_ROOT" PROOFSHOT_SERVER_PORT=5173 \
+      PROOFSHOT_SERVER_ALREADY_RUNNING=false LSOF_FAKE_PID="$OWNED_PID" \
+  bash "$RECORD_REPRO" "$TICKET" start
+env PATH="$STUB_BIN:$PATH" RECON_ROOT="$CASE_ROOT" LSOF_FAKE_PID="$OWNED_PID" \
+  bash "$RECORD_REPRO" "$TICKET" stop | grep -q "SERVER: stopped the dev server this recording started on :5173" \
+  || fail "rail stop did not report stopping its own dev server"
+sleep 0.5
+if kill -0 "$OWNED_PID" 2>/dev/null; then kill "$OWNED_PID" 2>/dev/null || true; fail "rail stop left its own dev server running"; fi
+PASS_COUNT=$((PASS_COUNT + 1))
+
+new_workspace rail-server-not-owned
+sleep 120 & FOREIGN_PID=$!
+expect_pass "rail start with a pre-existing server" \
+  env PATH="$STUB_BIN:$PATH" RECON_ROOT="$CASE_ROOT" PROOFSHOT_SERVER_PORT=5173 \
+      PROOFSHOT_SERVER_ALREADY_RUNNING=true LSOF_FAKE_PID="$FOREIGN_PID" \
+  bash "$RECORD_REPRO" "$TICKET" start
+if env PATH="$STUB_BIN:$PATH" RECON_ROOT="$CASE_ROOT" LSOF_FAKE_PID="$FOREIGN_PID" \
+  bash "$RECORD_REPRO" "$TICKET" stop | grep -q "SERVER: stopped"; then
+  kill "$FOREIGN_PID" 2>/dev/null || true
+  fail "rail stop claimed a dev server it did not start"
+fi
+sleep 0.5
+kill -0 "$FOREIGN_PID" 2>/dev/null || fail "rail stop killed a dev server the developer started"
+kill "$FOREIGN_PID" 2>/dev/null || true
 PASS_COUNT=$((PASS_COUNT + 1))
 
 # Repro: non-contiguous steps, corrupt/stale/orphan exhibits, and fabricated

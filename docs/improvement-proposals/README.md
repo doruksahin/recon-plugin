@@ -13,7 +13,7 @@ v0.20.0, v0.21.0, and v0.22.0 are not skipped releases or upgrade steps.
 Read [CLAUDE.md](CLAUDE.md) before adding or changing a record. In particular,
 new proposals must reserve a **future** SemVer cohort; do not add work to a
 released, consolidated, or historical version directory. Unrelated new intake
-starts at v0.23.0 or a later explicitly planned cohort.
+starts at v0.24.0 or a later explicitly planned cohort.
 
 ## Design basis
 
@@ -42,6 +42,7 @@ evidence needs semantic or visual interpretation.
 | [v0.21.0](0.21.0/README.md) | released (v0.19.0) | 1 | Generic evidence-backed decision closure |
 | [v0.22.0](0.22.0/README.md) | released (v0.19.0) | 1 | Durable requirement-closure improvement loop |
 | [v0.23.0](0.23.0/README.md) | in progress | 1 | Version-scoped private team-review laboratory |
+| [v0.24.0](0.24.0/README.md) | in progress | 1 | Recorder failed-start recovery with marker-owned server shutdown |
 
 ## v0.15 verified company chain
 

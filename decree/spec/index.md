@@ -18,5 +18,6 @@
 | SPEC-01KZ7E7FXK0T0W83PKGWPMC0ZW | Recon Version-Scoped Team Review Laboratory | implemented | 2026-08-05 |
 | SPEC-01KZ8AXYBMF90CGY9554YDEJPZ | Version Review YAML Timestamp Compatibility | implemented | 2026-08-05 |
 | SPEC-01KZ8CCYYG3B45TDJEW5MD1AT1 | Version Review YAML Date Compatibility | implemented | 2026-08-05 |
+| SPEC-01KZRNHBPKFJ53FGTE6W30K5TT | Recorder Failed-Start Recovery With Marker-Owned Server Shutdown | implemented | 2026-08-11 |
 
 <!-- GENERATED:decree-graph — do not edit below this line -->
