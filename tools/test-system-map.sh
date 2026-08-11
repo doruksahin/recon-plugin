@@ -19,4 +19,33 @@ printf 'drift' >> "$MAP"
 if python3 "$ROOT/tools/render-system-map.py" --check >/dev/null 2>&1; then echo 'expected drift failure' >&2; exit 1; fi
 mv "$MAP.test-backup" "$MAP"
 python3 "$ROOT/tools/render-system-map.py" --check >/dev/null
+
+# A release rewrites flow.html's version stamps inside the bump commit, whose
+# pre-commit hook runs check-coherence.sh before this map could be regenerated.
+# If a renumbered stamp moved a reference hash, every release would refuse
+# itself, so a simulated bump must stay clean while real drift still fails.
+FLOW="$ROOT/docs/flow.html"
+cp "$FLOW" "$FLOW.test-backup"
+python3 - "$FLOW" <<'PY'
+import re, sys
+from pathlib import Path
+path = Path(sys.argv[1])
+lines = []
+for text in path.read_text(encoding="utf-8").splitlines(keepends=True):
+    if "coherence:version" in text or "~recon-triage v" in text:
+        text = re.sub(r"\d+\.\d+\.\d+", "99.99.99", text)
+    lines.append(text)
+path.write_text("".join(lines), encoding="utf-8")
+PY
+if ! python3 "$ROOT/tools/render-system-map.py" --check >/dev/null 2>&1; then
+  cp "$FLOW.test-backup" "$FLOW"; rm -f "$FLOW.test-backup"
+  echo 'bump-stamp renumbering must not drift the map' >&2; exit 1
+fi
+printf '\n<!-- unmarked drift -->\n' >> "$FLOW"
+if python3 "$ROOT/tools/render-system-map.py" --check >/dev/null 2>&1; then
+  cp "$FLOW.test-backup" "$FLOW"; rm -f "$FLOW.test-backup"
+  echo 'expected unmarked flow.html drift failure' >&2; exit 1
+fi
+mv "$FLOW.test-backup" "$FLOW"
+python3 "$ROOT/tools/render-system-map.py" --check >/dev/null
 echo 'system map controls: PASS'
