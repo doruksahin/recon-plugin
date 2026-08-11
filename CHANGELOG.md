@@ -1,3 +1,13 @@
+## v0.21.0 (2026-08-11)
+
+### Features
+
+- **repro**: recover a stranded recorder start without killing a foreign server
+
+### Bug Fixes
+
+- **tools**: make the release and activation rails fail honestly
+
 ## v0.20.0 (2026-08-11)
 
 ### Features

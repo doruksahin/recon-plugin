@@ -1,6 +1,6 @@
 # Local Host Contract
 
-<!-- coherence:version -->Recon `v0.20.0` executes on Claude Code and local Codex (app or CLI). Hosted
+<!-- coherence:version -->Recon `v0.21.0` executes on Claude Code and local Codex (app or CLI). Hosted
 ChatGPT, Codex Cloud, MCP, remote state, and remote publishing are not runtime
 targets for this release.
 

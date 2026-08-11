@@ -19,7 +19,7 @@ base|triage|repro` for one pure-output runtime, capability, and preflight
 snapshot before mutation (the `repro` profile adds the pinned proofshot +
 agent-browser recorder checks). Later rails re-detect current identity for provenance. Host
 mechanics may change; gates, schemas, evidence, and routing semantics may not.
-<!-- coherence:version -->Hosted runtimes are outside the executable `v0.20.0` contract.
+<!-- coherence:version -->Hosted runtimes are outside the executable `v0.21.0` contract.
 
 ## State machine
 
