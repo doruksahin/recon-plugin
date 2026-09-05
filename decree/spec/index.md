@@ -20,5 +20,6 @@
 | SPEC-01KZ8CCYYG3B45TDJEW5MD1AT1 | Version Review YAML Date Compatibility | implemented | 2026-08-05 |
 | SPEC-01KZRNHBPKFJ53FGTE6W30K5TT | Recorder Failed-Start Recovery With Marker-Owned Server Shutdown | implemented | 2026-08-11 |
 | SPEC-01KZRNHBT9MF1GZHSA205NS07X | Release And Activation Rails Fail Honestly | implemented | 2026-08-11 |
+| SPEC-01M1SMA0CR7BCGE0821Z46YWYW | Recon Task Packet Store Delivery | implemented | 2026-09-05 |
 
 <!-- GENERATED:decree-graph — do not edit below this line -->

@@ -57,6 +57,20 @@ absolute `RECON_ROOT` to use another local or shared directory.
 The table is explanatory. `reconctl.sh start` and `capabilities` are the
 executable sources for host mechanics.
 
+## Optional workflow storage
+
+Task-packet storage is an explicit workflow delivery, not a host capability.
+On either local host, a caller may pass an absolute store config to
+`recon-report`; after rendering and linting, the skill invokes
+`store-dossier.sh` with the current ticket workspace. The exact package pin,
+environment-only credential contract, success receipt, and filesystem/Drive
+acceptance recipes are in [storage.md](storage.md).
+
+Recon never derives a store from the host, a vault, Jira, or repository
+configuration. No store input means no probe or storage call. A store request
+does not change `publish_once`, `publish_stable_url`, or any Jira approval
+gate, and a failed explicit save cannot be reported as render-only success.
+
 ## Package parity and drift prevention
 
 Recon is one workflow with two native host packages. The shared workflow is
@@ -153,3 +167,6 @@ scripts may use.
    steps, fabricated screenshots, or an unrecorded browser session.
 6. Host mechanics may change invocation and presentation, not artifact
    schemas, evidence requirements, routing, or approval semantics.
+7. Task-packet storage runs only from an explicit absolute store config and is
+   independent of host publication and Jira delivery approval (pipeline
+   invariant 19).

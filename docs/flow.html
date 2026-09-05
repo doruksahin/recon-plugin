@@ -277,7 +277,7 @@
       <dt>who</dt><dd><span class="w-rail">rail</span> (fixed template, no new facts)</dd>
       <dt>in</dt><dd>current-run artifacts</dd>
       <dt>out</dt><dd><code>report/dossier.html</code> — Blockers &amp; question packs section leads</dd>
-      <dt>rule</dt><dd>NO publishing on this path — the ticket attachment is the delivery; the same render-only dossier rail is used after approved READY Discovery</dd>
+      <dt>rule</dt><dd>NO host publication on this path — the ticket attachment is the Jira delivery; the same render-only dossier rail is used after approved READY Discovery <span class="sep">·</span> task-packet storage runs only when an absolute store config was explicitly supplied</dd>
     </dl>
   </div>
 
@@ -487,7 +487,18 @@
 
   <div class="stopbar">
     <span class="stamp">Stop</span>
-    <p>After any stop, <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a> fills <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-report/template.html">the fixed template</a> and publishes only when the local host exposes a publisher. <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-state/SKILL.md">recon-state</a> keeps the living canvas honest: state is derived from artifact presence by <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/derive-state.sh">rail</a>, always rendered locally, and republished only when stable-URL publishing is available.</p>
+    <p>After any stop, <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a> fills <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-report/template.html">the fixed template</a>, saves the complete current run only when an absolute store config was explicitly supplied, and publishes only when the local host exposes a publisher. <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-state/SKILL.md">recon-state</a> keeps the living canvas honest: state is derived from artifact presence by <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/derive-state.sh">rail</a>, always rendered locally, and republished only when stable-URL publishing is available.</p>
+  </div>
+
+  <div class="step rail">
+    <div class="step-h"><span class="step-no">D12</span><h3>Optional task-packet save</h3>
+      <span class="src"><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/store-dossier.sh">store-dossier.sh</a> · <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/docs/storage.md">storage.md</a></span></div>
+    <dl class="fields">
+      <dt>who</dt><dd><span class="w-rail">rail</span> — explicit input only</dd>
+      <dt>in</dt><dd>absolute store config + ticket + current workspace with <code>report/dossier.html</code></dd>
+      <dt>out</dt><dd><code>stages/10-recon/runs/vN/</code> with current-run support, <code>run.md</code>, <code>snapshot.json</code>, and package-resolved locations</dd>
+      <dt>rule</dt><dd>exact <code>@doruksahin/task-packet-store@0.1.0</code> <span class="sep">·</span> prune top-level archived <code>runs/</code> before traversal <span class="sep">·</span> no success receipt until checkpoint + all location lookups pass <span class="sep">·</span> saving authorizes neither host publication nor Jira</dd>
+    </dl>
   </div>
 
   <section class="reg">
@@ -510,7 +521,7 @@
           <tr><td class="mono">route/{routing.yaml, aux-intent-check.txt}</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/route-generic.sh">route-generic.sh</a> | <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-decree/SKILL.md">recon-decree</a></td><td>discovery (route, brief_kind, verbatim handoff), dossier</td></tr>
           <tr><td class="mono">repro/{repro.md, exhibits/*.png}</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-repro/SKILL.md">repro</a>, verified by <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/verify-repro.sh">verify-repro.sh</a></td><td>blocker detail packs, gate questions, Manual verification, PR "before" evidence</td></tr>
           <tr><td class="mono">repro/session/*</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/record-repro.sh">record-repro.sh</a> (proofshot bundle, finalized at stop)</td><td>verify-repro.sh log cross-check, delivery bundle (video), audit</td></tr>
-          <tr><td class="mono">report/dossier.html</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a></td><td>attached to the ticket on a BLOCKED/NEEDS_INFO or approved READY delivery path; published private on demand</td></tr>
+          <tr><td class="mono">report/dossier.html</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-report/SKILL.md">recon-report</a></td><td>attached to the ticket on a BLOCKED/NEEDS_INFO or approved READY delivery path; published private on demand; primary result of an explicitly requested task-packet save</td></tr>
           <tr><td class="mono">state/{state.yaml, canvas.html, publish-gate.yaml, artifact-url}</td><td><a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/derive-state.sh">derive-state.sh</a> · <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/render-state-canvas.sh">render-state-canvas.sh</a> · <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/scripts/record-publish-gate.sh">record-publish-gate.sh</a> · <a href="https://github.com/AdCreative-ai/recon-plugin/blob/master/recon/skills/recon-state/SKILL.md">recon-state</a></td><td>living state: canonical next action + local canvas; the publish answer on the record; stable URL only on capable hosts, after a published answer</td></tr>
         </tbody>
       </table>
