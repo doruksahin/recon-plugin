@@ -5,11 +5,10 @@
 # protocol in recon/docs/pipeline.md.
 #
 # Six passes:
-#   1. VERSION STAMPS — lines marked `coherence:version` must carry the exact
-#      version in recon/.claude-plugin/plugin.json. Unmarked mentions (release
-#      history, design-doc names) are untouched — the marker is what makes a
-#      mention a claim about NOW. Caught live: docs/flow.html shipped a v0.7.0
-#      chip while plugin.json said 0.8.0 (2026-08-01).
+#   1. VERSION + DEPENDENCY PINS — lines marked `coherence:version` must carry
+#      the exact version in recon/.claude-plugin/plugin.json. The dossier-store
+#      package constant is likewise authoritative over its current-facing
+#      docs/test mirrors; historical evidence may retain an older pin.
 #   2. GENERATED VIEWS — native Codex manifest + skill UI metadata must exactly
 #      match canonical metadata, and the replay-lab HTML must match live case,
 #      oracle, command evidence, source references, and report generator bytes.
@@ -45,8 +44,8 @@ PIPELINE="recon/docs/pipeline.md"
 [ -f "$REGISTRY" ] || { echo "missing $REGISTRY" >&2; exit 2; }
 [ -f "$PIPELINE" ] || { echo "missing $PIPELINE" >&2; exit 2; }
 
-# ------------------------------------------------------------ 1. version stamps
-echo "[1/6] version stamps → native plugin manifests"
+# --------------------------------------------------- 1. version + package pins
+echo "[1/6] version + dependency pins → current mirrors"
 VERSION="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$PLUGIN_JSON" | head -1)"
 [ -n "$VERSION" ] || { echo "cannot read version from $PLUGIN_JSON" >&2; exit 2; }
 CODEX_VERSION="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$CODEX_PLUGIN_JSON" | head -1)"
@@ -58,6 +57,28 @@ while IFS=: read -r file line content; do
     *) say_fail "$file:$line — marked coherence:version but does not say v$VERSION (plugin.json)" ;;
   esac
 done < <(grep -rn '<!-- coherence:version -->' --include='*.md' --include='*.html' . 2>/dev/null)
+
+DOSSIER_STORE_SCRIPT="recon/scripts/store-dossier.sh"
+[ -f "$DOSSIER_STORE_SCRIPT" ] || { echo "missing $DOSSIER_STORE_SCRIPT" >&2; exit 2; }
+DOSSIER_STORE_PACKAGE="$(sed -n 's/^PACKAGE="\([^"]*\)"$/\1/p' "$DOSSIER_STORE_SCRIPT")"
+[ -n "$DOSSIER_STORE_PACKAGE" ] \
+  || { echo "cannot read PACKAGE from $DOSSIER_STORE_SCRIPT" >&2; exit 2; }
+if ! [[ "$DOSSIER_STORE_PACKAGE" =~ ^@doruksahin/task-packet-store@[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+  say_fail "$DOSSIER_STORE_SCRIPT PACKAGE is not an exact task-packet-store version"
+fi
+DOSSIER_STORE_MIRRORS=(
+  "recon/scripts/CLAUDE.md"
+  "$PIPELINE"
+  "recon/docs/storage.md"
+  "docs/flow.html"
+  "tools/test-dossier-store.sh"
+  "decree/spec/architecture/portability/spec-01m1sma0cr7bcge0821z46ywyw-recon-task-packet-store-delivery.md"
+)
+for mirror in "${DOSSIER_STORE_MIRRORS[@]}"; do
+  [ -f "$mirror" ] || { echo "missing dossier-store pin mirror $mirror" >&2; exit 2; }
+  grep -qF "$DOSSIER_STORE_PACKAGE" "$mirror" \
+    || say_fail "dossier-store package pin '$DOSSIER_STORE_PACKAGE' missing from $mirror"
+done
 
 # ------------------------------------------------------ 2. generated adapters
 echo "[2/6] generated adapters → canonical metadata"
@@ -170,7 +191,7 @@ else
 fi
 
 if [ "$fail" -eq 0 ]; then
-  echo "coherence: clean — version v$VERSION stamped, adapters generated, local contracts passed, registry mirrored, roles covered, citations valid"
+  echo "coherence: clean — version v$VERSION and dependency pins mirrored, adapters generated, local contracts passed, registry mirrored, roles covered, citations valid"
   exit 0
 else
   echo "coherence: DRIFT — fix the facts above before committing"

@@ -69,7 +69,7 @@ storage sees the same artifact registry without reading an archive or writing
 a receipt/state artifact into the live Recon workspace.
 
 The rail invokes exactly
-`@doruksahin/task-packet-store@0.1.0` through npm's one-off CLI path. It sets
+`@doruksahin/task-packet-store@0.1.1` through npm's one-off CLI path. It sets
 the package's public scoped registry for that subprocess while preserving the
 rest of the operator environment. The package remains the sole owner of store
 JSON validation, filesystem and Drive transports, credentials, run numbering,
@@ -132,7 +132,7 @@ is part of repository validation; private CI owns that acceptance.
 
 - [x] The documented command accepts absolute `--store`, `--ticket`, and
       current-workspace `--source` inputs and pins
-      `@doruksahin/task-packet-store@0.1.0`.
+      `@doruksahin/task-packet-store@0.1.1`.
 - [x] The adapter reserves `stages/10-recon/runs/vN`, checkpoints the complete
       registered current run, includes supporting evidence, and never reads or
       stores top-level `runs/`.
@@ -176,3 +176,18 @@ twice through the real published filesystem transport: `v1` and `v2` resolved
 all four locations, retained the supporting session bytes, omitted the
 unreadable archive, and a real overlap attempt exited nonzero with empty stdout
 before creating `stages/` in the source.
+
+Later on 2026-09-06, a live filesystem execution outside Recon exposed an
+upstream `0.1.0` transport defect: a checkpoint could not replace a destination
+file sealed read-only by the prior checkpoint. Recon's begin-per-delivery
+`vN` behavior remained valid, but its current pin moved to the corrected
+`0.1.1` package so consumers select the repaired transport. The public npm
+tarball SHA-256 was independently recomputed as
+`7d7682690c9a55a502575e78ad4fb70fccb4e54d4e8a8b033dd4cf3bf8cddc43`,
+matching the verified release-candidate archive. The original `0.1.0`
+filesystem proof above remains historical evidence rather than being rewritten.
+The updated Recon rail then invoked the public `0.1.1` package twice against
+the same isolated filesystem store, reserved consecutive `v3` and `v4` runs,
+resolved all four locations for both, retained the support bytes, excluded the
+unreadable archive, and produced identical primary-result digests. Google Drive
+was not mutated by this repository follow-up.

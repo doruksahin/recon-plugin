@@ -7,7 +7,7 @@ recon pipeline run. Adding a file here without a role line below fails
 | File | Role |
 | --- | --- |
 | `check-links.sh` | Pre-commit pass 1 — existence: resolves `blob/master` self-links and backticked path references against the working tree, then lychee over real links. Docs must not outlive the files they name. |
-| `check-coherence.sh` | Pre-commit agreement gate: version stamps, generated adapters + replay-lab report, host/runtime + artifact-verifier + real-ticket-replay + Codex-activation contracts, no-command-leak test, registry mirrors, role coverage, and invariant citations. |
+| `check-coherence.sh` | Pre-commit agreement gate: version stamps, exact task-packet-store current-pin mirrors, generated adapters + replay-lab report, host/runtime + artifact-verifier + real-ticket-replay + Codex-activation contracts, no-command-leak test, registry mirrors, role coverage, and invariant citations. |
 | `check-commit-msg.sh` | Commit-msg hook: enforces the Conventional Commits format. |
 | `cz.sh` | Commitizen wrapper for composing conventional commits interactively. |
 | `release.sh` | The release rail: bumps `recon/.claude-plugin/plugin.json`, generates the changelog, tags. The version bump lives here, never hand-edited. |

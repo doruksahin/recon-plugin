@@ -1,7 +1,7 @@
 # Optional task-packet storage
 
 Recon can save an already-rendered current run through the published
-`@doruksahin/task-packet-store@0.1.0` CLI. This is an explicit optional
+`@doruksahin/task-packet-store@0.1.1` CLI. This is an explicit optional
 delivery. It does not publish a host artifact, post to Jira, or grant either
 approval.
 
@@ -41,7 +41,7 @@ Internally the rail runs the exact public package pin through npm:
 
 ```bash
 env 'npm_config_@doruksahin:registry=https://registry.npmjs.org/' \
-  npm exec --yes --package=@doruksahin/task-packet-store@0.1.0 -- \
+  npm exec --yes --package=@doruksahin/task-packet-store@0.1.1 -- \
   task-packet-store <operation>
 ```
 
@@ -59,7 +59,7 @@ location lookup succeeds:
 {
   "schemaVersion": 1,
   "operation": "recon-dossier-store",
-  "package": "@doruksahin/task-packet-store@0.1.0",
+  "package": "@doruksahin/task-packet-store@0.1.1",
   "tool": "recon@0.21.0",
   "ticket": "PROJ-123",
   "stage": "10-recon",

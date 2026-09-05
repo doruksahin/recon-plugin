@@ -54,7 +54,7 @@ printf '\n' >>"$FAKE_LOG"
 shift
 [ "${1:-}" = "--yes" ] || { echo "FAKE_ARGS: expected --yes" >&2; exit 2; }
 shift
-[ "${1:-}" = "--package=@doruksahin/task-packet-store@0.1.0" ] \
+[ "${1:-}" = "--package=@doruksahin/task-packet-store@0.1.1" ] \
   || { echo "FAKE_ARGS: exact package pin missing" >&2; exit 2; }
 shift
 [ "${1:-}" = "--" ] && [ "${2:-}" = "task-packet-store" ] \
@@ -215,7 +215,7 @@ python3 - "$RECEIPT1" "$FAKE_STORE" "$TICKET" <<'PY' || fail "first receipt cont
 import json, pathlib, sys
 receipt = json.loads(sys.argv[1])
 root, ticket = pathlib.Path(sys.argv[2]), sys.argv[3]
-assert receipt["package"] == "@doruksahin/task-packet-store@0.1.0"
+assert receipt["package"] == "@doruksahin/task-packet-store@0.1.1"
 assert receipt["tool"] == "recon@0.21.0"
 assert receipt["ticket"] == ticket and receipt["stage"] == "10-recon" and receipt["version"] == "v1"
 assert receipt["primaryResult"] == "report/dossier.html"
@@ -247,7 +247,7 @@ pass
 
 EXPECTED_CALLS=14
 [ "$(wc -l <"$LOG" | tr -d ' ')" -eq "$EXPECTED_CALLS" ] || fail "expected $EXPECTED_CALLS pinned package calls"
-if grep -vF -- '--package=@doruksahin/task-packet-store@0.1.0' "$LOG" | grep -q .; then
+if grep -vF -- '--package=@doruksahin/task-packet-store@0.1.1' "$LOG" | grep -q .; then
   fail "a package call was not exactly pinned"
 fi
 pass

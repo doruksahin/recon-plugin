@@ -7,7 +7,7 @@
 # and emits one JSON receipt only after every saved location resolves.
 set -euo pipefail
 
-PACKAGE="@doruksahin/task-packet-store@0.1.0"
+PACKAGE="@doruksahin/task-packet-store@0.1.1"
 STAGE="10-recon"
 PRIMARY="report/dossier.html"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
