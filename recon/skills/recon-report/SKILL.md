@@ -5,7 +5,7 @@ description: Render a Recon workspace as a self-contained HTML dossier. Use when
 
 # Recon Report
 
-Turns the current-run artifacts of `$RECON_ROOT/<TICKET>/` into one designed, self-contained HTML page — verdict chips, seven-slot facts, blockers & question packs, stage-by-stage narrative, evidence tables, screenshot exhibits, gate decisions, handoff. On a host with `publish_once`, an on-demand run may publish the page as a **private** artifact the user can choose to share; every other run returns the file on disk.
+Turns the current-run artifacts of `$RECON_ROOT/<TICKET>/` into one designed, self-contained HTML page — verdict chips, seven-slot facts, blockers & question packs, stage-by-stage narrative, evidence tables, screenshot exhibits, gate decisions, handoff. On a host with `publish_once`, an on-demand run may publish the page as a **private** artifact the user can choose to share; every other run returns the file on disk. When the user explicitly supplies an absolute task-packet store config, the same run also saves the complete current workspace through the delivery rail in `../../scripts/store-dossier.sh`.
 
 ## Host setup
 
@@ -17,10 +17,10 @@ dossier path as render-only. Later rails still detect current runtime identity.
 
 ## Contract
 
-- **Input:** ticket ID (precondition: current run exists — root `meta.yaml` + `triage/triage.yaml`)
+- **Input:** ticket ID (precondition: current run exists — root `meta.yaml` + `triage/triage.yaml`); optionally, an explicit absolute task-packet store config path
 - **Reads:** current-run artifacts in `$RECON_ROOT/<TICKET>/` (never `runs/`), the shipped `template.html`
 - **Writes:** ONLY inside `$RECON_ROOT/<TICKET>/report/` — `dossier.html`. Create the directory before writing. Anything else fails `lint-workspace.sh`
-- **External side effects:** only when on-demand mode and `publish_once` are both active, publishes `report/dossier.html` as a private artifact visible only to the user. Every other path renders and STOPS with no publishing. In every mode this skill never posts to Jira and never touches the repo.
+- **External side effects:** only when on-demand mode and `publish_once` are both active, publishes `report/dossier.html` as a private artifact visible only to the user. When and only when an absolute store config was explicitly supplied, saves the complete current run under `stages/10-recon/runs/vN/` and returns its actual locations. Every other path renders and STOPS with no publishing or storage. In every mode this skill never posts to Jira and never touches the repo.
 
 ---
 
@@ -38,6 +38,12 @@ dossier path as render-only. Later rails still detect current runtime identity.
    Discovery package exists, run `verify-discovery.sh` in `post-gate` mode if
    `gate.yaml` exists, otherwise `pre-gate`. A verifier failure is an artifact
    defect to report and stop on, never content to beautify into a dossier.
+9. **Storage is explicit and separate.** Never infer a store from host, Jira,
+   a vault, repository files, or prior runs. If the user supplied an absolute
+   store config, run `store-dossier.sh` after the dossier and workspace lint
+   succeed. A storage failure is the report outcome; never fall back to a local
+   success claim. Saving does not publish an artifact, post to Jira, or grant a
+   later delivery approval.
 
 ---
 
@@ -62,8 +68,8 @@ dossier path as render-only. Later rails still detect current runtime identity.
 
 ## Modes
 
-- **On-demand** (default — the user asked for a report/dossier/shareable summary): run workflow steps 1–6. Publish only when `publish_once` is available; otherwise the run ends with the rendered local file.
-- **Render-only** (auto-invoked by `recon:recon-triage` on its BLOCKED/NEEDS_INFO posting path or by `recon:recon-discovery` after an approved READY package): run workflow steps 1–5 — verify workspace, read artifacts, prepare exhibits, fill the template, write + lint — then STOP. SKIP step 6: no publishing, no Jira, nothing else. The caller uploads `report/dossier.html` behind its own delivery gate. Report `Rendered (render-only): <path> (<size>)` plus the Lint line instead of the Published line.
+- **On-demand** (default — the user asked for a report/dossier/shareable summary): run workflow steps 1–7. Save only when the user supplied a store config. Publish only when `publish_once` is available; otherwise the run ends with the rendered local file or stored receipt.
+- **Render-only** (auto-invoked by `recon:recon-triage` on its BLOCKED/NEEDS_INFO posting path or by `recon:recon-discovery` after an approved READY package): run workflow steps 1–5 — verify workspace, read artifacts, prepare exhibits, fill the template, write + lint — then STOP unless that caller also passed an explicit store config. SKIP host publication: no private artifact, no Jira mutation. The caller separately uploads `report/dossier.html` behind its own delivery gate. Report `Rendered (render-only): <path> (<size>)` plus the Lint line and, only when explicitly requested, the storage receipt.
 
 ## Workflow
 
@@ -72,7 +78,20 @@ dossier path as render-only. Later rails still detect current runtime identity.
 3. **Prepare exhibits** per rule 5 (use the session scratchpad for temp JPEGs).
 4. **Fill the template** slot by slot per the map. Strip the instruction comments (`«SLOT: …»` markers and the leading file comment) from the output.
 5. **Write** `$RECON_ROOT/<TICKET>/report/dossier.html`, then run `bash "<skill base dir>/../../scripts/lint-workspace.sh" <TICKET>` and fix any violation.
-6. **Publish when available** — on-demand mode ONLY. If `publish_once` is unavailable, STOP after step 5 and print the render-only report. Otherwise publish as an artifact: title `<TICKET> — Recon Dossier`, favicon `🗂️` (keep both stable across redeploys of the same ticket). If the environment requires a prerequisite skill before publishing, load it first. After a successful publish, log `bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> dossier_published` (invariant 16).
+6. **Store when explicitly requested.** If no absolute store config was supplied, skip this step without probing for one. Otherwise run the delivery rail with the current workspace root as `--source` and retain its one-line JSON receipt verbatim:
+
+   ```bash
+   bash "<skill base dir>/../../scripts/store-dossier.sh" \
+     --store <absolute-store-config.json> \
+     --ticket <TICKET> \
+     --source "$RECON_ROOT/<TICKET>"
+   ```
+
+   Require exit 0 and a receipt with the stored run plus primary, run-record,
+   and snapshot locations. On any failure, report it and STOP; do not print a
+   successful persistence line. The full command and receipt contract live in
+   `../../docs/storage.md`.
+7. **Publish when available** — on-demand mode ONLY. If `publish_once` is unavailable, STOP after the applicable storage step and print the render-only report. Otherwise publish as an artifact: title `<TICKET> — Recon Dossier`, favicon `🗂️` (keep both stable across redeploys of the same ticket). If the environment requires a prerequisite skill before publishing, load it first. After a successful publish, log `bash "<skill base dir>/../../scripts/log-event.sh" <TICKET> dossier_published` (invariant 16).
 
 ## Report
 
@@ -84,6 +103,7 @@ Verify: <applicable repro/discovery verifier verdict lines, verbatim>
 Lint: <lint-workspace.sh verdict line, verbatim>
 Published: <artifact URL> (private — sharing is your call)
 Coverage: <stages included> · <n> exhibits · commit <sha|unpinned>
+Stored: <store-dossier.sh JSON receipt verbatim, only when explicitly requested>
 ```
 
 Without `publish_once`, or in explicit render-only mode (including either Jira delivery path), print — no Published line, nothing was published:
@@ -92,6 +112,7 @@ Without `publish_once`, or in explicit render-only mode (including either Jira d
 Rendered (render-only): $RECON_ROOT/<TICKET>/report/dossier.html (<size>)
 Verify: <applicable repro/discovery verifier verdict lines, verbatim>
 Lint: <lint-workspace.sh verdict line, verbatim>
+Stored: <store-dossier.sh JSON receipt verbatim, only when explicitly requested>
 ```
 
 ---

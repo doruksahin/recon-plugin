@@ -90,6 +90,9 @@ fi
 if ! bash tools/test-comment-rendering.sh; then
   say_fail "tools/test-comment-rendering.sh failed"
 fi
+if ! bash tools/test-dossier-store.sh; then
+  say_fail "tools/test-dossier-store.sh failed"
+fi
 if ! bash tools/test-triage-verifier.sh; then
   say_fail "tools/test-triage-verifier.sh failed"
 fi

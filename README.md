@@ -18,7 +18,7 @@ Recon Triage ATT-1234
                │  adapter skill (opt-in) → route/routing.yaml, handoff as data
                ├─ UI defects + UI edge cases → verified repro evidence before the brief
                └─ verified package → approval gate → verify answer → print handoff → stop
-  on demand: Recon Report → self-contained HTML dossier; publishes only when the local host has a publisher
+  on demand: Recon Report → self-contained HTML dossier; optional explicit task-packet save; host publication only when available
 ```
 
 Your touchpoints per ticket: answer the gate, review the PR. That's it.
@@ -77,12 +77,13 @@ flowchart TD
 
     HALT1 -.->|"on demand"| REPORT["recon-report — fixed template,<br>no new facts, screenshots embedded<br>→ report/dossier.html + private artifact"]
     HALT2 -.->|"on demand"| REPORT
+    REPORT -.->|"explicit store config"| STORE["store-dossier.sh — validate disjoint destination + complete traversal<br>prune archived runs/ → begin 10-recon → checkpoint → locate"]
 
     classDef rail fill:#dbeafe,stroke:#2563eb,color:#1e3a5f
     classDef judge fill:#fef9c3,stroke:#ca8a04,color:#713f12
     classDef human fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
     classDef stop fill:#f3f4f6,stroke:#6b7280,color:#374151
-    class PRE,S0,FETCH,PART,BREPRO,RENDER,PKG,ATTACH,POST,GOV,GSEL,RGEN,RDEC,RTRIG,VREPRO,BRIEFKIND,DPRE,DPOSTR,DPOSTA,HAND,REPORT rail
+    class PRE,S0,FETCH,PART,BREPRO,RENDER,PKG,ATTACH,POST,GOV,GSEL,RGEN,RDEC,RTRIG,VREPRO,BRIEFKIND,DPRE,DPOSTR,DPOSTA,HAND,REPORT,STORE rail
     class CHECKS,DISP,MAP,GHERKIN,DRAFT,BR,REPRO,SPEC judge
     class GREJ,GAPP judge
     class UIQ,GATE human
@@ -139,6 +140,10 @@ partially supported.
 4. **Workspace root** — optional. The backward-compatible default is
    `~/.claude/recon`; set `RECON_ROOT` to any absolute path to use a neutral or
    shared location. `recon/scripts/reconctl.sh root` prints the active value.
+5. **Task-packet storage** — optional. Node.js 20+ runs the exact pinned store
+   CLI; Google Drive additionally needs the package's rclone runtime and one
+   environment credential. See the literal command, receipt, and acceptance
+   recipes in [recon/docs/storage.md](recon/docs/storage.md).
 
 ## Contributing to this repo
 
@@ -176,7 +181,7 @@ python3 tools/generate-adapters.py --check
 | `recon-triage` | 0 | Preflight plus blocker verdict (READY/BLOCKED/NEEDS_INFO) from six mechanical checks; drafts owner-addressed questions; never plans |
 | `recon-discovery` | 1 | Code surface with `file:line` evidence, stable-ID Gherkin contract, routed brief, and mechanically verified approval handoff |
 | `recon-repro` | on demand | Live-reproduces observable behavior: verified numbered steps + one screenshot per state; honest about failed repros |
-| `recon-report` | on demand / render-only | Always renders a fixed HTML dossier; publishes only when `publish_once` is available |
+| `recon-report` | on demand / render-only | Always renders a fixed HTML dossier; saves the complete current run only from an explicit store config; publishes only when `publish_once` is available |
 | `recon-state` | on demand / auto-refresh | Derives and renders the living state canvas; writes a stable URL only when `publish_stable_url` is available |
 | `recon-decree` | adapter | Decree governance adapter — invoked by discovery only when governance resolves to `decree`; ALL decree vocabulary lives here |
 
@@ -188,9 +193,9 @@ python3 tools/generate-adapters.py --check
 | `recon-discovery` | ticket ID (READY triage) | `discovery/{discovery.md, gate.yaml}` plus `spec-draft.md` unless `brief_kind: none` | none — verifies the package, quotes the handoff verbatim from `route/routing.yaml`, never executes it |
 | routing stage | governance resolution | `route/routing.yaml` (route, rule trace, `handoff:` as data); adapter also writes `route/aux-intent-check.txt` | none — produced by `scripts/route-generic.sh` or the `recon-decree` adapter |
 | `recon-repro` | ticket ID + claim | `repro/repro.md` + `repro/exhibits/*.png` | none (local only: boots the dev server, shows screenshots) |
-| `recon-report` | ticket ID (run exists) | `report/dossier.html` | always renders; with `publish_once`, an on-demand run publishes one **private** artifact. Otherwise none — on the BLOCKED path, triage attaches the dossier behind its own gate. Never posts to Jira itself |
+| `recon-report` | ticket ID (run exists) + optional absolute store config | `report/dossier.html` | always renders; an explicit store config saves the complete current run under task-packet-store `stages/10-recon/runs/vN/`; with `publish_once`, an on-demand run publishes one **private** artifact. Otherwise none — on the BLOCKED path, triage attaches the dossier behind its own gate. Never posts to Jira itself |
 
-Nothing is ever pushed, committed, or posted anywhere without an explicit per-action approval. Jira gets at most one short comment per stage — edited on re-runs (detected by the `recon-triage` marker line), never appended — and attachments in the `recon-*-<TICKET>.*` namespace are replaced, never accumulated.
+Nothing is ever pushed, committed, or posted anywhere without an explicit per-action request or approval. Passing a store config requests only that save; it never authorizes host publication or Jira delivery. Jira gets at most one short comment per stage — edited on re-runs (detected by the `recon-triage` marker line), never appended — and attachments in the `recon-*-<TICKET>.*` namespace are replaced, never accumulated.
 
 ## Governance is opt-in (decree or nothing at all)
 
