@@ -497,7 +497,7 @@
       <dt>who</dt><dd><span class="w-rail">rail</span> — explicit input only</dd>
       <dt>in</dt><dd>absolute store config + ticket + current workspace with <code>report/dossier.html</code></dd>
       <dt>out</dt><dd><code>stages/10-recon/runs/vN/</code> with current-run support, <code>run.md</code>, <code>snapshot.json</code>, and package-resolved locations</dd>
-      <dt>rule</dt><dd>exact <code>@doruksahin/task-packet-store@0.1.0</code> <span class="sep">·</span> prune top-level archived <code>runs/</code> before traversal <span class="sep">·</span> no success receipt until checkpoint + all location lookups pass <span class="sep">·</span> saving authorizes neither host publication nor Jira</dd>
+      <dt>rule</dt><dd>exact <code>@doruksahin/task-packet-store@0.1.0</code> <span class="sep">·</span> validate package-owned store metadata and reject canonical filesystem overlap before reservation <span class="sep">·</span> prune top-level archived <code>runs/</code>, then require complete current-run traversal <span class="sep">·</span> no success receipt until checkpoint + all location lookups pass <span class="sep">·</span> saving authorizes neither host publication nor Jira</dd>
     </dl>
   </div>
 

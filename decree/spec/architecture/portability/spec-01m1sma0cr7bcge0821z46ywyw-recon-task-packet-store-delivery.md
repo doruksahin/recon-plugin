@@ -62,9 +62,11 @@ rail requires regular `meta.yaml`, `triage/triage.yaml`, and
 `report/dossier.html` files and requires the source basename and metadata
 ticket to equal `--ticket`. It copies the current-run tree to temporary local
 staging while pruning top-level `runs/` before traversal and rejecting
-symlinks or non-regular entries. It runs `lint-workspace.sh` against that
-staged tree, so storage sees the same artifact registry without reading an
-archive or writing a receipt/state artifact into the live Recon workspace.
+symlinks or non-regular entries. The traversal completes into a checked entry
+list before copying begins; a traversal error therefore cannot silently omit
+current-run evidence. It runs `lint-workspace.sh` against that staged tree, so
+storage sees the same artifact registry without reading an archive or writing
+a receipt/state artifact into the live Recon workspace.
 
 The rail invokes exactly
 `@doruksahin/task-packet-store@0.1.0` through npm's one-off CLI path. It sets
@@ -76,6 +78,13 @@ checkpoint inventory, and location lookup. `begin` reserves stage
 `checkpoint` uploads the complete staged current run. Four `locate` calls
 resolve the reserved run directory, `report/dossier.html`, `run.md`, and
 `snapshot.json`.
+
+Before traversal or `begin`, the rail calls the package's read-only `doctor`
+command. That command remains the owner of config validation and returns the
+selected driver plus its `remoteRoot`. For filesystem stores, the rail resolves
+the prospective `<remoteRoot>/<ticket>` destination through existing symlink
+ancestors and rejects equality or either ancestor relationship with the
+canonical source. Drive roots are not interpreted as local paths.
 
 The rail captures every package JSON response internally. It writes exactly
 one JSON object to stdout only after `begin`, `checkpoint`, and both `locate`
@@ -100,8 +109,12 @@ transport implementation. It verifies the exact package/version invocation,
 the fixed stage/tool inputs, package response coherence, current-run support
 file staging, archive pruning, and the final receipt. It repeats a successful
 delivery and requires the second version while proving the first is unchanged.
-Fault fixtures cover invalid inputs, workspace lint failure, checkpoint
-failure, and location failure; each must exit nonzero and keep stdout empty.
+Fault fixtures cover invalid inputs, incomplete current-run traversal,
+filesystem source/destination overlap (direct, descendant, and symlink alias),
+workspace lint failure, checkpoint failure, and location failure; each must
+exit nonzero and keep stdout empty. Traversal and overlap failures must occur
+before `begin`, leave no reservation, and preserve the source bytes; an
+unreadable top-level archive remains a passing negative control.
 
 A local acceptance run uses the real published package and an `fs` config. It
 saves a rendered fixture with support files, reads the returned filesystem
@@ -128,7 +141,8 @@ is part of repository validation; private CI owns that acceptance.
 - [x] No-store report behavior, host publication, Jira delivery gates, and
       governance routing retain their existing semantics.
 - [x] Hermetic adapter controls pass for exact invocation, repeat delivery,
-      archive exclusion, invalid input, checkpoint failure, and lookup failure.
+      checked current-run traversal, archive exclusion, filesystem overlap,
+      invalid input, checkpoint failure, and lookup failure.
 - [x] A real `fs` run works without rclone or Drive credentials, returned
       locations are readable, and repeating it preserves `v1`.
 - [x] The deterministic Drive acceptance recipe uses the identical adapter
@@ -149,3 +163,16 @@ the `v1` dossier SHA-256 unchanged after `v2`. The full pre-commit rail passed.
 Live Google Drive mutation remains private acceptance, not a repository-side
 claim. `recon/docs/storage.md` fixes the identical-adapter recipe and explicit
 credential/location checks for that run.
+
+On 2026-09-06, independent review reproduced two fail-open boundaries in the
+initial implementation: a failed `find` hidden by process substitution could
+omit unreadable support evidence, and an overlapping filesystem destination
+could let `begin` write into the source. The revised eleven-group hermetic suite
+retains both failures and their negative controls. Checked traversal now stops
+before staging or reservation, and package-owned `doctor` metadata drives a
+canonical overlap guard before `begin`, including symlink aliases and a
+not-yet-created destination below the source. The revised rail was then run
+twice through the real published filesystem transport: `v1` and `v2` resolved
+all four locations, retained the supporting session bytes, omitted the
+unreadable archive, and a real overlap attempt exited nonzero with empty stdout
+before creating `stages/` in the source.

@@ -26,7 +26,22 @@ assert_contains() { printf '%s\n' "$1" | grep -Fq -- "$2" || fail "$3 (missing '
 BIN="$FIXTURE/bin"
 FAKE_STORE="$FIXTURE/store"
 LOG="$FIXTURE/npm.log"
+REAL_FIND="$(command -v find)"
 mkdir -p "$BIN" "$FAKE_STORE"
+
+cat >"$BIN/find" <<'FAKE_FIND'
+#!/bin/bash
+set -euo pipefail
+if [ -n "${FAKE_FIND_FAIL_PATH:-}" ] && [ "${1:-}" = "${FAKE_FIND_SOURCE:-}" ]; then
+  "$FAKE_REAL_FIND" "$1" \
+    -path "$FAKE_FIND_FAIL_PATH" -prune -o \
+    -path "$1/runs" -prune -o -print0
+  echo "find: $FAKE_FIND_FAIL_PATH: Permission denied" >&2
+  exit 1
+fi
+exec "$FAKE_REAL_FIND" "$@"
+FAKE_FIND
+chmod +x "$BIN/find"
 
 cat >"$BIN/npm" <<'FAKE'
 #!/bin/bash
@@ -67,6 +82,22 @@ if [ "${FAKE_FAIL_PHASE:-}" = "$command_name" ]; then
 fi
 
 case "$command_name" in
+  doctor)
+    store="$(value_for --store "$@")"
+    python3 - "$store" <<'PY'
+import json, sys
+config = json.load(open(sys.argv[1], encoding="utf-8"))
+if config["driver"] == "fs":
+    print(json.dumps({"driver": "fs", "rclone": None, "rcloneTested": "1.75.0",
+                      "credential": "none", "remoteRoot": config["root"]}))
+else:
+    prefix = config.get("prefix", "")
+    suffix = f"/{prefix}" if prefix else ""
+    print(json.dumps({"driver": "gdrive", "rclone": "1.75.0", "rcloneTested": "1.75.0",
+                      "credential": "PACKET_STORE_DRIVE_TOKEN",
+                      "remoteRoot": f":drive,team_drive={config['sharedDriveId']}:{suffix}"}))
+PY
+    ;;
   begin)
     store="$(value_for --store "$@")"
     ticket="$(value_for --ticket "$@")"
@@ -148,10 +179,34 @@ make_workspace() {
   printf '%s\n' "$workspace"
 }
 
+current_tree_digest() {
+  python3 - "$1" <<'PY'
+import hashlib
+import os
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+digest = hashlib.sha256()
+for directory, names, files in os.walk(root):
+    if pathlib.Path(directory) == root:
+        names[:] = [name for name in names if name != "runs"]
+    names.sort()
+    files.sort()
+    for name in files:
+        path = pathlib.Path(directory, name)
+        relative = path.relative_to(root).as_posix()
+        digest.update(relative.encode())
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+print(digest.hexdigest())
+PY
+}
+
 CONFIG="$FIXTURE/store.json"
 printf '{"driver":"fs","root":"%s"}\n' "$FAKE_STORE" >"$CONFIG"
 WORKSPACE="$(make_workspace "$TICKET")"
-ENV_ARGS=(PATH="$BIN:$PATH" FAKE_STORE_ROOT="$FAKE_STORE" FAKE_LOG="$LOG")
+ENV_ARGS=(PATH="$BIN:$PATH" FAKE_REAL_FIND="$REAL_FIND" FAKE_STORE_ROOT="$FAKE_STORE" FAKE_LOG="$LOG")
 
 chmod 000 "$WORKSPACE/runs"
 RECEIPT1="$(env "${ENV_ARGS[@]}" bash "$STORE_DOSSIER" --store "$CONFIG" --ticket "$TICKET" --source "$WORKSPACE")"
@@ -190,11 +245,88 @@ assert_contains "$RECEIPT2" '"version":"v2"' "repeat delivery reserves v2"
 [ "$(shasum -a 256 "$V1_DOSSIER" | cut -d' ' -f1)" = "$V1_HASH" ] || fail "repeat delivery changed v1"
 pass
 
-EXPECTED_CALLS=12
+EXPECTED_CALLS=14
 [ "$(wc -l <"$LOG" | tr -d ' ')" -eq "$EXPECTED_CALLS" ] || fail "expected $EXPECTED_CALLS pinned package calls"
 if grep -vF -- '--package=@doruksahin/task-packet-store@0.1.0' "$LOG" | grep -q .; then
   fail "a package call was not exactly pinned"
 fi
+pass
+
+TRAVERSAL_TICKET="PROJ-126"
+TRAVERSAL_WORKSPACE="$(make_workspace "$TRAVERSAL_TICKET")"
+TRAVERSAL_WORKSPACE="$(cd "$TRAVERSAL_WORKSPACE" && pwd -P)"
+if env "${ENV_ARGS[@]}" \
+  FAKE_FIND_SOURCE="$TRAVERSAL_WORKSPACE" \
+  FAKE_FIND_FAIL_PATH="$TRAVERSAL_WORKSPACE/repro/session" \
+  bash "$STORE_DOSSIER" \
+  --store "$CONFIG" --ticket "$TRAVERSAL_TICKET" --source "$TRAVERSAL_WORKSPACE" \
+  >"$FIXTURE/traversal.out" 2>"$FIXTURE/traversal.err"; then
+  fail "unreadable current-run evidence unexpectedly passed"
+fi
+[ ! -s "$FIXTURE/traversal.out" ] || fail "traversal failure emitted a success receipt"
+assert_contains "$(cat "$FIXTURE/traversal.err")" "source traversal failed" "traversal failure diagnostic"
+[ ! -e "$FAKE_STORE/$TRAVERSAL_TICKET/stages/10-recon/runs/v1/run.md" ] \
+  || fail "traversal failure reserved a run"
+pass
+
+OVERLAP_TICKET="PROJ-127"
+OVERLAP_WORKSPACE="$(make_workspace "$OVERLAP_TICKET")"
+OVERLAP_BEFORE="$(current_tree_digest "$OVERLAP_WORKSPACE")"
+OVERLAP_CONFIG="$FIXTURE/overlap-store.json"
+printf '{"driver":"fs","root":"%s"}\n' "$FIXTURE/work" >"$OVERLAP_CONFIG"
+if env "${ENV_ARGS[@]}" bash "$STORE_DOSSIER" \
+  --store "$OVERLAP_CONFIG" --ticket "$OVERLAP_TICKET" --source "$OVERLAP_WORKSPACE" \
+  >"$FIXTURE/overlap.out" 2>"$FIXTURE/overlap.err"; then
+  fail "source-equals-packet destination overlap unexpectedly passed"
+fi
+[ ! -s "$FIXTURE/overlap.out" ] || fail "overlap failure emitted a success receipt"
+assert_contains "$(cat "$FIXTURE/overlap.err")" "store destination overlaps source workspace" "overlap diagnostic"
+[ ! -e "$OVERLAP_WORKSPACE/stages" ] || fail "overlap failure reserved a run inside the source"
+[ "$(current_tree_digest "$OVERLAP_WORKSPACE")" = "$OVERLAP_BEFORE" ] || fail "overlap failure changed source bytes"
+
+ALIAS_TICKET="PROJ-128"
+ALIAS_WORKSPACE="$(make_workspace "$ALIAS_TICKET")"
+ALIAS_BEFORE="$(current_tree_digest "$ALIAS_WORKSPACE")"
+ln -s "$FIXTURE/work" "$FIXTURE/work-alias"
+ALIAS_CONFIG="$FIXTURE/alias-store.json"
+printf '{"driver":"fs","root":"%s"}\n' "$FIXTURE/work-alias" >"$ALIAS_CONFIG"
+if env "${ENV_ARGS[@]}" bash "$STORE_DOSSIER" \
+  --store "$ALIAS_CONFIG" --ticket "$ALIAS_TICKET" --source "$ALIAS_WORKSPACE" \
+  >"$FIXTURE/alias.out" 2>"$FIXTURE/alias.err"; then
+  fail "symlink-aliased destination overlap unexpectedly passed"
+fi
+[ ! -s "$FIXTURE/alias.out" ] || fail "symlink-alias overlap emitted a success receipt"
+assert_contains "$(cat "$FIXTURE/alias.err")" "store destination overlaps source workspace" "symlink-alias diagnostic"
+[ ! -e "$ALIAS_WORKSPACE/stages" ] || fail "symlink-alias overlap reserved a run inside the source"
+[ "$(current_tree_digest "$ALIAS_WORKSPACE")" = "$ALIAS_BEFORE" ] || fail "symlink-alias overlap changed source bytes"
+
+DESCENDANT_TICKET="PROJ-129"
+DESCENDANT_WORKSPACE="$(make_workspace "$DESCENDANT_TICKET")"
+DESCENDANT_BEFORE="$(current_tree_digest "$DESCENDANT_WORKSPACE")"
+DESCENDANT_CONFIG="$FIXTURE/descendant-store.json"
+printf '{"driver":"fs","root":"%s"}\n' "$DESCENDANT_WORKSPACE/packet-store" >"$DESCENDANT_CONFIG"
+if env "${ENV_ARGS[@]}" bash "$STORE_DOSSIER" \
+  --store "$DESCENDANT_CONFIG" --ticket "$DESCENDANT_TICKET" --source "$DESCENDANT_WORKSPACE" \
+  >"$FIXTURE/descendant.out" 2>"$FIXTURE/descendant.err"; then
+  fail "destination-inside-source overlap unexpectedly passed"
+fi
+[ ! -s "$FIXTURE/descendant.out" ] || fail "descendant overlap emitted a success receipt"
+assert_contains "$(cat "$FIXTURE/descendant.err")" "store destination overlaps source workspace" "descendant overlap diagnostic"
+[ ! -e "$DESCENDANT_WORKSPACE/packet-store" ] || fail "descendant overlap created the store inside the source"
+[ "$(current_tree_digest "$DESCENDANT_WORKSPACE")" = "$DESCENDANT_BEFORE" ] || fail "descendant overlap changed source bytes"
+pass
+
+DOCTOR_TICKET="PROJ-130"
+DOCTOR_WORKSPACE="$(make_workspace "$DOCTOR_TICKET")"
+if env "${ENV_ARGS[@]}" FAKE_FAIL_PHASE=doctor bash "$STORE_DOSSIER" \
+  --store "$CONFIG" --ticket "$DOCTOR_TICKET" --source "$DOCTOR_WORKSPACE" \
+  >"$FIXTURE/doctor.out" 2>"$FIXTURE/doctor.err"; then
+  fail "injected doctor failure unexpectedly passed"
+fi
+[ ! -s "$FIXTURE/doctor.out" ] || fail "doctor failure emitted a success receipt"
+assert_contains "$(cat "$FIXTURE/doctor.err")" "doctor failed" "doctor failure diagnostic"
+[ ! -e "$FAKE_STORE/$DOCTOR_TICKET/stages/10-recon/runs/v1/run.md" ] \
+  || fail "doctor failure reserved a run"
 pass
 
 if env "${ENV_ARGS[@]}" bash "$STORE_DOSSIER" --store "$CONFIG" --ticket "$TICKET" --source relative \

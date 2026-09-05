@@ -112,36 +112,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-STAGED_ROOT="$WORK/current"
-STAGED_SOURCE="$STAGED_ROOT/$TICKET"
-mkdir -p "$STAGED_SOURCE"
-
-# Prune the archive before traversal. Recon invariant 3 forbids opening,
-# listing, copying, or citing anything below the current workspace's runs/.
-while IFS= read -r -d '' entry; do
-  [ "$entry" = "$SOURCE" ] && continue
-  relative="${entry#"$SOURCE"/}"
-  destination="$STAGED_SOURCE/$relative"
-  if [ -L "$entry" ]; then
-    fail 2 "source workspace contains a symlink: $relative"
-  elif [ -d "$entry" ]; then
-    mkdir -p "$destination"
-  elif [ -f "$entry" ]; then
-    mkdir -p "$(dirname "$destination")"
-    cp -p "$entry" "$destination"
-  else
-    fail 2 "source workspace contains a non-regular entry: $relative"
-  fi
-done < <(find "$SOURCE" -path "$SOURCE/runs" -prune -o -print0)
-
-set +e
-LINT_OUTPUT="$(RECON_ROOT="$STAGED_ROOT" bash "$SCRIPT_DIR/lint-workspace.sh" "$TICKET" 2>&1)"
-LINT_STATUS=$?
-set -e
-[ "$LINT_STATUS" -eq 0 ] || fail "$LINT_STATUS" "workspace validation failed: $LINT_OUTPUT"
-
-RUN_KEY="recon.${TICKET//-/}.$(date -u +%Y%m%dT%H%M%SZ).${WORK##*.}"
-STATE="$WORK/run-state.json"
 TPS=(
   env 'npm_config_@doruksahin:registry=https://registry.npmjs.org/'
   npm exec --yes "--package=$PACKAGE" -- task-packet-store
@@ -176,6 +146,91 @@ if not isinstance(value, dict):
     raise SystemExit(f"dossier-store: {phase} did not return a JSON object")
 PY
 }
+
+# Ask the package to validate its own config and expose its resolved transport
+# metadata. For filesystem stores only, reject every source/destination overlap
+# before begin can create run.md inside the live Recon workspace.
+run_tps doctor doctor --store "$STORE"
+python3 - "$WORK/doctor.json" "$SOURCE" "$TICKET" <<'PY'
+import json
+import os
+import sys
+
+doctor_path, source, ticket = sys.argv[1:]
+with open(doctor_path, encoding="utf-8") as handle:
+    doctor = json.load(handle)
+
+driver = doctor.get("driver")
+remote_root = doctor.get("remoteRoot")
+if driver not in {"fs", "gdrive"} or not isinstance(remote_root, str) or not remote_root:
+    raise SystemExit("dossier-store: doctor returned incoherent store metadata")
+if driver != "fs":
+    raise SystemExit(0)
+if not os.path.isabs(remote_root):
+    raise SystemExit("dossier-store: doctor returned a non-absolute filesystem root")
+
+def intended_realpath(target):
+    missing = []
+    current = os.path.abspath(target)
+    while not os.path.exists(current):
+        parent, name = os.path.dirname(current), os.path.basename(current)
+        if parent == current:
+            break
+        missing.insert(0, name)
+        current = parent
+    return os.path.join(os.path.realpath(current), *missing)
+
+source = os.path.realpath(source)
+destination = intended_realpath(os.path.join(remote_root, ticket))
+contains = lambda outer, inner: inner == outer or inner.startswith(outer + os.sep)
+if contains(source, destination) or contains(destination, source):
+    raise SystemExit("dossier-store: store destination overlaps source workspace")
+PY
+
+STAGED_ROOT="$WORK/current"
+STAGED_SOURCE="$STAGED_ROOT/$TICKET"
+mkdir -p "$STAGED_SOURCE"
+
+# Prune the archive before traversal. Recon invariant 3 forbids opening,
+# listing, copying, or citing anything below the current workspace's runs/.
+SOURCE_ENTRIES="$WORK/source-entries"
+SOURCE_FIND_ERR="$WORK/source-find.err"
+set +e
+find "$SOURCE" -path "$SOURCE/runs" -prune -o -print0 \
+  >"$SOURCE_ENTRIES" 2>"$SOURCE_FIND_ERR"
+FIND_STATUS=$?
+set -e
+if [ "$FIND_STATUS" -ne 0 ]; then
+  if [ -s "$SOURCE_FIND_ERR" ]; then
+    sed 's/^/  /' "$SOURCE_FIND_ERR" >&2
+  fi
+  fail "$FIND_STATUS" "source traversal failed (find exit $FIND_STATUS)"
+fi
+
+while IFS= read -r -d '' entry; do
+  [ "$entry" = "$SOURCE" ] && continue
+  relative="${entry#"$SOURCE"/}"
+  destination="$STAGED_SOURCE/$relative"
+  if [ -L "$entry" ]; then
+    fail 2 "source workspace contains a symlink: $relative"
+  elif [ -d "$entry" ]; then
+    mkdir -p "$destination"
+  elif [ -f "$entry" ]; then
+    mkdir -p "$(dirname "$destination")"
+    cp -p "$entry" "$destination"
+  else
+    fail 2 "source workspace contains a non-regular entry: $relative"
+  fi
+done <"$SOURCE_ENTRIES"
+
+set +e
+LINT_OUTPUT="$(RECON_ROOT="$STAGED_ROOT" bash "$SCRIPT_DIR/lint-workspace.sh" "$TICKET" 2>&1)"
+LINT_STATUS=$?
+set -e
+[ "$LINT_STATUS" -eq 0 ] || fail "$LINT_STATUS" "workspace validation failed: $LINT_OUTPUT"
+
+RUN_KEY="recon.${TICKET//-/}.$(date -u +%Y%m%dT%H%M%SZ).${WORK##*.}"
+STATE="$WORK/run-state.json"
 
 run_tps begin begin \
   --store "$STORE" \

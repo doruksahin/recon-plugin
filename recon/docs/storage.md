@@ -9,7 +9,12 @@ approval.
 
 Use the current ticket workspace as `--source`, not its `report/` directory.
 That includes the dossier and registered supporting evidence while the rail
-prunes the unreadable top-level `runs/` archive before traversal.
+prunes the unreadable top-level `runs/` archive before traversal. Before any
+run is reserved, the package validates the store through `doctor`; for a
+filesystem store, Recon rejects a packet destination that is equal to, inside,
+or an ancestor of the source workspace, including through symlink aliases.
+Current-run traversal must finish cleanly before staging or reservation, so an
+unreadable supporting-evidence directory cannot be silently omitted.
 
 ```bash
 bash recon/scripts/store-dossier.sh \

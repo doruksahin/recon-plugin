@@ -77,7 +77,7 @@ flowchart TD
 
     HALT1 -.->|"on demand"| REPORT["recon-report — fixed template,<br>no new facts, screenshots embedded<br>→ report/dossier.html + private artifact"]
     HALT2 -.->|"on demand"| REPORT
-    REPORT -.->|"explicit store config"| STORE["store-dossier.sh — prune archived runs/<br>begin 10-recon → checkpoint current run → locate results"]
+    REPORT -.->|"explicit store config"| STORE["store-dossier.sh — validate disjoint destination + complete traversal<br>prune archived runs/ → begin 10-recon → checkpoint → locate"]
 
     classDef rail fill:#dbeafe,stroke:#2563eb,color:#1e3a5f
     classDef judge fill:#fef9c3,stroke:#ca8a04,color:#713f12
